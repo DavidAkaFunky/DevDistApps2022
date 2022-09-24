@@ -1,8 +1,0 @@
-C:\Users\futeb\DAD\Project\Client\obj\Debug\Project.csproj.AssemblyReference.cache
-C:\Users\futeb\DAD\Project\Client\obj\Debug\Project.csproj.SuggestedBindingRedirects.cache
-C:\Users\futeb\DAD\Project\Client\obj\Debug\Project.csproj.CoreCompileInputs.cache
-C:\Users\futeb\DAD\Project\Client\bin\Debug\Project.exe.config
-C:\Users\futeb\DAD\Project\Client\bin\Debug\Project.exe
-C:\Users\futeb\DAD\Project\Client\bin\Debug\Project.pdb
-C:\Users\futeb\DAD\Project\Client\obj\Debug\Project.exe
-C:\Users\futeb\DAD\Project\Client\obj\Debug\Project.pdb
