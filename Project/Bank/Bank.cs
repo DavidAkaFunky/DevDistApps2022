@@ -17,7 +17,7 @@ namespace DADProject
 
             Server server = new()
             {
-                Services = { ProjectService.BindService(new DADProjectService()).Intercept(new ServerInterceptor()) },
+                Services = { ProjectService.BindService(new BankService()).Intercept(new ServerInterceptor()) },
                 Ports = { new ServerPort(ServerHostname, ServerPort, ServerCredentials.Insecure) }
             };
             server.Start();
@@ -28,8 +28,6 @@ namespace DADProject
             server.ShutdownAsync().Wait();
 
         }
-    }
-
     }
     
     public class ServerInterceptor : Interceptor

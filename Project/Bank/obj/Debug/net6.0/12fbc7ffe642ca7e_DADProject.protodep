@@ -1,2 +1,0 @@
-obj\Debug\net6.0\protos/DADProject.cs \
-obj\Debug\net6.0\protos/DADProjectGrpc.cs: protos/DADProject.proto

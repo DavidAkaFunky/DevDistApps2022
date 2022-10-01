@@ -248,19 +248,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\alt\\.nuget\\packages\\": {}
+    "C:\\Users\\futeb\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\alt\\DAD\\Project\\Bank\\Bank.csproj",
+      "projectUniqueName": "C:\\Users\\futeb\\DAD\\Project\\Bank\\Bank.csproj",
       "projectName": "Bank",
-      "projectPath": "C:\\Users\\alt\\DAD\\Project\\Bank\\Bank.csproj",
-      "packagesPath": "C:\\Users\\alt\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\alt\\DAD\\Project\\Bank\\obj\\",
+      "projectPath": "C:\\Users\\futeb\\DAD\\Project\\Bank\\Bank.csproj",
+      "packagesPath": "C:\\Users\\futeb\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\futeb\\DAD\\Project\\Bank\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\alt\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\futeb\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [

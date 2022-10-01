@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\alt\\DAD\\DADPerfectChannel\\ChatServer\\DADPerfectChannelServer.csproj": {}
+    "C:\\Users\\futeb\\DAD\\DADPerfectChannel\\ChatServer\\DADPerfectChannelServer.csproj": {}
   },
   "projects": {
-    "C:\\Users\\alt\\DAD\\DADPerfectChannel\\ChatServer\\DADPerfectChannelServer.csproj": {
+    "C:\\Users\\futeb\\DAD\\DADPerfectChannel\\ChatServer\\DADPerfectChannelServer.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\alt\\DAD\\DADPerfectChannel\\ChatServer\\DADPerfectChannelServer.csproj",
+        "projectUniqueName": "C:\\Users\\futeb\\DAD\\DADPerfectChannel\\ChatServer\\DADPerfectChannelServer.csproj",
         "projectName": "DADPerfectChannelServer",
-        "projectPath": "C:\\Users\\alt\\DAD\\DADPerfectChannel\\ChatServer\\DADPerfectChannelServer.csproj",
-        "packagesPath": "C:\\Users\\alt\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\alt\\DAD\\DADPerfectChannel\\ChatServer\\obj\\",
+        "projectPath": "C:\\Users\\futeb\\DAD\\DADPerfectChannel\\ChatServer\\DADPerfectChannelServer.csproj",
+        "packagesPath": "C:\\Users\\futeb\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\futeb\\DAD\\DADPerfectChannel\\ChatServer\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\alt\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\futeb\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [

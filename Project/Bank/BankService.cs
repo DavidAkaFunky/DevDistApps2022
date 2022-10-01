@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Bank
+namespace DADProject
 {
 
     // ChatServerService is the namespace defined in the protobuf
