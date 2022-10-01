@@ -1,11 +1,27 @@
 ﻿syntax = "proto3";
 
 service ProjectService {
-  rpc Test(PerfectChannelRequest) returns (PerfectChannelReply);
+	rpc ReadBalance(ReadBalanceRequest) returns (ReadBalanceReply);
+	rpc Deposit(DepositRequest) returns (DepositReply);
+	rpc Withdraw(WithdrawRequest) returns (WithdrawReply);
 }
-message PerfectChannelRequest {
-  string message = 1;
+message ReadBalanceRequest {
+	// EMPTY
 }
-message PerfectChannelReply {
+message ReadBalanceReply {
+	double balance = 1;
+}
+
+message DepositRequest {
+	double amount = 1;
+}
+message DepositReply {
+	// EMPTY
+}
+
+message WithdrawRequest {
+	double amount = 1;
+}
+message WithdrawReply {
 	bool status = 1;
 }

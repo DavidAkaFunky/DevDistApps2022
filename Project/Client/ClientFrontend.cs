@@ -7,13 +7,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static Grpc.Core.Interceptors.Interceptor;
+using System.Threading.Channels;
+using Google.Protobuf.WellKnownTypes;
+using System.Globalization;
 
 namespace DADProject
 {
 
-    internal class ClientFrontend
+    public class ClientFrontend
     {
-        private List<GrpcChannel> bankServers = new(); // recommended 
+        private List<GrpcChannel> bankServers = new();
+        ClientInterceptor clientInterceptor = new();
 
         public ClientFrontend()
         {
@@ -21,29 +25,45 @@ namespace DADProject
 
         public void AddServer(string server)
         {
-            var clientInterceptor = new ClientInterceptor();
             GrpcChannel channel = GrpcChannel.ForAddress(server);
             bankServers.Add(channel);
-
-            //Keeping this here to use in the future, it's not meant to be here
-            //CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
-            //var client = new ProjectService.ProjectServiceClient(interceptingInvoker);
-            //PerfectChannelRequest registerRequest = new PerfectChannelRequest { Message = "test" };
-            //PerfectChannelReply reply = client.Test(registerRequest);
         }
 
         public void DeleteServers()
         {
             foreach (GrpcChannel server in bankServers)
             {
-                server.ShutdownAsync();
+                server.ShutdownAsync().Wait();
                 bankServers.Remove(server);
             }
                 
         }
+
+        public void ReadBalance()
+        {
+            foreach (GrpcChannel channel in bankServers)
+            {
+                //Keeping this here to use in the future, it's not meant to be here
+                CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
+                var client = new ProjectService.ProjectServiceClient(interceptingInvoker);
+                ReadBalanceRequest request = new();
+                ReadBalanceReply reply = client.ReadBalance(request);
+                Console.WriteLine("Balance: " + reply.Balance.ToString("C", CultureInfo.CurrentCulture));
+            }
+        }
+
+        public void Deposit(double amount)
+        {
+            // TODO: Call Deposit
+        }
+
+        public void Withdraw(double amount)
+        {
+            // TODO: Call Withdraw
+        }
     }
 
-    public class ClientInterceptor : Interceptor
+    internal class ClientInterceptor : Interceptor
     {
         // private readonly ILogger logger;
 

@@ -13,28 +13,36 @@ namespace DADProject
     // ChatServerServiceBase is the generated base implementation of the service
     public class BankService : ProjectService.ProjectServiceBase
     {
+        private BankAccount account = new();
 
-        public BankService()
+        public BankService() { }
+
+        public override Task<ReadBalanceReply> ReadBalance(ReadBalanceRequest request, ServerCallContext context)
         {
-        }
-
-        public override Task<PerfectChannelReply> Test(
-            PerfectChannelRequest request, ServerCallContext context)
-        {
-            return Task.FromResult(Reg(request));
-        }
-
-        public PerfectChannelReply Reg(PerfectChannelRequest request)
-        {
-
             lock (this)
             {
-                Console.WriteLine($"Received request with message: {request.Message}");
+                ReadBalanceReply reply = new ReadBalanceReply { Balance = account.ReadBalance() };
+                return Task.FromResult(reply);
             }
-            return new PerfectChannelReply
+        }
+
+        public override Task<DepositReply> Deposit(DepositRequest request, ServerCallContext context)
+        {
+            lock (this)
             {
-                Status = true
-            };
+                account.Deposit(request.Amount);
+                DepositReply reply = new();
+                return Task.FromResult(reply);
+            }
+        }
+
+        public override Task<WithdrawReply> Withdraw(WithdrawRequest request, ServerCallContext context)
+        {
+            lock (this)
+            {
+                WithdrawReply reply = new WithdrawReply { Status = account.Withdraw(request.Amount) };
+                return Task.FromResult(reply);
+            }
         }
     }
 }

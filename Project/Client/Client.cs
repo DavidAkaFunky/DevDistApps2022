@@ -24,7 +24,8 @@ namespace DADProject
 
             ClientFrontend frontend = new ClientFrontend();
             //for (string server: args)
-            //frontend.AddServer(server)
+            string server = "http://localhost:1001";
+            frontend.AddServer(server);
 
             while (true)
             {
@@ -50,7 +51,7 @@ namespace DADProject
                             Console.WriteLine("ERROR: Invalid amount");
                             break;
                         }
-                        // frontend.DepositAmount(amount)
+                        frontend.Deposit(amount);
                         break;
                     case WITHDRAWAL_CMD: // Withdraw: W amount
                         if (tokens.Length != 2)
@@ -65,7 +66,7 @@ namespace DADProject
                             Console.WriteLine("ERROR: Invalid amount");
                             break;
                         }
-                        // frontend.WithdrawAmount(amount)
+                        frontend.Withdraw(amount);
                         break;
                     case READ_BALANCE_CMD: // Read balance: R
                         if (tokens.Length != 1)
@@ -74,7 +75,7 @@ namespace DADProject
                             break;
                         }
                         // TODO: Read balance
-                        // frontend.ReadBalance();
+                        frontend.ReadBalance();
                         break;
                     case WAIT_CMD: // Wait: S milliseconds
                         if (tokens.Length != 2)
