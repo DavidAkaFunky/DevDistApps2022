@@ -1,0 +1,2 @@
+obj\Release\netcoreapp3.1\protos/DADPerfectChannel.cs \
+obj\Release\netcoreapp3.1\protos/DADPerfectChannelGrpc.cs: protos/DADPerfectChannel.proto

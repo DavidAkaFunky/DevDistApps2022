@@ -1,8 +1,0 @@
-C:\Users\alt\DAD\Project\Client\bin\Debug\Client.exe.config
-C:\Users\alt\DAD\Project\Client\bin\Debug\Client.exe
-C:\Users\alt\DAD\Project\Client\bin\Debug\Client.pdb
-C:\Users\alt\DAD\Project\Client\obj\Debug\Client.csproj.AssemblyReference.cache
-C:\Users\alt\DAD\Project\Client\obj\Debug\Client.csproj.SuggestedBindingRedirects.cache
-C:\Users\alt\DAD\Project\Client\obj\Debug\Client.csproj.CoreCompileInputs.cache
-C:\Users\alt\DAD\Project\Client\obj\Debug\Client.exe
-C:\Users\alt\DAD\Project\Client\obj\Debug\Client.pdb

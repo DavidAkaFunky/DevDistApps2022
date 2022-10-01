@@ -1,2 +1,0 @@
-obj\Release\netcoreapp3.1\protos/DADChatServices.cs \
-obj\Release\netcoreapp3.1\protos/DADChatServicesGrpc.cs: protos/DADChatServices.proto

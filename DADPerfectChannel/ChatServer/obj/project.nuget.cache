@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "dgSpecHash": "uFk7fIK/sKFd6y80FV4ZPrQ8scCacSzolnOGr1LmbyKFjYhyINnS7pffw2H8SkCkCQLgGA3ptYiK0wmyMw1RuA==",
+  "success": true,
+  "projectFilePath": "C:\\Users\\alt\\DAD\\DADPerfectChannel\\ChatServer\\DADPerfectChannelServer.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\alt\\.nuget\\packages\\google.protobuf\\3.21.6\\google.protobuf.3.21.6.nupkg.sha512",
+    "C:\\Users\\alt\\.nuget\\packages\\grpc.core\\2.32.0\\grpc.core.2.32.0.nupkg.sha512",
+    "C:\\Users\\alt\\.nuget\\packages\\grpc.core.api\\2.32.0\\grpc.core.api.2.32.0.nupkg.sha512",
+    "C:\\Users\\alt\\.nuget\\packages\\grpc.tools\\2.32.0\\grpc.tools.2.32.0.nupkg.sha512",
+    "C:\\Users\\alt\\.nuget\\packages\\system.memory\\4.5.3\\system.memory.4.5.3.nupkg.sha512",
+    "C:\\Users\\alt\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\4.5.2\\system.runtime.compilerservices.unsafe.4.5.2.nupkg.sha512",
+    "C:\\Users\\alt\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\3.1.29\\microsoft.netcore.app.host.win-x64.3.1.29.nupkg.sha512",
+    "C:\\Users\\alt\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\3.1.10\\microsoft.aspnetcore.app.ref.3.1.10.nupkg.sha512",
+    "C:\\Users\\alt\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\3.1.0\\microsoft.windowsdesktop.app.ref.3.1.0.nupkg.sha512",
+    "C:\\Users\\alt\\.nuget\\packages\\microsoft.netcore.app.ref\\3.1.0\\microsoft.netcore.app.ref.3.1.0.nupkg.sha512"
+  ],
+  "logs": []
+}
