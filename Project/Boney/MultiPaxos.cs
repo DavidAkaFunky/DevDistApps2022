@@ -7,6 +7,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Globalization;
+using System.Security.Principal;
+using Google.Protobuf.WellKnownTypes;
+using System.Threading.Channels;
 
 namespace DADProject
 {
@@ -14,9 +17,20 @@ namespace DADProject
     {
         private List<GrpcChannel> multiPaxosServers = new();
         private ClientInterceptor clientInterceptor = new();
-        private int id = 0;
+        private int id;
+        private Dictionary<int, int[]> slots = new(); // <slot, [currentValue, writeTimestamp, readTimestamp]
 
-        public MultiPaxos() { }
+        public MultiPaxos(int id) { this.id = id; }
+
+        public int Id
+        { 
+            get { return id; } 
+        }
+        
+        public Dictionary<int, int[]> Slots
+        {
+            get { return slots; }
+        }
 
         public void AddServer(string server)
         {
@@ -24,21 +38,45 @@ namespace DADProject
             multiPaxosServers.Add(channel);
         }
 
+        public void AddOrSetSlot(int slot, int[] values)
+        { 
+            slots[slot] = values;
+        }
+
         public int RunConsensus(int slot, int inValue)
         {
+            slots.Add(slot, new int[] { inValue, id, id });
+            if (id > 0)
+            {
+                foreach (GrpcChannel channel in multiPaxosServers)
+                {
+                    CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
+                    var client = new ProjectBoneyService.ProjectBoneyServiceClient(interceptingInvoker);
+                    PrepareRequest request = new PrepareRequest { Slot = slot, Id = id };
+                    PromiseReply reply = client.Prepare(request);
+                    if (reply.Id > id)
+                    {
+                        // TODO: Stop? id += 3 and call RunConsensus again?
+                    }
+                    else if (reply.Id > slots[slot][2])
+                    {
+                        slots[slot][2] = reply.Id;
+                        slots[slot][0] = reply.Value;
+                    }
+                }
+            }
             foreach (GrpcChannel channel in multiPaxosServers)
             {
                 CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
                 var client = new ProjectBoneyService.ProjectBoneyServiceClient(interceptingInvoker);
-                if (id > 0)
+                AcceptRequest request = new AcceptRequest { Slot = slot, Id = slots[slot][2], Value = slots[slot][0] };
+                AcceptReply reply = client.Accept(request);
+                if (reply.Id > id)
                 {
-                    // TODO: Call Prepare(slot, id, inValue);
-                    // Receive Promises, store in array, use most recent value if the most recent id <= own id
-                    // (includes case where all are null except for its own because it sends the message to itself)
-                    // Stop if id > own id, send accept otherwise
+                    // TODO: Stop? id += 3 and call RunConsensus again?
                 }
             }
-            return 0;
+            return slots[slot][2];
         }
     }
 

@@ -3,15 +3,38 @@ syntax = "proto3";
 option csharp_namespace = "DADProject";
 
 service ProjectBoneyService {
-  rpc CompareAndSwap(CompareAndSwapRequest) returns (CompareAndSwapReply);
+	rpc CompareAndSwap(CompareAndSwapRequest) returns (CompareAndSwapReply);
+	rpc Prepare(PrepareRequest) returns (PromiseReply);	
+	rpc Accept(AcceptRequest) returns (AcceptReply);
 }
 
 message CompareAndSwapRequest {
-  int32 slot = 1;
-  int32 inValue = 2; //also assuming we can identify nodes with an integer
+	int32 slot = 1;
+	int32 inValue = 2; //also assuming we can identify nodes with an integer
 }
 
 message CompareAndSwapReply {
-  int32 slot = 1; //TODO: review this, not sure but because of multi-paxos
-  int32 outValue = 2;
+	int32 slot = 1; //TODO: review this, not sure but because of multi-paxos
+	int32 outValue = 2;
+}
+
+message PrepareRequest {
+	int32 slot = 1;
+	int32 id = 2;
+}
+
+message PromiseReply {
+	int32 slot = 1;
+	int32 id = 2;
+	int32 value = 3;
+}
+
+message AcceptRequest {
+	int32 slot = 1;
+	int32 id = 2;
+	int32 value = 3;
+}
+
+message AcceptReply {
+	bool status = 1;
 }
