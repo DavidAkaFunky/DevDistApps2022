@@ -6,9 +6,9 @@
 
         public BankAccount() { }
 
-        public double ReadBalance()
+        public double Balance
         {
-            return balance;
+            get { return balance; }
         }
 
         public void Deposit(double amount)

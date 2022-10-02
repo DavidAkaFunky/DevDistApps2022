@@ -7,16 +7,16 @@ namespace DADProject
     {
         static void Main()
         {
-            const int ServerPort = 5000;
-            const string ServerHostname = "localhost";
+            const int serverPort = 5000;
+            const string serverHostname = "localhost";
 
             Server server = new()
             {
-                Services = { ProjectService.BindService(new BankService()).Intercept(new ServerInterceptor()) },
-                Ports = { new ServerPort(ServerHostname, ServerPort, ServerCredentials.Insecure) }
+                Services = { ProjectBankService.BindService(new BankService()).Intercept(new ServerInterceptor()) },
+                Ports = { new ServerPort(serverHostname, serverPort, ServerCredentials.Insecure) }
             };
             server.Start();
-            Console.WriteLine("ChatServer server listening on port " + ServerPort);
+            Console.WriteLine("ChatServer server listening on port " + serverPort);
             Console.WriteLine("Press any key to stop the server...");
             Console.ReadKey();
 

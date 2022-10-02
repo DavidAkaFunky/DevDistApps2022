@@ -2,7 +2,7 @@
 
 option csharp_namespace = "DADProject";
 
-service ProjectService {
+service ProjectClientService {
 	rpc ReadBalance(ReadBalanceRequest) returns (ReadBalanceReply);
 	rpc Deposit(DepositRequest) returns (DepositReply);
 	rpc Withdraw(WithdrawRequest) returns (WithdrawReply);

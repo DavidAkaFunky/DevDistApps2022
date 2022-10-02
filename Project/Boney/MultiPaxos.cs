@@ -1,54 +1,42 @@
 ﻿using Grpc.Core.Interceptors;
 using Grpc.Core;
 using Grpc.Net.Client;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Globalization;
 
 namespace DADProject
 {
-
-    public class ClientFrontend
+    public class MultiPaxos
     {
-        private List<GrpcChannel> bankServers = new();
+        private List<GrpcChannel> multiPaxosServers = new();
         private ClientInterceptor clientInterceptor = new();
+        private int id = 0;
 
-        public ClientFrontend() { }
+        public MultiPaxos() { }
 
         public void AddServer(string server)
         {
             GrpcChannel channel = GrpcChannel.ForAddress(server);
-            bankServers.Add(channel);
+            multiPaxosServers.Add(channel);
         }
 
-        public void DeleteServers()
+        public int RunConsensus(int slot, int inValue)
         {
-            foreach (GrpcChannel server in bankServers)
-            {
-                server.ShutdownAsync().Wait();
-                bankServers.Remove(server);
-            }
-                
-        }
-
-        public void ReadBalance()
-        {
-            foreach (GrpcChannel channel in bankServers)
+            foreach (GrpcChannel channel in multiPaxosServers)
             {
                 CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
-                var client = new ProjectClientService.ProjectClientServiceClient(interceptingInvoker);
-                ReadBalanceRequest request = new();
-                ReadBalanceReply reply = client.ReadBalance(request);
-                Console.WriteLine("Balance: " + reply.Balance.ToString("C", CultureInfo.CurrentCulture));
+                var client = new ProjectBoneyService.ProjectBoneyServiceClient(interceptingInvoker);
+                if (id > 0)
+                    // TODO: Call Prepare(slot, id, inValue);
+                    // Receive Promises, store in array, use most recent value if the most recent id <= own id
+                    // (includes case where all are null except for its own because it sends the message to itself)
+                    // Stop if id > own id, send accept otherwise
             }
-        }
-
-        public void Deposit(double amount)
-        {
-            // TODO: Call Deposit
-        }
-
-        public void Withdraw(double amount)
-        {
-            // TODO: Call Withdraw
+            return 0;
         }
     }
 

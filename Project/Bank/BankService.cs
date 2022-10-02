@@ -5,7 +5,7 @@ namespace DADProject
 
     // ChatServerService is the namespace defined in the protobuf
     // ChatServerServiceBase is the generated base implementation of the service
-    public class BankService : ProjectService.ProjectServiceBase
+    public class BankService : ProjectBankService.ProjectBankServiceBase
     {
         private BankAccount account = new();
 
@@ -13,7 +13,7 @@ namespace DADProject
 
         public override Task<ReadBalanceReply> ReadBalance(ReadBalanceRequest request, ServerCallContext context)
         {
-            ReadBalanceReply reply = new ReadBalanceReply { Balance = account.ReadBalance() };
+            ReadBalanceReply reply = new ReadBalanceReply { Balance = account.Balance };
             return Task.FromResult(reply);
         }
 
