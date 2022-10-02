@@ -1,15 +1,4 @@
-﻿using DADProject;
-using Grpc.Core;
-using Grpc.Core.Interceptors;
-using Grpc.Net.Client;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace DADProject
+﻿namespace DADProject
 {
     public class Client
     {
@@ -24,7 +13,7 @@ namespace DADProject
 
             ClientFrontend frontend = new ClientFrontend();
             //for (string server: args)
-            string server = "http://localhost:1001";
+            string server = "http://localhost:5000";
             frontend.AddServer(server);
 
             while (true)
