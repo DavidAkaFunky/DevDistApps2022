@@ -31,10 +31,12 @@ namespace DADProject
                 CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
                 var client = new ProjectBoneyService.ProjectBoneyServiceClient(interceptingInvoker);
                 if (id > 0)
+                {
                     // TODO: Call Prepare(slot, id, inValue);
                     // Receive Promises, store in array, use most recent value if the most recent id <= own id
                     // (includes case where all are null except for its own because it sends the message to itself)
                     // Stop if id > own id, send accept otherwise
+                }
             }
             return 0;
         }

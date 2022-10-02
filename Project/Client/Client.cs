@@ -11,7 +11,7 @@
 
             AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
 
-            ClientFrontend frontend = new ClientFrontend();
+            ClientFrontend frontend = new();
             //for (string server: args)
             string server = "http://localhost:5000";
             frontend.AddServer(server);

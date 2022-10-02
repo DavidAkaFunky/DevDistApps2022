@@ -13,7 +13,7 @@ namespace DADProject
 
         public override Task<CompareAndSwapReply> CompareAndSwap(CompareAndSwapRequest request, ServerCallContext context)
         {
-            CompareAndSwapReply reply = new CompareAndSwapReply { Slot = request.Slot, OutValue = multiPaxos.RunConsensus(request.Slot) };
+            CompareAndSwapReply reply = new CompareAndSwapReply { Slot = request.Slot, OutValue = multiPaxos.RunConsensus(request.Slot, request.InValue) };
             return Task.FromResult(reply);
         }
     }
