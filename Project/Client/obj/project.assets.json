@@ -9,14 +9,19 @@
           "System.Runtime.CompilerServices.Unsafe": "4.5.2"
         },
         "compile": {
-          "lib/netstandard2.0/Google.Protobuf.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netstandard2.0/Google.Protobuf.dll": {}
         },
         "runtime": {
-          "lib/netstandard2.0/Google.Protobuf.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netstandard2.0/Google.Protobuf.dll": {}
+        }
+      },
+      "Google.Protobuf.Tools/3.21.7": {
+        "type": "package",
+        "build": {
+          "build/Google.Protobuf.Tools.targets": {}
+        },
+        "buildMultiTargeting": {
+          "buildCrossTargeting/Google.Protobuf.Tools.targets": {}
         }
       },
       "Grpc.Core.Api/2.32.0": {
@@ -25,14 +30,10 @@
           "System.Memory": "4.5.3"
         },
         "compile": {
-          "lib/netstandard2.0/Grpc.Core.Api.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netstandard2.0/Grpc.Core.Api.dll": {}
         },
         "runtime": {
-          "lib/netstandard2.0/Grpc.Core.Api.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/netstandard2.0/Grpc.Core.Api.dll": {}
         }
       },
       "Grpc.Net.Client/2.32.0": {
@@ -43,14 +44,10 @@
           "System.Diagnostics.DiagnosticSource": "4.5.1"
         },
         "compile": {
-          "lib/net5.0/Grpc.Net.Client.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/net5.0/Grpc.Net.Client.dll": {}
         },
         "runtime": {
-          "lib/net5.0/Grpc.Net.Client.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/net5.0/Grpc.Net.Client.dll": {}
         }
       },
       "Grpc.Net.Common/2.32.0": {
@@ -59,14 +56,10 @@
           "Grpc.Core.Api": "2.32.0"
         },
         "compile": {
-          "lib/net5.0/Grpc.Net.Common.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/net5.0/Grpc.Net.Common.dll": {}
         },
         "runtime": {
-          "lib/net5.0/Grpc.Net.Common.dll": {
-            "related": ".pdb;.xml"
-          }
+          "lib/net5.0/Grpc.Net.Common.dll": {}
         }
       },
       "Grpc.Tools/2.32.0": {
@@ -79,27 +72,19 @@
       "Microsoft.Extensions.Logging.Abstractions/3.0.3": {
         "type": "package",
         "compile": {
-          "lib/netstandard2.0/Microsoft.Extensions.Logging.Abstractions.dll": {
-            "related": ".xml"
-          }
+          "lib/netstandard2.0/Microsoft.Extensions.Logging.Abstractions.dll": {}
         },
         "runtime": {
-          "lib/netstandard2.0/Microsoft.Extensions.Logging.Abstractions.dll": {
-            "related": ".xml"
-          }
+          "lib/netstandard2.0/Microsoft.Extensions.Logging.Abstractions.dll": {}
         }
       },
       "System.Diagnostics.DiagnosticSource/4.5.1": {
         "type": "package",
         "compile": {
-          "lib/netstandard1.3/System.Diagnostics.DiagnosticSource.dll": {
-            "related": ".xml"
-          }
+          "lib/netstandard1.3/System.Diagnostics.DiagnosticSource.dll": {}
         },
         "runtime": {
-          "lib/netstandard1.3/System.Diagnostics.DiagnosticSource.dll": {
-            "related": ".xml"
-          }
+          "lib/netstandard1.3/System.Diagnostics.DiagnosticSource.dll": {}
         }
       },
       "System.Memory/4.5.3": {
@@ -114,14 +99,10 @@
       "System.Runtime.CompilerServices.Unsafe/4.5.2": {
         "type": "package",
         "compile": {
-          "ref/netstandard2.0/System.Runtime.CompilerServices.Unsafe.dll": {
-            "related": ".xml"
-          }
+          "ref/netstandard2.0/System.Runtime.CompilerServices.Unsafe.dll": {}
         },
         "runtime": {
-          "lib/netcoreapp2.0/System.Runtime.CompilerServices.Unsafe.dll": {
-            "related": ".xml"
-          }
+          "lib/netcoreapp2.0/System.Runtime.CompilerServices.Unsafe.dll": {}
         }
       }
     }
@@ -145,6 +126,36 @@
         "lib/netstandard2.0/Google.Protobuf.dll",
         "lib/netstandard2.0/Google.Protobuf.pdb",
         "lib/netstandard2.0/Google.Protobuf.xml"
+      ]
+    },
+    "Google.Protobuf.Tools/3.21.7": {
+      "sha512": "INl5EZVJAUz5nuPKwX85GHSFeTgKBlN+mL7hKcN7tLjHGhiJCUaWgpUcQ9GBXKJ3LsXdB169euS4aN2KW10wnA==",
+      "type": "package",
+      "path": "google.protobuf.tools/3.21.7",
+      "hasTools": true,
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "build/Google.Protobuf.Tools.targets",
+        "buildCrossTargeting/Google.Protobuf.Tools.targets",
+        "google.protobuf.tools.3.21.7.nupkg.sha512",
+        "google.protobuf.tools.nuspec",
+        "tools/google/protobuf/any.proto",
+        "tools/google/protobuf/api.proto",
+        "tools/google/protobuf/descriptor.proto",
+        "tools/google/protobuf/duration.proto",
+        "tools/google/protobuf/empty.proto",
+        "tools/google/protobuf/field_mask.proto",
+        "tools/google/protobuf/source_context.proto",
+        "tools/google/protobuf/struct.proto",
+        "tools/google/protobuf/timestamp.proto",
+        "tools/google/protobuf/type.proto",
+        "tools/google/protobuf/wrappers.proto",
+        "tools/linux_x64/protoc",
+        "tools/linux_x86/protoc",
+        "tools/macosx_x64/protoc",
+        "tools/windows_x64/protoc.exe",
+        "tools/windows_x86/protoc.exe"
       ]
     },
     "Grpc.Core.Api/2.32.0": {
@@ -340,31 +351,30 @@
   "projectFileDependencyGroups": {
     "net6.0": [
       "Google.Protobuf >= 3.13.0",
+      "Google.Protobuf.Tools >= 3.21.7",
       "Grpc.Net.Client >= 2.32.0",
       "Grpc.Tools >= 2.32.0"
     ]
   },
   "packageFolders": {
-    "C:\\Users\\futeb\\.nuget\\packages\\": {}
+    "/home/vasco/.nuget/packages/": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\futeb\\DAD\\Project\\Client\\Client.csproj",
+      "projectUniqueName": "/home/vasco/Documents/Programming/github.com/DAD/DAD/Project/Client/Client.csproj",
       "projectName": "DADClient",
-      "projectPath": "C:\\Users\\futeb\\DAD\\Project\\Client\\Client.csproj",
-      "packagesPath": "C:\\Users\\futeb\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\futeb\\DAD\\Project\\Client\\obj\\",
+      "projectPath": "/home/vasco/Documents/Programming/github.com/DAD/DAD/Project/Client/Client.csproj",
+      "packagesPath": "/home/vasco/.nuget/packages/",
+      "outputPath": "/home/vasco/Documents/Programming/github.com/DAD/DAD/Project/Client/obj/",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\futeb\\AppData\\Roaming\\NuGet\\NuGet.Config",
-        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        "/home/vasco/.nuget/NuGet/NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net6.0"
       ],
       "sources": {
-        "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
@@ -386,6 +396,10 @@
           "Google.Protobuf": {
             "target": "Package",
             "version": "[3.13.0, )"
+          },
+          "Google.Protobuf.Tools": {
+            "target": "Package",
+            "version": "[3.21.7, )"
           },
           "Grpc.Net.Client": {
             "target": "Package",
@@ -414,7 +428,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.401\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "/nix/store/cw12rr8dajdbigkbnihhxrg1gpwckpf4-dotnet-sdk-6.0.400/sdk/6.0.400/RuntimeIdentifierGraph.json"
       }
     }
   }

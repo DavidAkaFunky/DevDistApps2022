@@ -24,7 +24,7 @@ namespace DADProject
 
             ClientFrontend frontend = new ClientFrontend();
             //for (string server: args)
-            string server = "http://localhost:1001";
+            string server = "http://localhost:5000";
             frontend.AddServer(server);
 
             while (true)

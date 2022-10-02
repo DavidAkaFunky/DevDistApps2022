@@ -1,27 +1,25 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\futeb\\DAD\\Project\\Bank\\Bank.csproj": {}
+    "/home/vasco/Documents/Programming/github.com/DAD/DAD/Project/Bank/Bank.csproj": {}
   },
   "projects": {
-    "C:\\Users\\futeb\\DAD\\Project\\Bank\\Bank.csproj": {
+    "/home/vasco/Documents/Programming/github.com/DAD/DAD/Project/Bank/Bank.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\futeb\\DAD\\Project\\Bank\\Bank.csproj",
+        "projectUniqueName": "/home/vasco/Documents/Programming/github.com/DAD/DAD/Project/Bank/Bank.csproj",
         "projectName": "Bank",
-        "projectPath": "C:\\Users\\futeb\\DAD\\Project\\Bank\\Bank.csproj",
-        "packagesPath": "C:\\Users\\futeb\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\futeb\\DAD\\Project\\Bank\\obj\\",
+        "projectPath": "/home/vasco/Documents/Programming/github.com/DAD/DAD/Project/Bank/Bank.csproj",
+        "packagesPath": "/home/vasco/.nuget/packages/",
+        "outputPath": "/home/vasco/Documents/Programming/github.com/DAD/DAD/Project/Bank/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\futeb\\AppData\\Roaming\\NuGet\\NuGet.Config",
-          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+          "/home/vasco/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net6.0"
         ],
         "sources": {
-          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -43,6 +41,10 @@
             "Google.Protobuf": {
               "target": "Package",
               "version": "[3.21.6, )"
+            },
+            "Google.Protobuf.Tools": {
+              "target": "Package",
+              "version": "[3.21.7, )"
             },
             "Grpc.Core": {
               "target": "Package",
@@ -71,7 +73,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.401\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "/nix/store/cw12rr8dajdbigkbnihhxrg1gpwckpf4-dotnet-sdk-6.0.400/sdk/6.0.400/RuntimeIdentifierGraph.json"
         }
       }
     }

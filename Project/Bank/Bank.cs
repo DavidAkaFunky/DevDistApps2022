@@ -12,7 +12,7 @@ namespace DADProject
     {
         static void Main()
         {
-            const int ServerPort = 1001;
+            const int ServerPort = 5000;
             const string ServerHostname = "localhost";
 
             Server server = new()
