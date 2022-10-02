@@ -1,5 +1,7 @@
 ﻿syntax = "proto3";
 
+option csharp_namespace = "DADProject";
+
 service ProjectService {
 	rpc ReadBalance(ReadBalanceRequest) returns (ReadBalanceReply);
 	rpc Deposit(DepositRequest) returns (DepositReply);
