@@ -13,19 +13,51 @@ using System.Threading.Channels;
 
 namespace DADProject
 {
+    /*internal class PTask {
+        
+        private Task _task;
+        private Thread _thread;
+        private int _result;
+
+        public Task Task {
+            get => _task;
+            set {
+                _task = value;
+            }
+        }
+
+        public Thread Thread {
+            get => _thread;
+            set {
+                _thread = value;
+            }
+        }
+
+        public int Result {
+            get => _result;
+            set {
+                _result = value;
+            }
+        }
+
+        public void Kill() {
+            _thread.Abort();
+        }
+    }*/
+
     public class MultiPaxos
     {
         private List<GrpcChannel> multiPaxosServers = new();
         private ClientInterceptor clientInterceptor = new();
         private int id;
         private Dictionary<int, int> history = new();
-        private Dictionary<int, int[]> slots = new(); // <slot, [currentValue, writeTimestamp, readTimestamp]>
+        private Dictionary<int, Slot> slots = new(); // <slot, [currentValue, writeTimestamp, readTimestamp]>
 
         public MultiPaxos(int id) { this.id = id; }
 
         public int Id
-        { 
-            get { return id; } 
+        {
+            get { return id; }
         }
 
         public Dictionary<int, int> History
@@ -33,11 +65,23 @@ namespace DADProject
             get { return history; }
         }
 
-        public Dictionary<int, int[]> Slots
+        public Dictionary<int, Slot> Slots
         {
             get { return slots; }
         }
 
+        public void CheckMajority(int responses, List<Task> tasks)
+        {
+            if (responses == multiPaxosServers.Count)
+            {
+                // foreach(Task task in tasks)
+                // {
+                //     if(!task.IsCompleted)
+                //         // TODO
+                // }
+                tasks.Clear();
+            }
+        }
 
         public void AddServer(string server)
         {
@@ -45,49 +89,66 @@ namespace DADProject
             multiPaxosServers.Add(channel);
         }
 
-        public void AddOrSetSlot(int slot, int[] values)
-        { 
+        public void AddOrSetSlot(int slot, Slot values)
+        {
             slots[slot] = values;
         }
 
-        public void RunConsensus(int slot, int inValue)
+        public async void RunConsensus(int slot, int inValue)
         {
-            slots.Add(slot, new int[] { inValue, id, id });
+            slots.Add(slot, new(inValue, id, id));
+            List<Task> tasks = new();
             if (id > 0)
             {
-                // TODO: This is running synchronously + It only needs to wait for a majority :)
+                int responses = 0;
                 foreach (GrpcChannel channel in multiPaxosServers)
                 {
-                    CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
-                    var client = new ProjectBoneyService.ProjectBoneyServiceClient(interceptingInvoker);
-                    PrepareRequest request = new() { Slot = slot, Id = id };
-                    PromiseReply reply = client.Prepare(request);
-                    if (reply.Id > id)
-                    {
-                        id += 3;
-                        return;
-                    }
-                    else if (reply.Id > slots[slot][2])
-                    {
-                        slots[slot][2] = reply.Id;
-                        slots[slot][0] = reply.Value;
-                    }
+                    tasks.Add(Task.Run(() => {
+                        PromiseReply reply = SendPrepare(channel, slot);
+                        if (reply.Id > id)
+                        {
+                            id += multiPaxosServers.Count;
+                            return;
+                        }
+                        else if (reply.Id > slots[slot].ReadTimestamp)
+                        {
+                            slots[slot].ReadTimestamp = reply.Id;
+                            slots[slot].CurrentValue = reply.Value;
+                        }
+                        //lock (responses) doesnt work
+                        CheckMajority(++responses, tasks);
+                    }));
                 }
             }
-            // TODO: This is also running synchronously + It only needs to wait for a majority :)
             foreach (GrpcChannel channel in multiPaxosServers)
             {
-                CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
-                var client = new ProjectBoneyService.ProjectBoneyServiceClient(interceptingInvoker);
-                AcceptRequest request = new() { Slot = slot, Id = slots[slot][2], Value = slots[slot][0] };
-                AcceptReply reply = client.Accept(request);
-                if (!reply.Status)
-                {
-                    id += 3;
-                    return;
-                }
+                tasks.Add(Task.Run(() => {
+                    if (!SendAccept(channel, slot))
+                    {
+                        id += multiPaxosServers.Count;
+                        return;
+                    }
+                }));
             }
             // TODO: Call clients to inform of the consensus' value (Should it be done here?)
+        }
+
+        public PromiseReply SendPrepare(GrpcChannel channel, int slot)
+        {
+            CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
+            var client = new ProjectBoneyService.ProjectBoneyServiceClient(interceptingInvoker);
+            PrepareRequest request = new() { Slot = slot, Id = id };
+            PromiseReply reply = client.Prepare(request);
+            return reply;
+        }
+
+        public bool SendAccept(GrpcChannel channel, int slot)
+        {
+            CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
+            var client = new ProjectBoneyService.ProjectBoneyServiceClient(interceptingInvoker);
+            AcceptRequest request = new() { Slot = slot, Id = slots[slot].ReadTimestamp, Value = slots[slot].CurrentValue };
+            AcceptReply reply = client.Accept(request);
+            return reply.Status;
         }
     }
 
@@ -109,8 +170,8 @@ namespace DADProject
 
             // create new context because original context is readonly
             ClientInterceptorContext<TRequest, TResponse> modifiedContext =
-                new (context.Method, context.Host,
-                    new (metadata, context.Options.Deadline,
+                new(context.Method, context.Host,
+                    new(metadata, context.Options.Deadline,
                         context.Options.CancellationToken, context.Options.WriteOptions,
                         context.Options.PropagationToken, context.Options.Credentials));
             Console.Write("calling server...");

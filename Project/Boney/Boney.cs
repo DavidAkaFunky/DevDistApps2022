@@ -13,7 +13,7 @@ namespace DADProject
             string x = "http://localhost:8000";
 
             int currentSlot = 1;
-            int slotDuration = 30000;
+            int slotDuration = 100000;
 
             int[] suspectedServers = new int[] {};
             bool frozen = false;
