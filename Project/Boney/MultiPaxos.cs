@@ -65,18 +65,20 @@ namespace DADProject
                     }
                 }
             }
+            // while (!majority)
+            // x = WaitForAnswer(); //callback
             foreach (GrpcChannel channel in multiPaxosServers)
             {
                 CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
                 var client = new ProjectBoneyService.ProjectBoneyServiceClient(interceptingInvoker);
                 AcceptRequest request = new AcceptRequest { Slot = slot, Id = slots[slot][2], Value = slots[slot][0] };
                 AcceptReply reply = client.Accept(request);
-                if (reply.Id > id)
+                if (!reply.Status)
                 {
-                    // TODO: Stop? id += 3 and call RunConsensus again?
+                    // TODO: ???
                 }
             }
-            return slots[slot][2];
+            return slots[slot][0];
         }
     }
 

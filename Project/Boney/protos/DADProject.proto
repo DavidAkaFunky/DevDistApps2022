@@ -18,6 +18,15 @@ message CompareAndSwapReply {
 	int32 outValue = 2;
 }
 
+message RunConsensusRequest {
+	int slot = 1;
+	int inValue = 2;
+}
+
+message RunConsensusReply {
+	// EMPTY
+}
+
 message PrepareRequest {
 	int32 slot = 1;
 	int32 id = 2;
