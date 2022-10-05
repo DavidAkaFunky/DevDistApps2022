@@ -9,10 +9,14 @@ namespace DADProject
 
     public class BankFrontend
     {
+        private int serverID;
         private List<GrpcChannel> boneyServers = new();
         private ClientInterceptor clientInterceptor = new();
 
-        public BankFrontend() { }
+        public BankFrontend(int id) 
+        {
+            serverID = id;
+        }
 
         public void AddServer(string server)
         {
@@ -30,7 +34,7 @@ namespace DADProject
                 
         }
 
-        public void RequestCompareAndSwap(int slot, int perceivedLeader)
+        public void RequestCompareAndSwap(int slot)
         {
             foreach (GrpcChannel channel in boneyServers)
             {
@@ -38,7 +42,7 @@ namespace DADProject
                 var client = new ProjectBankService.ProjectBankServiceClient(interceptingInvoker);
                 Task runConsensus = Task.Run(() =>
                 {
-                    CompareAndSwapRequest request = new() { Slot = slot, InValue = perceivedLeader };
+                    CompareAndSwapRequest request = new() { Slot = slot, InValue = serverID };
                     CompareAndSwapReply reply = client.CompareAndSwap(request);
                     // if (reply.OutValue > 0)
                         // TODO: Start 2PC?
