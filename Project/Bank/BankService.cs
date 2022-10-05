@@ -13,7 +13,7 @@ namespace DADProject
 
         public override Task<ReadBalanceReply> ReadBalance(ReadBalanceRequest request, ServerCallContext context)
         {
-            ReadBalanceReply reply = new ReadBalanceReply { Balance = account.Balance };
+            ReadBalanceReply reply = new() { Balance = account.Balance };
             return Task.FromResult(reply);
         }
 
@@ -31,7 +31,7 @@ namespace DADProject
         {
             lock (this)
             {
-                WithdrawReply reply = new WithdrawReply { Status = account.Withdraw(request.Amount) };
+                WithdrawReply reply = new() { Status = account.Withdraw(request.Amount) };
                 return Task.FromResult(reply);
             }
         }

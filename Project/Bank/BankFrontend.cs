@@ -2,56 +2,48 @@
 using Grpc.Core;
 using Grpc.Net.Client;
 using System.Globalization;
+using Google.Protobuf.WellKnownTypes;
 
 namespace DADProject
 {
 
-    public class ClientFrontend
+    public class BankFrontend
     {
-        private List<GrpcChannel> bankServers = new();
+        private List<GrpcChannel> boneyServers = new();
         private ClientInterceptor clientInterceptor = new();
 
-        public ClientFrontend() { }
+        public BankFrontend() { }
 
         public void AddServer(string server)
         {
             GrpcChannel channel = GrpcChannel.ForAddress(server);
-            bankServers.Add(channel);
+            boneyServers.Add(channel);
         }
 
         public void DeleteServers()
         {
-            foreach (GrpcChannel server in bankServers)
+            foreach (GrpcChannel server in boneyServers)
             {
                 server.ShutdownAsync().Wait();
-                bankServers.Remove(server);
+                boneyServers.Remove(server);
             }
                 
         }
 
-        public void ReadBalance()
+        public void RequestCompareAndSwap(int slot, int perceivedLeader)
         {
-            foreach (GrpcChannel channel in bankServers)
+            foreach (GrpcChannel channel in boneyServers)
             {
                 CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
-                var client = new ProjectClientService.ProjectClientServiceClient(interceptingInvoker);
+                var client = new ProjectBankService.ProjectBankServiceClient(interceptingInvoker);
                 Task runConsensus = Task.Run(() =>
                 {
-                    ReadBalanceRequest request = new();
-                    ReadBalanceReply reply = client.ReadBalance(request);
-                    Console.WriteLine("Balance: " + reply.Balance.ToString("C", CultureInfo.CurrentCulture));
+                    CompareAndSwapRequest request = new() { Slot = slot, InValue = perceivedLeader };
+                    CompareAndSwapReply reply = client.CompareAndSwap(request);
+                    // if (reply.OutValue > 0)
+                        // TODO: Start 2PC?
                 });
             }
-        }
-
-        public void Deposit(double amount)
-        {
-            // TODO: Call Deposit
-        }
-
-        public void Withdraw(double amount)
-        {
-            // TODO: Call Withdraw
         }
     }
 
@@ -67,13 +59,14 @@ namespace DADProject
         {
 
             Metadata metadata = context.Options.Headers; // read original headers
-            if (metadata == null) { metadata = new Metadata(); }
+            if (metadata == null)
+                metadata = new Metadata();
             metadata.Add("dad", "dad-value"); // add the additional metadata
 
             // create new context because original context is readonly
             ClientInterceptorContext<TRequest, TResponse> modifiedContext =
-                new ClientInterceptorContext<TRequest, TResponse>(context.Method, context.Host,
-                    new CallOptions(metadata, context.Options.Deadline,
+                new (context.Method, context.Host,
+                    new (metadata, context.Options.Deadline,
                         context.Options.CancellationToken, context.Options.WriteOptions,
                         context.Options.PropagationToken, context.Options.Credentials));
             Console.Write("calling server...");

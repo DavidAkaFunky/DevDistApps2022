@@ -13,11 +13,18 @@ namespace DADProject
 
         public override Task<CompareAndSwapReply> CompareAndSwap(CompareAndSwapRequest request, ServerCallContext context)
         {
+            int slot = request.Slot;
+            int outValue;
             lock (multiPaxos)
             {
-                CompareAndSwapReply reply = new() { Slot = request.Slot, OutValue = multiPaxos.RunConsensus(request.Slot, request.InValue) };
-                return Task.FromResult(reply);
+                if (!multiPaxos.History.TryGetValue(slot, out outValue))
+                {
+                    outValue = -1; // Otherwise it will be a positive value and Bank will use it as a "canned" consensus reply
+                    Task runConsensus = Task.Run(() => multiPaxos.RunConsensus(slot, request.InValue));
+                }
             }
+            CompareAndSwapReply reply = new() { OutValue = outValue };
+            return Task.FromResult(reply);
         }
 
         public override Task<PromiseReply> Prepare(PrepareRequest request, ServerCallContext context)
@@ -50,10 +57,10 @@ namespace DADProject
                     // It's ugly because we're doing it twice if it didn't exist initially,
                     // but only once if it already existed
                     multiPaxos.AddOrSetSlot(slot, values); 
+                // TODO: It must be sent to *all* channels
                 AcceptReply reply = new() { Status = status };
                 return Task.FromResult(reply);
             }
-           
         }
     }
 }

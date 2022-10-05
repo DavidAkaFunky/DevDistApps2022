@@ -10,7 +10,7 @@ namespace DADProject
             string serverHostname = "localhost";
             int serverPort = 1000;
             MultiPaxos multiPaxos = new(1); // TODO: Decide how to assign actual IDs (the 1 is just a mock)
-            string x = "http://localhost:5000";
+            string x = "http://localhost:8000";
             multiPaxos.AddServer(x);
             Server server = new()
             {

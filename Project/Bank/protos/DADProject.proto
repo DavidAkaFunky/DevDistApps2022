@@ -6,6 +6,7 @@ service ProjectBankService {
 	rpc ReadBalance(ReadBalanceRequest) returns (ReadBalanceReply);
 	rpc Deposit(DepositRequest) returns (DepositReply);
 	rpc Withdraw(WithdrawRequest) returns (WithdrawReply);
+	rpc CompareAndSwap(CompareAndSwapRequest) returns (CompareAndSwapReply);
 }
 message ReadBalanceRequest {
 	// EMPTY
@@ -26,4 +27,14 @@ message WithdrawRequest {
 }
 message WithdrawReply {
 	bool status = 1;
+}
+
+message CompareAndSwapRequest {
+	int32 slot = 1;
+	int32 inValue = 2; //also assuming we can identify nodes with an integer
+}
+
+// -1 if Boney isn't the perceived leader and consensus hasn't been reached, consensus' outValue otherwise
+message CompareAndSwapReply {
+	int32 outValue = 1;
 }

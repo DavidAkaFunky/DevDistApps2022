@@ -16,6 +16,12 @@ namespace DADProject
                 Ports = { new ServerPort(serverHostname, serverPort, ServerCredentials.Insecure) }
             };
             server.Start();
+
+            BankFrontend frontend = new();
+            //for (string server: args)
+            string serverString = "http://localhost:5000";
+            frontend.AddServer(serverString);
+
             Console.WriteLine("ChatServer server listening on port " + serverPort);
             Console.WriteLine("Press any key to stop the server...");
             Console.ReadKey();

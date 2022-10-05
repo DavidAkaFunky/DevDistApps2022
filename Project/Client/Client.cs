@@ -83,7 +83,7 @@
                             Thread.Sleep(milliseconds);
                             Console.WriteLine("hello");
                         }
-                        catch (FormatException e)
+                        catch (FormatException)
                         {
                             Console.WriteLine("ERROR: Invalid timespan");
                         }

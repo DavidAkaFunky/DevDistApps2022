@@ -6,6 +6,7 @@ service ProjectBoneyService {
 	rpc CompareAndSwap(CompareAndSwapRequest) returns (CompareAndSwapReply);
 	rpc Prepare(PrepareRequest) returns (PromiseReply);	
 	rpc Accept(AcceptRequest) returns (AcceptReply);
+	rpc FinishedCompareAndSwap(FinishedCompareAndSwapRequest) returns (FinishedCompareAndSwapReply);
 }
 
 message CompareAndSwapRequest {
@@ -13,14 +14,14 @@ message CompareAndSwapRequest {
 	int32 inValue = 2; //also assuming we can identify nodes with an integer
 }
 
+// -1 if Boney isn't the perceived leader and consensus hasn't been reached, consensus' outValue otherwise
 message CompareAndSwapReply {
-	int32 slot = 1; //TODO: review this, not sure but because of multi-paxos
-	int32 outValue = 2;
+	int32 outValue = 1;
 }
 
 message RunConsensusRequest {
-	int slot = 1;
-	int inValue = 2;
+	int32 slot = 1;
+	int32 inValue = 2;
 }
 
 message RunConsensusReply {
@@ -46,4 +47,14 @@ message AcceptRequest {
 
 message AcceptReply {
 	bool status = 1;
+}
+
+message FinishedCompareAndSwapRequest {
+	int32 slot = 1;
+	int32 outValue = 2; //also assuming we can identify nodes with an integer
+}
+
+// -1 if Boney isn't the perceived leader and consensus hasn't been reached, consensus' outValue otherwise
+message FinishedCompareAndSwapReply {
+	// EMPTY
 }
