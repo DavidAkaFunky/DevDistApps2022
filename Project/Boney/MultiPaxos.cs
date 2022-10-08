@@ -130,13 +130,12 @@ namespace DADProject
                     }
                 }));
             }
-            // TODO: Call clients to inform of the consensus' value (Should it be done here?)
         }
 
         public PromiseReply SendPrepare(GrpcChannel channel, int slot)
         {
             CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
-            var client = new ProjectBoneyService.ProjectBoneyServiceClient(interceptingInvoker);
+            var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(interceptingInvoker);
             PrepareRequest request = new() { Slot = slot, Id = id };
             PromiseReply reply = client.Prepare(request);
             return reply;
@@ -145,9 +144,17 @@ namespace DADProject
         public bool SendAccept(GrpcChannel channel, int slot)
         {
             CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
-            var client = new ProjectBoneyService.ProjectBoneyServiceClient(interceptingInvoker);
+            var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(interceptingInvoker);
             AcceptRequest request = new() { Slot = slot, Id = slots[slot].ReadTimestamp, Value = slots[slot].CurrentValue };
             AcceptReply reply = client.Accept(request);
+            return reply.Status;
+        }
+        
+        public bool SendAcceptedToLearners(int slot, int id, int timestamp){
+            CallInvoker interceptingInvoker = channel.Intercept(clientInterceptor);
+            var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(interceptingInvoker);
+            AcceptedToLearnerRequest request = new() { Slot = slot, Id = slots[slot].ReadTimestamp, Value = slots[slot].CurrentValue };
+            AcceptedToLearnerReply reply = client.AcceptedToLearner(request);
             return reply.Status;
         }
     }

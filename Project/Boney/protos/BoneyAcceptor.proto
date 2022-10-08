@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+option csharp_namespace = "DADProject";
+
+service ProjectBoneyAcceptorService {
+	rpc Prepare(PrepareRequest) returns (PromiseReply);	
+	rpc Accept(AcceptRequest) returns (AcceptReply);
+}
+
+message PrepareRequest {
+	int32 slot = 1;
+	int32 id = 2;
+}
+
+message PromiseReply {
+	int32 slot = 1;
+	int32 id = 2;
+	int32 value = 3;
+}
+
+message AcceptRequest {
+	int32 slot = 1;
+	int32 id = 2;
+	int32 value = 3;
+}
+
+message AcceptReply {
+	bool status = 1;
+}

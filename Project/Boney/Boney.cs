@@ -10,20 +10,20 @@ namespace DADProject
             string serverHostname = "localhost";
             int serverPort = 1000;
 
-            string x = "http://localhost:8000";
+            string[] servers = {"http://localhost:8000"};
 
             int currentSlot = 1;
             int slotDuration = 100000;
 
             int[] suspectedServers = new int[] {};
             bool frozen = false;
-
-            MultiPaxos multiPaxos = new(1); // TODO: Decide how to assign actual IDs (the 1 is just a mock)
-            multiPaxos.AddServer(x);
             
             Server server = new()
             {
-                Services = { ProjectBoneyService.BindService(new BoneyService(multiPaxos)).Intercept(new ServerInterceptor()) },
+                Services = { ProjectBoneyProposerService.BindService(new BoneyProposerService(id, servers))
+                                                        .BindService(new BoneyAcceptorService(id, servers))
+                                                        .BindService(new BoneyLearnerService(id, servers))
+                                                        .Intercept(new ServerInterceptor()) },
                 Ports = { new ServerPort(serverHostname, serverPort, ServerCredentials.Insecure) }
             };
             server.Start();

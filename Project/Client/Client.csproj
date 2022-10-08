@@ -17,7 +17,7 @@
 			<PrivateAssets>all</PrivateAssets>
 			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<Protobuf Include="protos\DADProject.proto" GrpcServices="Client" />
+		<Protobuf Include="protos\Client.proto" GrpcServices="Client" />
 	</ItemGroup>
 
 </Project>

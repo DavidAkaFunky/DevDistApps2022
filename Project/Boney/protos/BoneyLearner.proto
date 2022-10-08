@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+option csharp_namespace = "DADProject";
+
+service ProjectBoneyLearnerService {
+    rpc AcceptedToLearner(AcceptedToLearnerRequest) returns (AcceptedToLearnerReply);
+    rpc FinishedCompareAndSwap(FinishedCompareAndSwapRequest) returns (FinishedCompareAndSwapReply);
+}
+
+message AcceptedToLearnerRequest {
+  int32 slot = 1;
+  int32 id = 2;
+  int32 value = 3;
+}
+
+message AcceptedToLearnerReply {
+    // EMPTY
+}
+
+message FinishedCompareAndSwapRequest {
+  int32 slot = 1;
+  int32 outValue = 2; //also assuming we can identify nodes with an integer
+}
+
+message FinishedCompareAndSwapReply {
+  // EMPTY
+}
