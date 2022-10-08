@@ -3,6 +3,9 @@ namespace DADProject;
 public class Slot
 {
     public static readonly int Null = -1;
+    private int currentValue;
+    private int writeTimestamp;
+    private int readTimestamp;
 
     public Slot(int currentValue, int writeTimestamp, int readTimestamp)
     {
