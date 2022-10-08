@@ -1,70 +1,69 @@
-﻿using Grpc.Core.Interceptors;
-using Grpc.Core;
+﻿using Grpc.Core;
+using Grpc.Core.Interceptors;
+using Timer = System.Timers.Timer;
 
-namespace DADProject
+namespace DADProject;
+
+internal class Bank
 {
-    class Bank
+    private static void Main()
     {
-        static void Main()
+        const int serverPort = 5000;
+        const string serverHostname = "localhost";
+
+
+        var serverString = "http://localhost:5000";
+        var type = "primary"; //primary, onHold(?? if needed while deciding who's primary,
+        //change var to bool if not needed), backup
+        var serverID = 1;
+
+        var slotDuration = 50000;
+        var currentSlot = 1;
+
+        int[] suspectedServers = { };
+        var frozen = false;
+
+        //-----------------------------------------Read states from input
+
+        Server server = new()
         {
-            const int serverPort = 5000;
-            const string serverHostname = "localhost";
+            Services = { ProjectBankService.BindService(new BankService()).Intercept(new ServerInterceptor()) },
+            Ports = { new ServerPort(serverHostname, serverPort, ServerCredentials.Insecure) }
+        };
+        server.Start();
 
-            
-            string serverString = "http://localhost:5000";
-            string type = "primary";//primary, onHold(?? if needed while deciding who's primary,
-                                    //change var to bool if not needed), backup
-            int serverID = 1;
+        BankFrontend frontend = new(serverID);
 
-            int slotDuration = 50000;
-            int currentSlot = 1;
+        //for (string server: args)
+        frontend.AddServer(serverString);
 
-            int[] suspectedServers = new int[] { };
-            bool frozen = false;
+        Console.WriteLine("ChatServer server listening on port " + serverPort);
 
-            //-----------------------------------------Read states from input
-
-            Server server = new()
-            {
-                Services = { ProjectBankService.BindService(new BankService()).Intercept(new ServerInterceptor()) },
-                Ports = { new ServerPort(serverHostname, serverPort, ServerCredentials.Insecure) }
-            };
-            server.Start();
-
-            BankFrontend frontend = new(id: serverID);
-            
-            //for (string server: args)
-            frontend.AddServer(serverString);
-
-            Console.WriteLine("ChatServer server listening on port " + serverPort);
-
-            void HandleTimer()
-            {
-                currentSlot++;
-                Console.WriteLine("--NEW SLOT: {0}--", currentSlot);
-                frontend.RequestCompareAndSwap(currentSlot);
-            }
-            System.Timers.Timer timer = new(interval: slotDuration);
-            timer.Elapsed += (sender, e) => HandleTimer();
-            timer.Start();
-
-            Console.WriteLine("Press any key to stop the server...");
-            Console.ReadKey();
-
-            server.ShutdownAsync().Wait();
-
+        void HandleTimer()
+        {
+            currentSlot++;
+            Console.WriteLine("--NEW SLOT: {0}--", currentSlot);
+            frontend.RequestCompareAndSwap(currentSlot);
         }
+
+        Timer timer = new(slotDuration);
+        timer.Elapsed += (sender, e) => HandleTimer();
+        timer.Start();
+
+        Console.WriteLine("Press any key to stop the server...");
+        Console.ReadKey();
+
+        server.ShutdownAsync().Wait();
     }
-    
-    public class ServerInterceptor : Interceptor
+}
+
+public class ServerInterceptor : Interceptor
+{
+    public override Task<TResponse> UnaryServerHandler<TRequest, TResponse>(TRequest request, ServerCallContext context,
+        UnaryServerMethod<TRequest, TResponse> continuation)
     {
-
-        public override Task<TResponse> UnaryServerHandler<TRequest, TResponse>(TRequest request, ServerCallContext context, UnaryServerMethod<TRequest, TResponse> continuation)
-        {
-            string callId = context.RequestHeaders.GetValue("dad");
-            Console.WriteLine("DAD header: " + callId);
-            return base.UnaryServerHandler(request, context, continuation);
-        }
-
+        var callId = context.RequestHeaders.GetValue("dad");
+        Console.WriteLine("DAD header: " + callId);
+        return base.UnaryServerHandler(request, context, continuation);
     }
 }

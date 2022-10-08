@@ -5,20 +5,22 @@
         <TargetFramework>net6.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-		<AssemblyName>DADBoney</AssemblyName>
-		<RootNamespace>DADProject</RootNamespace>
+        <AssemblyName>DADBoney</AssemblyName>
+        <RootNamespace>DADProject</RootNamespace>
     </PropertyGroup>
 
-	<ItemGroup>
-		<PackageReference Include="Google.Protobuf" Version="3.13.0" />
-		<PackageReference Include="Google.Protobuf.Tools" Version="3.21.7" />
-		<PackageReference Include="Grpc.Core" Version="2.32.0" />
-		<PackageReference Include="Grpc.Net.Client" Version="2.32.0" />
-		<PackageReference Include="Grpc.Tools" Version="2.32.0">
-			<PrivateAssets>all</PrivateAssets>
-			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-		</PackageReference>
-		<Protobuf Include="protos\BoneyProposer.proto" GrpcServices="BoneyProposer" />
-	</ItemGroup>
-	
+    <ItemGroup>
+        <PackageReference Include="Google.Protobuf" Version="3.13.0" />
+        <PackageReference Include="Google.Protobuf.Tools" Version="3.21.7" />
+        <PackageReference Include="Grpc.Core" Version="2.32.0" />
+        <PackageReference Include="Grpc.Net.Client" Version="2.32.0" />
+        <PackageReference Include="Grpc.Tools" Version="2.32.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <Protobuf Include="protos\BoneyProposer.proto" GrpcServices="BoneyProposer" />
+        <Protobuf Include="protos\BoneyAcceptor.proto" GrpcServices="BoneyAcceptor" />
+        <Protobuf Include="protos\BoneyLearner.proto" GrpcServices="BoneyLearner" />
+    </ItemGroup>
+
 </Project>

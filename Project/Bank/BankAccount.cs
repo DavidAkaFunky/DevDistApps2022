@@ -1,27 +1,19 @@
-﻿namespace DADProject
+﻿namespace DADProject;
+
+public class BankAccount
 {
-    public class BankAccount
+    public double Balance { get; private set; } = 694.20;
+
+    public void Deposit(double amount)
     {
-        private double balance = 694.20;
+        Balance += amount;
+    }
 
-        public BankAccount() { }
-
-        public double Balance
-        {
-            get { return balance; }
-        }
-
-        public void Deposit(double amount)
-        {
-            balance += amount;
-        }
-
-        public bool Withdraw(double amount)
-        {
-            if (amount > balance)
-                return false;
-            balance -= amount;
-            return true;
-        }
+    public bool Withdraw(double amount)
+    {
+        if (amount > Balance)
+            return false;
+        Balance -= amount;
+        return true;
     }
 }
