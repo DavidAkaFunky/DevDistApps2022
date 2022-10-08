@@ -1,37 +1,22 @@
 ﻿using Grpc.Core.Interceptors;
 using Grpc.Core;
 using Grpc.Net.Client;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Globalization;
-using System.Security.Principal;
-using Google.Protobuf.WellKnownTypes;
-using System.Threading.Channels;
-
 
 namespace DADProject;
 
 public class BoneyAcceptor
 {
-    private int id;
-
     private List<GrpcChannel> multiPaxosServers = new();
     private Dictionary<int, Slot> slots = new(); // <slot, [currentValue, writeTimestamp, readTimestamp]>
-    private BoneyInterceptor boneyInterceptor = new();
+    private BoneyInterceptor boneyInterceptor;
+    private readonly string address;
 
-    public BoneyAcceptor(int id, string[] servers)
+    public BoneyAcceptor(string address, string[] servers)
     {
-        this.id = id;
+        this.address = address;
+        this.boneyInterceptor = new(address);
         foreach (string s in servers)
             AddServer(s);
-    }
-
-    public int Id
-    {
-        get { return id; }
     }
 
     public Dictionary<int, Slot> Slots
@@ -50,15 +35,15 @@ public class BoneyAcceptor
         slots[slot] = values;
     }
 
-    public void SendAccepted(int slot, int value)
+    public void SendAcceptedToLearners(int slot, int value)
     {
         foreach (GrpcChannel channel in multiPaxosServers)
         {
             Task.Run(() =>
             {
-                CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor);
+                CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor).Intercept();
                 var client = new ProjectBoneyLearnerService.ProjectBoneyLearnerServiceClient(interceptingInvoker);
-                AcceptedToLearnerRequest request = new() { Slot = slot, Id = id, Value = value };
+                AcceptedToLearnerRequest request = new() { Slot = slot, Value = value };
                 AcceptedToLearnerReply reply = client.AcceptedToLearner(request);
             });
         }

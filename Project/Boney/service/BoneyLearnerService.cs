@@ -1,4 +1,3 @@
-using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 
 namespace DADProject;
@@ -7,16 +6,16 @@ namespace DADProject;
 // ChatServerServiceBase is the generated base implementation of the service
 public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearnerServiceBase
 {
-    private BoneyLearner acceptor;
+    private BoneyLearner learner;
 
-    public BoneyLearnerService(int id, string[] servers)
+    public BoneyLearnerService(string[] servers)
     {
-        acceptor = new(id, servers);
+        learner = new(servers);
     }
 
     public override Task<AcceptedToLearnerReply> AcceptedToLearner(AcceptedToLearnerRequest request, ServerCallContext context)
     {
-        // TODO
+        learner.ReceiveAccepted(request.Slot, context.RequestHeaders.GetValue("learnerAddress"), request.Id, request.Value);
         AcceptedToLearnerReply reply = new();
         return Task.FromResult(reply);
     }

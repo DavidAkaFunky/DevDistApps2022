@@ -14,6 +14,7 @@ internal class Boney
         string[] servers = { "http://localhost:8000" };
 
         int currentSlot = 1;
+        int id = 1;
         int slotDuration = 100000;
 
         int[] suspectedServers = new int[] { };
@@ -21,9 +22,9 @@ internal class Boney
 
         Server server = new()
         {
-            Services = { ProjectBoneyProposerService.BindService(new BoneyProposerService(currentSlot, servers)).Intercept(new ServerInterceptor()),
-                         ProjectBoneyAcceptorService.BindService(new BoneyAcceptorService(currentSlot, servers)).Intercept(new ServerInterceptor()),
-                         ProjectBoneyLearnerService.BindService(new BoneyLearnerService(currentSlot, servers)).Intercept(new ServerInterceptor()) },
+            Services = { ProjectBoneyProposerService.BindService(new BoneyProposerService(id, servers)),
+                         ProjectBoneyAcceptorService.BindService(new BoneyAcceptorService("http://" + serverHostname + ":" + serverPort, servers)),
+                         ProjectBoneyLearnerService.BindService(new BoneyLearnerService(servers)) },
             Ports = { new ServerPort(serverHostname, serverPort, ServerCredentials.Insecure) }
         };
         server.Start();

@@ -8,9 +8,9 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 {
     private BoneyAcceptor acceptor;
 
-    public BoneyAcceptorService(int id, string[] servers)
+    public BoneyAcceptorService(string address, string[] servers)
     {
-        acceptor = new(id, servers);
+        acceptor = new(address, servers);
     }
 
     public override Task<PromiseReply> Prepare(PrepareRequest request, ServerCallContext context)
@@ -33,17 +33,16 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
         lock (acceptor)
         {
             int slot = request.Slot;
+            int value = request.Value;
             bool status = true;
-            Slot values = new(request.Value, request.Id, request.Id);
-            if (!acceptor.Slots.TryGetValue(slot, out values)) // Just in case it didn't get any of the former messages
+            Slot values = new(value, request.Id, request.Id);
+            if (!acceptor.Slots.TryGetValue(slot, out values) || values.WriteTimestamp == values.ReadTimestamp)
+            {
                 acceptor.AddOrSetSlot(slot, values);
-            if (values.WriteTimestamp != values.ReadTimestamp)
-                status = false;
+                acceptor.SendAcceptedToLearners(slot, value);
+            }
             else
-                // It's ugly because we're doing it twice if it didn't exist initially,
-                // but only once if it already existed
-                acceptor.AddOrSetSlot(slot, values);
-            // TODO: It must be sent to *all* channels
+                status = false;
             // TODO #2: It must send to *all bank clients* if it reached a majority
             AcceptReply reply = new() { Status = status };
             return Task.FromResult(reply);

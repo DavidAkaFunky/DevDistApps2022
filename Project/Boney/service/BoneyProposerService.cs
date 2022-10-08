@@ -1,4 +1,5 @@
-﻿using Grpc.Core;
+﻿using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 
 namespace DADProject;
 
@@ -18,7 +19,7 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
         lock (proposer)
         {
             // Make sure it has no concluded consensus value and it hasn't started consensus already
-            if (!proposer.History.TryGetValue(slot, out outValue) && !proposer.Slots.TryGetValue(slot))
+            if (!proposer.History.TryGetValue(slot, out outValue) && outValue < 0)
             {
                 outValue = -1; // Otherwise it will be a positive value and Bank will use it as a "canned" consensus reply
 
@@ -28,4 +29,15 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
         CompareAndSwapReply reply = new() { OutValue = outValue };
         return Task.FromResult(reply);
     }
+
+    public override Task<FinishedCompareAndSwapReply> FinishedCompareAndSwap(FinishedCompareAndSwapRequest request, ServerCallContext context)
+    {
+        lock (proposer)
+        {
+            proposer.AddOrSetHistory(request.Slot, request.OutValue);
+        }
+        FinishedCompareAndSwapReply reply = new();
+        return Task.FromResult(reply);
+    }
+
 }
