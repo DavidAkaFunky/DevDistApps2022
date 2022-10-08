@@ -6,14 +6,14 @@ namespace DADProject;
 // ChatServerServiceBase is the generated base implementation of the service
 public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceBase
 {
-    private readonly BoneyAcceptor acceptor;
+    private BoneyAcceptor acceptor;
 
     public BoneyAcceptorService(int id, string[] servers)
     {
-        acceptor = new BoneyAcceptor(id, servers);
+        acceptor = new(id, servers);
     }
 
-    /*public override Task<PromiseReply> Prepare(PrepareRequest request, ServerCallContext context)
+    public override Task<PromiseReply> Prepare(PrepareRequest request, ServerCallContext context)
     {
         lock (acceptor)
         {
@@ -33,7 +33,7 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
         lock (acceptor)
         {
             int slot = request.Slot;
-            var status = true;
+            bool status = true;
             Slot values = new(request.Value, request.Id, request.Id);
             if (!acceptor.Slots.TryGetValue(slot, out values)) // Just in case it didn't get any of the former messages
                 acceptor.AddOrSetSlot(slot, values);
@@ -48,5 +48,6 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
             AcceptReply reply = new() { Status = status };
             return Task.FromResult(reply);
         }
-    }*/
+    }
+
 }

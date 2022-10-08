@@ -2,7 +2,7 @@
 using Grpc.Core.Interceptors;
 using Timer = System.Timers.Timer;
 
-namespace DADProject;
+namespace DADProject.service;
 
 internal class Boney
 {
@@ -16,9 +16,9 @@ internal class Boney
         int currentSlot = 1;
         int slotDuration = 100000;
 
-        int[] suspectedServers = new int[] {};
+        int[] suspectedServers = new int[] { };
         bool frozen = false;
-        
+
         Server server = new()
         {
             Services = { ProjectBoneyProposerService.BindService(new BoneyProposerService(currentSlot, servers)).Intercept(new ServerInterceptor()),
