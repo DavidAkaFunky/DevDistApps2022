@@ -27,7 +27,7 @@ public class BoneyLearner
         acceptedValues[slot][acceptorAddress] = value;
         if (acceptedValues[slot].Count > multiPaxosServers.Count / 2 && new List<int>(acceptedValues[slot].Values.Distinct()).Count == 1)
         {
-            // TODO: Send result to clients (to add to history) AND to proposers
+            // TODO: Send result to clients AND to proposers (to add to history)
         }
 
     }
