@@ -6,8 +6,10 @@ namespace DADProject;
 
 internal class Bank
 {
-    private static void Main()
+    private static void Main(string[] args)
     {
+        if (args.Length != 2)
+            return;
         const int serverPort = 5000;
         const string serverHostname = "localhost";
 
