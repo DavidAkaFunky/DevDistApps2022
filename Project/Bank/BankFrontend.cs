@@ -40,6 +40,7 @@ public class BankFrontend
             {
                 CompareAndSwapRequest request = new() { Slot = slot, InValue = serverID };
                 var reply = client.CompareAndSwap(request);
+                Console.WriteLine(reply.OutValue);
                 // if (reply.OutValue > 0)
                 // TODO: Start 2PC?
             });

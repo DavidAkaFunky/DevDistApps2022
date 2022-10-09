@@ -6,18 +6,21 @@ namespace DADProject;
 public class BoneyLearner
 {
     private List<GrpcChannel> multiPaxosServers = new();
+    private List<GrpcChannel> bankClients = new();
     private Dictionary<int, Dictionary<string, int>> acceptedValues = new();
 
-    public BoneyLearner( string[] servers)
+    public BoneyLearner(List<string> servers, List<string> clients)
     {
         foreach (string s in servers)
-            AddServer(s);
+            AddChannel(multiPaxosServers, s);
+        foreach (string s in clients)
+            AddChannel(bankClients, s);
     }
 
-    public void AddServer(string server)
+    public void AddChannel(List<GrpcChannel> channels, string server)
     {
         GrpcChannel channel = GrpcChannel.ForAddress(server);
-        multiPaxosServers.Add(channel);
+        channels.Add(channel);
     }
 
     public void ReceiveAccepted(int slot, string acceptorAddress, int id, int value)

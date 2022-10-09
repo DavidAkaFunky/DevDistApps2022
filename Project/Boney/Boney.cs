@@ -1,35 +1,85 @@
 ﻿using Grpc.Core;
 using Grpc.Core.Interceptors;
+using System.Data;
+using System.Diagnostics;
 using Timer = System.Timers.Timer;
 
-namespace DADProject.service;
+namespace DADProject;
 
 internal class Boney
 {
-    private static void Main()
+    private static void Main(string[] args)
     {
-        var serverHostname = "localhost";
-        var serverPort = 1000;
+        if (args.Length < 2)
+        {
+            Console.Error.WriteLine("Too few arguments: [id] [configPath]");
+            return;
+        }
+        else if (args.Length > 2)
+        {
+            Console.Error.WriteLine("Too many arguments: [id] [configPath]");
+            return;
+        }
 
-        string[] servers = { "http://localhost:8000" };
+        StreamReader inputFile;
+        try
+        {
+            inputFile = new StreamReader(args[1]);
+        }
+        catch (Exception)
+        {
+            throw; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
+        }
 
+        int id = int.Parse(args[0]);
+        List<string> boneyServers = new();
+        List<string> bankClients = new();
+        string address = null;
+
+        while (inputFile.ReadLine() is { } line)
+        {
+            var tokens = line.Split(' ');
+
+            if (tokens[0] == "P")
+            {
+                if (tokens.Length < 3)
+                    throw new Exception("At least 3 arguments needed for 'P' lines");
+                if (tokens[2] == "boney")
+                {
+                    if (tokens.Length != 4)
+                        throw new Exception("Exactly 4 arguments needed for 'P boney' lines");
+                    boneyServers.Add(tokens[3]);
+                    if (int.Parse(tokens[1]) == id)
+                        address = tokens[3];
+                }
+                else if (tokens[2] == "bank")
+                {
+                    if (tokens.Length != 4)
+                        throw new Exception("Exactly 4 arguments needed for 'P bank' lines");
+                    bankClients.Add(tokens[3]);
+                }
+            }
+        }
+
+        if (address == null)
+            throw new Exception("(This shouldn never happen but) the config file doesn't contain an address for the server.");
+
+        Uri ownUri = new Uri(address);
         int currentSlot = 1;
-        int id = 1;
         int slotDuration = 100000;
-
         int[] suspectedServers = new int[] { };
         bool frozen = false;
 
         Server server = new()
         {
-            Services = { ProjectBoneyProposerService.BindService(new BoneyProposerService(id, servers)),
-                         ProjectBoneyAcceptorService.BindService(new BoneyAcceptorService("http://" + serverHostname + ":" + serverPort, servers)),
-                         ProjectBoneyLearnerService.BindService(new BoneyLearnerService(servers)) },
-            Ports = { new ServerPort(serverHostname, serverPort, ServerCredentials.Insecure) }
+            Services = { ProjectBoneyProposerService.BindService(new BoneyProposerService(id, boneyServers)),
+                         ProjectBoneyAcceptorService.BindService(new BoneyAcceptorService(address, boneyServers)),
+                         ProjectBoneyLearnerService.BindService(new BoneyLearnerService(boneyServers, bankClients)) },
+            Ports = { new ServerPort(ownUri.Host, ownUri.Port, ServerCredentials.Insecure) }
         };
         server.Start();
 
-        Console.WriteLine("ChatServer server listening on port " + serverPort);
+        Console.WriteLine("ChatServer server listening on port " + ownUri.Port);
 
         void HandleTimer()
         {

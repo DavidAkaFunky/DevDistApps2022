@@ -11,7 +11,7 @@ public class BoneyAcceptor
     private BoneyInterceptor boneyInterceptor;
     private readonly string address;
 
-    public BoneyAcceptor(string address, string[] servers)
+    public BoneyAcceptor(string address, List<string> servers)
     {
         this.address = address;
         this.boneyInterceptor = new(address);

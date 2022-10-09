@@ -8,11 +8,10 @@ public class BoneyProposer
 {
     private int id;
     private List<GrpcChannel> multiPaxosServers = new(); // All servers are proposers, learners and acceptors
-    private Dictionary<int, Slot> slots = new(); // <slot, [currentValue, writeTimestamp, readTimestamp]>
     private BoneyInterceptor boneyInterceptor = new();
     private Dictionary<int, int> history = new();
 
-    public BoneyProposer(int id, string[] servers)
+    public BoneyProposer(int id, List<string> servers)
     {
         this.id = id;
         foreach (string s in servers)
@@ -54,6 +53,7 @@ public class BoneyProposer
     public async void RunConsensus(int slot, int inValue)
     {
         int valueSentToAccept = inValue;
+        int mostRecentReadTimestamp = id;
         history[slot] = -1;
         List<Task> tasks = new();
         if (id > 0)
@@ -66,15 +66,14 @@ public class BoneyProposer
                     if (reply.Id > id)
                     {
                         id += multiPaxosServers.Count;
-                        return;
+                        return; //This probably won't kill the whole function though...
                     }
 
-                    // MOVE TO ACCEPTOR + Have acceptors send back the correct value!!!! (valueSentToAccept = reply.Value)
-                    //if (reply.Id > Slots[slot].ReadTimestamp)
-                    //{
-                    //    Slots[slot].ReadTimestamp = reply.Id;
-                    //    Slots[slot].CurrentValue = reply.Value;
-                    //}
+                    if (reply.Id > mostRecentReadTimestamp)
+                    {
+                        mostRecentReadTimestamp = reply.Id;
+                        valueSentToAccept = reply.Value;
+                    }
 
                     //lock (responses) doesnt work
                     CheckMajority(++responses, tasks);
@@ -84,7 +83,7 @@ public class BoneyProposer
         foreach (var channel in multiPaxosServers)
             tasks.Add(Task.Run(() =>
             {
-                if (!SendAccept(channel, slot))
+                if (!SendAccept(channel, slot, mostRecentReadTimestamp, valueSentToAccept))
                     id += multiPaxosServers.Count;
             }));
     }
@@ -98,11 +97,11 @@ public class BoneyProposer
         return reply;
     }
 
-    public bool SendAccept(GrpcChannel channel, int slot)
+    public bool SendAccept(GrpcChannel channel, int slot, int readTimestamp, int value)
     {
         CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor);
         var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(interceptingInvoker);
-        AcceptRequest request = new() { Slot = slot, Id = slots[slot].ReadTimestamp, Value = slots[slot].CurrentValue };
+        AcceptRequest request = new() { Slot = slot, Id = readTimestamp, Value = value };
         AcceptReply reply = client.Accept(request);
         return reply.Status;
     }

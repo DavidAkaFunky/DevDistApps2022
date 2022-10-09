@@ -8,9 +8,9 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
 {
     private BoneyLearner learner;
 
-    public BoneyLearnerService(string[] servers)
+    public BoneyLearnerService(List<string> servers, List<string> clients)
     {
-        learner = new(servers);
+        learner = new(servers, clients);
     }
 
     public override Task<AcceptedToLearnerReply> AcceptedToLearner(AcceptedToLearnerRequest request, ServerCallContext context)

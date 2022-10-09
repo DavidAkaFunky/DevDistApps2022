@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
 
-namespace DadProject;
+namespace DADProject;
 
 // refactor the interface to receive an identifier and a path
 internal interface IRunner
@@ -25,7 +25,7 @@ internal class UnixRunner : IRunner
             });
             
             if (process == null)
-                throw new DadException(ErrorCode.FailedStartingProcess);
+                throw new DADException(ErrorCode.FailedStartingProcess);
 
             Directory.SetCurrentDirectory(pwd);
             return process;
@@ -33,7 +33,7 @@ internal class UnixRunner : IRunner
         catch (Exception e)
         {
             Console.WriteLine(e.Message);
-            throw new DadException(ErrorCode.FailedStartingProcess);
+            throw new DADException(ErrorCode.FailedStartingProcess);
         }
     }
 
@@ -43,20 +43,20 @@ internal class UnixRunner : IRunner
     }
 }
 
-internal class DadException : Exception
+public class DADException : Exception
 {
-    public DadException(ErrorCode code) : base(ErrorMessage.Get(code))
+    public DADException(ErrorCode code) : base(ErrorMessage.Get(code))
     {
     }
 }
 
-internal enum ErrorCode
+public enum ErrorCode
 {
     FailedStartingProcess,
     MissingConfigFile
 }
 
-internal class ErrorMessage
+public class ErrorMessage
 {
     public static string Get(ErrorCode code)
     {
@@ -83,14 +83,19 @@ public class PuppetMaster
 {
     public static void Main(string[] args)
     {
-        // only one argument and it is the file name
+        // Only one argument and it is the file name
         if (args.Length < 1)
         {
             Console.Error.WriteLine("Filename not passed as argument");
             return;
         }
+        else if (args.Length > 1)
+        {
+            Console.Error.WriteLine("Too many arguments");
+            return;
+        }
 
-        //TODO eu assumi que a syntax dos scripts está sempre correta, caso não se verifique, muito rapidamente se mete um regex aqui
+        // TODO eu assumi que a syntax dos scripts está sempre correta, caso não se verifique, muito rapidamente se mete um regex aqui
         IRunner runner = new UnixRunner();
 
         // processos vao receber como argumentos um id e o caminho para o ficheiro de config
@@ -104,7 +109,7 @@ public class PuppetMaster
         }
         catch (Exception)
         {
-            throw new DadException(ErrorCode.MissingConfigFile);
+            throw new DADException(ErrorCode.MissingConfigFile);
         }
 
         List<string> boneys = new();

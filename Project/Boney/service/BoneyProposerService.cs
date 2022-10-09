@@ -7,7 +7,7 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
 {
     private BoneyProposer proposer;
 
-    public BoneyProposerService(int id, string[] servers)
+    public BoneyProposerService(int id, List<string> servers)
     {
         proposer = new(id, servers);
     }
@@ -19,7 +19,7 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
         lock (proposer)
         {
             // Make sure it has no concluded consensus value and it hasn't started consensus already
-            if (!proposer.History.TryGetValue(slot, out outValue) && outValue < 0)
+            if (!proposer.History.TryGetValue(slot, out outValue) || outValue < 0)
             {
                 outValue = -1; // Otherwise it will be a positive value and Bank will use it as a "canned" consensus reply
 

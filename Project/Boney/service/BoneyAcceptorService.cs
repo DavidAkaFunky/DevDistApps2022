@@ -8,7 +8,7 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 {
     private BoneyAcceptor acceptor;
 
-    public BoneyAcceptorService(string address, string[] servers)
+    public BoneyAcceptorService(string address, List<string> servers)
     {
         acceptor = new(address, servers);
     }
