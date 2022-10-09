@@ -22,19 +22,22 @@ internal class Boney
         }
 
         StreamReader inputFile;
+        int id;
         try
         {
             inputFile = new StreamReader(args[1]);
+            id = int.Parse(args[0]);
         }
         catch (Exception)
         {
-            throw; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
+            Console.Error.WriteLine("Invalid arguments");
+            return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
         }
 
-        int id = int.Parse(args[0]);
         List<string> boneyServers = new();
         List<string> bankClients = new();
         string address = null;
+        int numberOfSlots = -1; // Is this needed for Boney servers? Hmmm
 
         while (inputFile.ReadLine() is { } line)
         {
@@ -49,8 +52,16 @@ internal class Boney
                     if (tokens.Length != 4)
                         throw new Exception("Exactly 4 arguments needed for 'P boney' lines");
                     boneyServers.Add(tokens[3]);
-                    if (int.Parse(tokens[1]) == id)
-                        address = tokens[3];
+                    try
+                    {
+                        if (int.Parse(tokens[1]) == id)
+                            address = tokens[3];
+                    }
+                    catch (FormatException)
+                    {
+                        Console.Error.WriteLine("Invalid id for Boney server");
+                        return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
+                    }
                 }
                 else if (tokens[2] == "bank")
                 {
@@ -59,10 +70,26 @@ internal class Boney
                     bankClients.Add(tokens[3]);
                 }
             }
+            if (tokens[0] == "S")
+            {
+                if (tokens.Length != 2)
+                    throw new Exception("Exactly 2 arguments needed for 'S' lines");
+                try
+                {
+                    numberOfSlots = int.Parse(tokens[1]);
+                }
+                catch (FormatException)
+                {
+                    Console.Error.WriteLine("Invalid value for number of slots");
+                    return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
+                }
+            }
         }
 
         if (address == null)
-            throw new Exception("(This shouldn never happen but) the config file doesn't contain an address for the server.");
+            throw new Exception("(This should never happen but) the config file doesn't contain an address for the server.");
+        if (numberOfSlots < 0)
+            throw new Exception("No number of slots given.");
 
         Uri ownUri = new Uri(address);
         int currentSlot = 1;
@@ -79,7 +106,7 @@ internal class Boney
         };
         server.Start();
 
-        Console.WriteLine("ChatServer server listening on port " + ownUri.Port);
+        Console.WriteLine("Boney server listening on port " + ownUri.Port);
 
         void HandleTimer()
         {

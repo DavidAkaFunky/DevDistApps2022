@@ -6,19 +6,24 @@ namespace DADProject;
 
 public class BankFrontend
 {
+    private readonly List<GrpcChannel> bankServers = new();
     private readonly List<GrpcChannel> boneyServers = new();
     private readonly ClientInterceptor clientInterceptor = new();
     private readonly int serverID;
 
-    public BankFrontend(int id)
+    public BankFrontend(int id, List<string> bankServers, List<string> boneyServers)
     {
         serverID = id;
+        foreach (string s in bankServers)
+            AddChannel(this.bankServers, s);
+        foreach (string s in boneyServers)
+            AddChannel(this.boneyServers, s);
     }
 
-    public void AddServer(string server)
+    public void AddChannel(List<GrpcChannel> channels, string server)
     {
-        var channel = GrpcChannel.ForAddress(server);
-        boneyServers.Add(channel);
+        GrpcChannel channel = GrpcChannel.ForAddress(server);
+        channels.Add(channel);
     }
 
     public void DeleteServers()

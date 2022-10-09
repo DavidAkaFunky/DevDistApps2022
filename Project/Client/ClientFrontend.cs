@@ -10,6 +10,12 @@ public class ClientFrontend
     private readonly List<GrpcChannel> bankServers = new();
     private readonly ClientInterceptor clientInterceptor = new();
 
+    public ClientFrontend(List<string> bankServers)
+    {
+        foreach (string s in bankServers)
+            AddServer(s);
+    }
+
     public void AddServer(string server)
     {
         var channel = GrpcChannel.ForAddress(server);

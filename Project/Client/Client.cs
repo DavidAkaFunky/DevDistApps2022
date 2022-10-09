@@ -9,12 +9,67 @@ public class Client
         const string READ_BALANCE_CMD = "R";
         const string WAIT_CMD = "S";
 
-        AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+        if (args.Length < 2)
+        {
+            Console.Error.WriteLine("Too few arguments: [id] [configPath]");
+            return;
+        }
+        else if (args.Length > 2)
+        {
+            Console.Error.WriteLine("Too many arguments: [id] [configPath]");
+            return;
+        }
 
-        ClientFrontend frontend = new();
-        //for (string server: args)
-        var server = "http://localhost:5000";
-        frontend.AddServer(server);
+        StreamReader inputFile;
+        int id;
+        try
+        {
+            inputFile = new StreamReader(args[1]);
+            id = int.Parse(args[0]);
+        }
+        catch (Exception)
+        {
+            Console.Error.WriteLine("Invalid arguments");
+            return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
+        }
+
+        List<string> bankServers = new();
+        int numberOfSlots = -1; // Is this needed for Clients? Hmmm
+
+        while (inputFile.ReadLine() is { } line)
+        {
+            var tokens = line.Split(' ');
+
+            if (tokens[0] == "P")
+            {
+                if (tokens[2] == "bank")
+                {
+                    if (tokens.Length != 4)
+                        throw new Exception("Exactly 4 arguments needed for 'P bank' lines");
+                    bankServers.Add(tokens[3]);
+                }
+            }
+            if (tokens[0] == "S")
+            {
+                if (tokens.Length != 2)
+                    throw new Exception("Exactly 2 arguments needed for 'S' lines");
+                try
+                {
+                    numberOfSlots = int.Parse(tokens[1]);
+                }
+                catch (FormatException)
+                {
+                    Console.Error.WriteLine("Invalid value for number of slots");
+                    return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
+                }
+            }
+        }
+
+        if (numberOfSlots < 0)
+            throw new Exception("No number of slots given.");
+
+        AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+        ClientFrontend frontend = new(bankServers);
 
         while (true)
         {
@@ -30,41 +85,53 @@ public class Client
                 case DEPOSIT_CMD: // Deposit: D amount
                     if (tokens.Length != 2)
                     {
-                        Console.WriteLine("ERROR: Invalid command");
+                        Console.Error.WriteLine("ERROR: Invalid command");
                         break;
                     }
-
-                    // TODO: Deposit "amount"
-                    amount = int.Parse(tokens[1]);
-                    if (amount <= 0)
+                    
+                    try
                     {
-                        Console.WriteLine("ERROR: Invalid amount");
-                        break;
+                        amount = int.Parse(tokens[1]);
+                        if (amount <= 0)
+                        {
+                            Console.Error.WriteLine("ERROR: Invalid amount");
+                            break;
+                        }
+                        frontend.Deposit(amount);
+                    }
+                    catch (FormatException)
+                    {
+                        Console.Error.WriteLine("ERROR: Invalid timespan");
                     }
 
-                    frontend.Deposit(amount);
                     break;
                 case WITHDRAWAL_CMD: // Withdraw: W amount
                     if (tokens.Length != 2)
                     {
-                        Console.WriteLine("ERROR: Invalid command");
+                        Console.Error.WriteLine("ERROR: Invalid command");
                         break;
                     }
-
-                    // TODO: Withdraw "amount"
-                    amount = int.Parse(tokens[1]);
-                    if (amount <= 0)
+                    try
                     {
-                        Console.WriteLine("ERROR: Invalid amount");
-                        break;
-                    }
+                        amount = int.Parse(tokens[1]);
+                        if (amount <= 0)
+                        {
+                            Console.Error.WriteLine("ERROR: Invalid amount");
+                            break;
+                        }
 
-                    frontend.Withdraw(amount);
+                        frontend.Withdraw(amount);
+                    }
+                    catch (FormatException)
+                    {
+                        Console.Error.WriteLine("ERROR: Invalid timespan");
+                    }
+                    
                     break;
                 case READ_BALANCE_CMD: // Read balance: R
                     if (tokens.Length != 1)
                     {
-                        Console.WriteLine("ERROR: Invalid command");
+                        Console.Error.WriteLine("ERROR: Invalid command");
                         break;
                     }
 
@@ -74,7 +141,7 @@ public class Client
                 case WAIT_CMD: // Wait: S milliseconds
                     if (tokens.Length != 2)
                     {
-                        Console.WriteLine("ERROR: Invalid command");
+                        Console.Error.WriteLine("ERROR: Invalid command");
                         break;
                     }
 
@@ -83,7 +150,7 @@ public class Client
                         var milliseconds = int.Parse(tokens[1]);
                         if (milliseconds < 0)
                         {
-                            Console.WriteLine("ERROR: Invalid timespan");
+                            Console.Error.WriteLine("ERROR: Invalid timespan");
                             break;
                         }
 
@@ -92,12 +159,12 @@ public class Client
                     }
                     catch (FormatException)
                     {
-                        Console.WriteLine("ERROR: Invalid timespan");
+                        Console.Error.WriteLine("ERROR: Invalid timespan");
                     }
 
                     break;
                 default:
-                    Console.WriteLine("ERROR: Unknown command");
+                    Console.Error.WriteLine("ERROR: Unknown command");
                     break;
             }
         }
