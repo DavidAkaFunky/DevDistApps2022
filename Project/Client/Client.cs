@@ -2,6 +2,15 @@
 
 public class Client
 {
+
+    private static int _id;
+
+    private static int Id
+    {
+        set => _id = value;
+        get => _id;
+    }
+    
     public static void Main(string[] args)
     {
         const string DEPOSIT_CMD = "D";
@@ -9,21 +18,15 @@ public class Client
         const string READ_BALANCE_CMD = "R";
         const string WAIT_CMD = "S";
 
-        if (args.Length < 2)
+        if (args.Length != 2)
         {
-            Console.Error.WriteLine("Too few arguments: [id] [configPath]");
-            return;
-        }
-        else if (args.Length > 2)
-        {
-            Console.Error.WriteLine("Too many arguments: [id] [configPath]");
+            Console.Error.WriteLine("Wrong number of arguments: [id] [configPath]");
             return;
         }
 
-        int id;
         try
         {
-            id = int.Parse(args[0]);
+            Id = int.Parse(args[0]);
         }
         catch (Exception)
         {
@@ -32,47 +35,14 @@ public class Client
         }
 
         List<string> bankServers = new();
-        int numberOfSlots = -1; // Is this needed for Clients? Hmmm
-
+        
         foreach (string line in File.ReadAllLines(args[1]))
         {
             var tokens = line.Split(' ');
-
             if (tokens[0] == "P")
-            {
                 if (tokens[2] == "bank")
-                {
-                    if (tokens.Length != 4)
-                        throw new Exception("Exactly 4 arguments needed for 'P bank' lines");
                     bankServers.Add(tokens[3]);
-                }
-            }
-            if (tokens[0] == "S")
-            {
-                if (tokens.Length != 2)
-                    throw new Exception("Exactly 2 arguments needed for 'S' lines");
-                try
-                {
-                    numberOfSlots = int.Parse(tokens[1]);
-                }
-                catch (FormatException)
-                {
-                    Console.Error.WriteLine("Invalid value for number of slots");
-                    return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
-                }
-            }
-            else if (tokens[0] == "T" || tokens[0] == "D" || tokens[0] == "F")
-                continue;
-            else
-            {
-                Console.Error.WriteLine("Invalid line");
-                return;
-            }
         }
-
-
-        if (numberOfSlots < 0)
-            throw new Exception("No number of slots given.");
 
         AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
         ClientFrontend frontend = new(bankServers);

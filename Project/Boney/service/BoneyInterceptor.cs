@@ -1,4 +1,5 @@
-﻿using Grpc.Core;
+﻿using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 using Grpc.Core.Interceptors;
 
 namespace DADProject;
@@ -10,23 +11,35 @@ public class BoneyInterceptor : Interceptor
 	//public GlobalServerLoggerInterceptor(ILogger logger) {
 	//    this.logger = logger;
 	//}
-	private readonly string address = null;
 
-	public BoneyInterceptor() { }
-
-	public BoneyInterceptor(string address)
+	private int _id = 0;
+	private int Id
 	{
-		this.address = address;
+		set => _id = value;
+		get => _id;
 	}
+	
+	private int seq = 0;
+
+	public BoneyInterceptor(int id)
+	{
+		Id = id;
+	}
+
+	// public BoneyInterceptor(string address)
+	// {
+	// 	this.address = address;
+	// }
 
 	public override TResponse BlockingUnaryCall<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context, BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
 	{
 
 		Metadata metadata = context.Options.Headers; // read original headers
-		if (metadata == null)
-			metadata = new Metadata();
-		if (address != null)
-			metadata.Add("learnerAddress", address); // add the additional metadata
+		if (metadata == null) metadata = new Metadata();
+				
+		metadata.Add("id", $"{Id}");
+		metadata.Add("seq", $"{seq++}");
+		
 
 		// create new context because original context is readonly
 		ClientInterceptorContext<TRequest, TResponse> modifiedContext =
