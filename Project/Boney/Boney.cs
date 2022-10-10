@@ -99,7 +99,10 @@ internal class Boney
             }
             ++i;
         }
-        Dictionary<int, Dictionary<int, Tuple<string, string>>> serversStatus = new();
+
+        Dictionary<int, Dictionary<int, string>> serversStatus = new();
+        Dictionary<int, bool> isFrozen = new();
+
         if (lines.Length - i != numberOfSlots)
         {
             Console.Error.WriteLine("Invalid number of slot details");
@@ -140,9 +143,14 @@ internal class Boney
                     Console.Error.WriteLine("Invalid slot details");
                     return;
                 }
-                if (!serversStatus.ContainsKey(slotNumber))
-                    serversStatus[slotNumber] = new();
-                serversStatus[slotNumber][serverID] = new(tokens[j+1], tokens[j+2]);
+                if (id == serverID)
+                    isFrozen[slotNumber] = tokens[j+1] == "F";
+                else
+                {
+                    if (!serversStatus.ContainsKey(slotNumber))
+                        serversStatus[slotNumber] = new();
+                    serversStatus[slotNumber][serverID] = tokens[j+2];
+                }
             }
             ++i;
         }
@@ -155,8 +163,6 @@ internal class Boney
         Uri ownUri = new Uri(address);
         int currentSlot = 1;
         int slotDuration = 100000;
-        int[] suspectedServers = new int[] { };
-        bool frozen = false;
 
         Server server = new()
         {
