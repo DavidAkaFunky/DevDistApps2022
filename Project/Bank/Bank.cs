@@ -33,6 +33,7 @@ internal class Bank
             return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
         }
 
+        List<int> bankServerIDs = new();
         List<string> boneyServers = new();
         List<string> bankServers = new();
         string? address = null;
@@ -59,10 +60,12 @@ internal class Bank
                 {
                     if (tokens.Length != 4)
                         throw new Exception("Exactly 4 arguments needed for 'P bank' lines");
+                    int serverID = int.Parse(tokens[1]);
                     bankServers.Add(tokens[3]);
+                    bankServerIDs.Add(serverID);
                     try
                     {
-                        if (int.Parse(tokens[1]) == id)
+                        if (serverID == id)
                             address = tokens[3];
                     }
                     catch (FormatException)
@@ -98,9 +101,10 @@ internal class Bank
             }
             ++i;
         }
-        String pattern = @"F \d+( \(\d+, [NF], N?S\)){" + (boneyServers.Count + bankServers.Count) + "}";
-        Regex regex = new (pattern);
-        Dictionary<int, Dictionary<int, Tuple<string, string>>> serversStatus = new();
+
+        Dictionary<int, Dictionary<int, string>> serversStatus = new();
+        Dictionary<int, bool> isFrozen = new();
+
         if (lines.Length - i != numberOfSlots)
         {
             Console.Error.WriteLine("Invalid number of slot details");
@@ -108,15 +112,49 @@ internal class Bank
         }
         while (i < lines.Length)
         {
-            Match match = regex.Match(lines[i]);
-            if (match.Success)
-            {
-                // TODO
-            }
-            else
+            foreach (var c in new string[] { ",", "(", ")" })
+                lines[i] = lines[i].Replace(c, string.Empty);
+
+            string[] tokens = lines[i].Split();
+            int slotNumber;
+            if (tokens[0] != "F")
             {
                 Console.Error.WriteLine("Invalid slot details");
                 return;
+            }
+
+            try
+            {
+                slotNumber = int.Parse(tokens[1]);
+            }
+            catch (FormatException)
+            {
+                Console.Error.WriteLine("Invalid slot details");
+                return;
+            }
+
+            for (int j = 2; j < tokens.Length; j += 3)
+            {
+                int serverID;
+                try
+                {
+                    serverID = int.Parse(tokens[j]);
+                }
+                catch (FormatException)
+                {
+                    Console.Error.WriteLine("Invalid slot details");
+                    return;
+                }
+                if (!bankServerIDs.Contains(serverID))
+                    continue;
+                if (id == serverID)
+                    isFrozen[slotNumber] = tokens[j + 1] == "F";
+                else
+                {
+                    if (!serversStatus.ContainsKey(slotNumber))
+                        serversStatus[slotNumber] = new();
+                    serversStatus[slotNumber][serverID] = tokens[j + 2];
+                }
             }
             ++i;
         }
@@ -130,10 +168,8 @@ internal class Bank
         Uri ownUri = new Uri(address);
 
         var type = "primary"; //primary, onHold(?? if needed while deciding who's primary,
-        var slotDuration = 50000;
         var currentSlot = 1;
-        int[] suspectedServers = { };
-        var frozen = false;
+        var slotDuration = 50000;
 
         //-----------------------------------------Read states from input
 
