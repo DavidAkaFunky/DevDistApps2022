@@ -1,6 +1,7 @@
 ﻿using Grpc.Core.Interceptors;
 using Grpc.Core;
 using Grpc.Net.Client;
+using System.Threading.Tasks;
 
 namespace DADProject;
 
@@ -39,15 +40,16 @@ public class BoneyProposer
         history[slot] = result;
     }
 
-    public void CheckMajority(int responses, List<Task> tasks)
+    public void CheckMajority(int responses, List<Thread> threads)
     {
-        if (responses == multiPaxosServers.Count)
-            // foreach(Task task in tasks)
-            // {
-            //     if(!task.IsCompleted)
-            //         // TODO
-            // }
-            tasks.Clear();
+        if (responses > multiPaxosServers.Count / 2)
+        {
+            foreach (Thread thread in threads)
+            {
+                thread.Abort();
+            }
+            threads.Clear();
+        }
     }
 
     public async void RunConsensus(int slot, int inValue)
@@ -55,17 +57,19 @@ public class BoneyProposer
         int valueSentToAccept = inValue;
         int mostRecentReadTimestamp = id;
         history[slot] = -1;
-        List<Task> tasks = new();
+        List<Thread> threads = new();
+        int idReadOnly = id;
         if (id > 0)
         {
             var responses = 0;
             foreach (var channel in multiPaxosServers)
-                tasks.Add(Task.Run(() =>
+            {
+                Thread thread = new(() =>
                 {
                     PromiseReply reply = SendPrepare(channel, slot);
                     if (reply.Id > id)
                     {
-                        id += multiPaxosServers.Count;
+                        id = idReadOnly + multiPaxosServers.Count;
                         return; //This probably won't kill the whole function though...
                     }
 
@@ -76,16 +80,22 @@ public class BoneyProposer
                     }
 
                     //lock (responses) doesnt work
-                    CheckMajority(++responses, tasks);
-                }));
+                    CheckMajority(++responses, threads);
+                });
+                threads.Add(thread);
+                thread.Start();
+            }
         }
 
         foreach (var channel in multiPaxosServers)
-            tasks.Add(Task.Run(() =>
+        {
+            Thread thread = new(() =>
             {
                 if (!SendAccept(channel, slot, mostRecentReadTimestamp, valueSentToAccept))
-                    id += multiPaxosServers.Count;
-            }));
+                    id = idReadOnly + multiPaxosServers.Count;
+            });
+            thread.Start();
+        }
     }
 
     public PromiseReply SendPrepare(GrpcChannel channel, int slot)

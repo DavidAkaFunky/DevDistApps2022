@@ -1,5 +1,6 @@
 ﻿using Grpc.Core;
 using Grpc.Core.Interceptors;
+using System.Text.RegularExpressions;
 using Timer = System.Timers.Timer;
 
 namespace DADProject;
@@ -19,11 +20,11 @@ internal class Bank
             return;
         }
 
-        StreamReader inputFile;
+        string[] lines;
         int id;
         try
         {
-            inputFile = new StreamReader(args[1]);
+            lines = File.ReadAllLines(args[1]);
             id = int.Parse(args[0]);
         }
         catch (Exception)
@@ -34,12 +35,15 @@ internal class Bank
 
         List<string> boneyServers = new();
         List<string> bankServers = new();
-        string address = null;
+        string? address = null;
         int numberOfSlots = -1;
-
-        while (inputFile.ReadLine() is { } line)
+        int i = 0;
+        while (i < lines.Length)
         {
-            var tokens = line.Split(' ');
+            Console.WriteLine(lines[i]);
+            var tokens = lines[i].Split(' ');
+            if (tokens[0] == "F")
+                break;
 
             if (tokens[0] == "P")
             {
@@ -50,6 +54,12 @@ internal class Bank
                     if (tokens.Length != 4)
                         throw new Exception("Exactly 4 arguments needed for 'P boney' lines");
                     boneyServers.Add(tokens[3]);
+                }
+                else if (tokens[2] == "bank")
+                {
+                    if (tokens.Length != 4)
+                        throw new Exception("Exactly 4 arguments needed for 'P bank' lines");
+                    bankServers.Add(tokens[3]);
                     try
                     {
                         if (int.Parse(tokens[1]) == id)
@@ -57,18 +67,12 @@ internal class Bank
                     }
                     catch (FormatException)
                     {
-                        Console.Error.WriteLine("Invalid id for Boney server");
+                        Console.Error.WriteLine("Invalid id for Bank server");
                         return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
                     }
                 }
-                else if (tokens[2] == "bank")
-                {
-                    if (tokens.Length != 4)
-                        throw new Exception("Exactly 4 arguments needed for 'P bank' lines");
-                    bankServers.Add(tokens[3]);
-                }
             }
-            if (tokens[0] == "S")
+            else if (tokens[0] == "S")
             {
                 if (tokens.Length != 2)
                     throw new Exception("Exactly 2 arguments needed for 'S' lines");
@@ -82,9 +86,42 @@ internal class Bank
                     return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
                 }
             }
+            else if (tokens[0] == "T" || tokens[0] == "D")
+            {
+                ++i;
+                continue;
+            }
+            else
+            {
+                Console.Error.WriteLine("Invalid line");
+                return;
+            }
+            ++i;
+        }
+        String pattern = @"F \d+( \(\d+, [NF], N?S\)){" + (boneyServers.Count + bankServers.Count) + "}";
+        Regex regex = new (pattern);
+        Dictionary<int, Dictionary<int, Tuple<string, string>>> serversStatus = new();
+        if (lines.Length - i != numberOfSlots)
+        {
+            Console.Error.WriteLine("Invalid number of slot details");
+            return;
+        }
+        while (i < lines.Length)
+        {
+            Match match = regex.Match(lines[i]);
+            if (match.Success)
+            {
+                // TODO
+            }
+            else
+            {
+                Console.Error.WriteLine("Invalid slot details");
+                return;
+            }
+            ++i;
         }
 
-        if (address == null)
+        if (address is null)
             throw new Exception("(This should never happen but) the config file doesn't contain an address for the server.");
 
         if (numberOfSlots < 0)

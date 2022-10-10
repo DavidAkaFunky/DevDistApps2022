@@ -39,13 +39,14 @@ public class BoneyAcceptor
     {
         foreach (GrpcChannel channel in multiPaxosServers)
         {
-            Task.Run(() =>
+            Thread thread = new(() =>
             {
                 CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor).Intercept();
                 var client = new ProjectBoneyLearnerService.ProjectBoneyLearnerServiceClient(interceptingInvoker);
                 AcceptedToLearnerRequest request = new() { Slot = slot, Value = value };
                 AcceptedToLearnerReply reply = client.AcceptedToLearner(request);
             });
+            thread.Start();
         }
     }
 }

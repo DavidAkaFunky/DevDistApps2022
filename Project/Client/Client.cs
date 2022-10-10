@@ -20,11 +20,9 @@ public class Client
             return;
         }
 
-        StreamReader inputFile;
         int id;
         try
         {
-            inputFile = new StreamReader(args[1]);
             id = int.Parse(args[0]);
         }
         catch (Exception)
@@ -36,7 +34,7 @@ public class Client
         List<string> bankServers = new();
         int numberOfSlots = -1; // Is this needed for Clients? Hmmm
 
-        while (inputFile.ReadLine() is { } line)
+        foreach (string line in File.ReadAllLines(args[1]))
         {
             var tokens = line.Split(' ');
 
@@ -63,7 +61,15 @@ public class Client
                     return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
                 }
             }
+            else if (tokens[0] == "T" || tokens[0] == "D" || tokens[0] == "F")
+                continue;
+            else
+            {
+                Console.Error.WriteLine("Invalid line");
+                return;
+            }
         }
+
 
         if (numberOfSlots < 0)
             throw new Exception("No number of slots given.");
@@ -75,7 +81,7 @@ public class Client
         {
             Console.Write("Enter command: ");
             var line = Console.ReadLine();
-            if (line == null)
+            if (line is null)
                 return;
             var tokens = line.Split(' ');
             var cmd = tokens[0];

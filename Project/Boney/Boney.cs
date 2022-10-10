@@ -1,7 +1,7 @@
 ﻿using Grpc.Core;
 using Grpc.Core.Interceptors;
-using System.Data;
-using System.Diagnostics;
+using System.Globalization;
+using System.Text.RegularExpressions;
 using Timer = System.Timers.Timer;
 
 namespace DADProject;
@@ -21,11 +21,11 @@ internal class Boney
             return;
         }
 
-        StreamReader inputFile;
+        string[] lines;
         int id;
         try
         {
-            inputFile = new StreamReader(args[1]);
+            lines = File.ReadAllLines(args[1]);
             id = int.Parse(args[0]);
         }
         catch (Exception)
@@ -36,12 +36,15 @@ internal class Boney
 
         List<string> boneyServers = new();
         List<string> bankClients = new();
-        string address = null;
+        string? address = null;
         int numberOfSlots = -1; // Is this needed for Boney servers? Hmmm
-
-        while (inputFile.ReadLine() is { } line)
+        int i = 0;
+        while (i < lines.Length)
         {
-            var tokens = line.Split(' ');
+            var tokens = lines[i].Split(' ');
+
+            if (tokens[0] == "F")
+                break;
 
             if (tokens[0] == "P")
             {
@@ -70,7 +73,7 @@ internal class Boney
                     bankClients.Add(tokens[3]);
                 }
             }
-            if (tokens[0] == "S")
+            else if (tokens[0] == "S")
             {
                 if (tokens.Length != 2)
                     throw new Exception("Exactly 2 arguments needed for 'S' lines");
@@ -84,9 +87,67 @@ internal class Boney
                     return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
                 }
             }
+            else if (tokens[0] == "T" || tokens[0] == "D")
+            {
+                ++i;
+                continue;
+            }
+            else
+            {
+                Console.Error.WriteLine("Invalid line");
+                return;
+            }
+            ++i;
+        }
+        Dictionary<int, Dictionary<int, Tuple<string, string>>> serversStatus = new();
+        if (lines.Length - i != numberOfSlots)
+        {
+            Console.Error.WriteLine("Invalid number of slot details");
+            return;
+        }
+        while (i < lines.Length)
+        {
+            foreach (var c in new string[] { ",", "(", ")" })
+                lines[i] = lines[i].Replace(c, string.Empty);
+
+            string[] tokens = lines[i].Split();
+            int slotNumber; 
+            if (tokens[0] != "F")
+            {
+                Console.Error.WriteLine("Invalid slot details");
+                return;
+            }
+        
+            try
+            {
+                slotNumber = int.Parse(tokens[1]);
+            }
+            catch (FormatException)
+            {
+                Console.Error.WriteLine("Invalid slot details");
+                return;
+            }
+
+            for (int j = 2; j < tokens.Length; j += 3)
+            {
+                int serverID;
+                try
+                {
+                    serverID = int.Parse(tokens[j]);
+                }
+                catch (FormatException)
+                {
+                    Console.Error.WriteLine("Invalid slot details");
+                    return;
+                }
+                if (!serversStatus.ContainsKey(slotNumber))
+                    serversStatus[slotNumber] = new();
+                serversStatus[slotNumber][serverID] = new(tokens[j+1], tokens[j+2]);
+            }
+            ++i;
         }
 
-        if (address == null)
+        if (address is null)
             throw new Exception("(This should never happen but) the config file doesn't contain an address for the server.");
         if (numberOfSlots < 0)
             throw new Exception("No number of slots given.");

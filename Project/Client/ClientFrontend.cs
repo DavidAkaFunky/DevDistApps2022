@@ -37,23 +37,70 @@ public class ClientFrontend
         {
             var interceptingInvoker = channel.Intercept(clientInterceptor);
             var client = new ProjectClientService.ProjectClientServiceClient(interceptingInvoker);
-            var runConsensus = Task.Run(() =>
+            Thread thread = new(() =>
             {
-                ReadBalanceRequest request = new();
-                var reply = client.ReadBalance(request);
-                Console.WriteLine("Balance: " + reply.Balance.ToString("C", CultureInfo.CurrentCulture));
+                try
+                {
+                    ReadBalanceRequest request = new();
+                    var reply = client.ReadBalance(request);
+                    Console.WriteLine("Balance: " + reply.Balance.ToString("C", CultureInfo.CurrentCulture));
+                    return;
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Oops"); // TODO
+                }
             });
+            thread.Start();
         }
     }
 
     public void Deposit(double amount)
     {
-        // TODO: Call Deposit
+        foreach (var channel in bankServers)
+        {
+            var interceptingInvoker = channel.Intercept(clientInterceptor);
+            var client = new ProjectClientService.ProjectClientServiceClient(interceptingInvoker);
+            Thread thread = new(() =>
+            {
+                try
+                {
+                    DepositRequest request = new() { Amount = amount };
+                    var reply = client.Deposit(request);
+                    Console.WriteLine("Deposit of " + amount.ToString("C", CultureInfo.CurrentCulture));
+                    return;
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Oops"); // TODO
+                }
+            });
+            thread.Start();
+        }
     }
 
     public void Withdraw(double amount)
     {
-        // TODO: Call Withdraw
+        foreach (var channel in bankServers)
+        {
+            var interceptingInvoker = channel.Intercept(clientInterceptor);
+            var client = new ProjectClientService.ProjectClientServiceClient(interceptingInvoker);
+            Thread thread = new(() =>
+            {
+                try
+                {
+                    WithdrawRequest request = new() { Amount = amount };
+                    var reply = client.Withdraw(request);
+                    Console.WriteLine("Withdrawal of " + amount.ToString("C", CultureInfo.CurrentCulture));
+                    return;
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("Oops"); // TODO
+                }
+            });
+            thread.Start();
+        }
     }
 }
 

@@ -32,7 +32,6 @@ public class BoneyLearner
         {
             // TODO: Send result to clients AND to proposers (to add to history)
         }
-
     }
 
 }
