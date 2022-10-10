@@ -18,10 +18,11 @@ internal class UnixRunner : IRunner
         {
             var pwd = Directory.GetCurrentDirectory();
             Directory.SetCurrentDirectory(cwd);
+            var p = new Process();
             var process = Process.Start(new ProcessStartInfo
             {
                 FileName = "alacritty",
-                Arguments = $"-e \"{executable} {args}\"" 
+                Arguments = $"-e sh -c \"{executable} {args}\"" 
             });
             
             if (process == null)
@@ -98,6 +99,8 @@ public class PuppetMaster
         // TODO eu assumi que a syntax dos scripts está sempre correta, caso não se verifique, muito rapidamente se mete um regex aqui
         IRunner runner = new UnixRunner();
 
+        // IRunner runner = OperatingSystem.IsWindows() ? new WindowsRunner() : new UnixRunner();
+
         // processos vao receber como argumentos um id e o caminho para o ficheiro de config
         // depois vao à procura da sua linha e configuram-se
         // assim o acesso à informação comum a todos é facilitado
@@ -142,20 +145,19 @@ public class PuppetMaster
                 }
             }
 
-            // desnecessario, se podermos assumir que o input esta sempre correto, podemos lancar os processos enquanto o ficheiro é lido
-            processes.AddRange(boneys.Select(id => runner.Run("../Boney", "dotnet", $"run {id} {args[0]}")));
-
-            processes.AddRange(banks.Select(id => runner.Run("../Bank", "dotnet", $"run {id} {args[0]}")));
-
-            processes.AddRange(clients.Select(id => runner.Run("../Client", "dotnet", $"run {id} {args[0]}")));
-
-            // wait for exit
-            do
-            {
-                Console.WriteLine("Type 'exit' to kill all processes");
-            } while (Console.ReadLine() != "exit");
-
-            processes.ForEach(process => process.Kill());
         }
+        // desnecessario, se podermos assumir que o input esta sempre correto, podemos lancar os processos enquanto o ficheiro é lido
+        processes.AddRange(boneys.Select(id => runner.Run("../Boney", "dotnet", $"run {id} {args[0]}")));
+
+        processes.AddRange(banks.Select(id => runner.Run("../Bank", "dotnet", $"run {id} {args[0]}")));
+
+        processes.AddRange(clients.Select(id => runner.Run("../Client", "dotnet", $"run {id} {args[0]}")));
+        
+        do
+        {
+            Console.WriteLine("Type 'exit' to kill all processes");
+        } while (Console.ReadLine() != "exit");
+
+        processes.ForEach(process => process.Kill());
     }
 }
