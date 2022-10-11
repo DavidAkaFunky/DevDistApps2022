@@ -173,6 +173,8 @@ internal class Boney
 
         Console.WriteLine("Boney server listening on port " + ownUri.Port);
 
+        // BoneyAcceptor = new BoneyAcceptor();
+
         void HandleTimer()
         {
             currentSlot++;
