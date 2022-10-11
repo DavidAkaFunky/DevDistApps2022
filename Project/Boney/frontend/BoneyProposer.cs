@@ -58,8 +58,7 @@ public class BoneyProposer
         int mostRecentReadTimestamp = id;
         history[slot] = -1;
         List<Thread> threads = new();
-        int idReadOnly = id;
-        if (id > 0)
+        if (id > 1) // Assuming the first Boney server has id = 1
         {
             var responses = 0;
             foreach (var channel in multiPaxosServers)
@@ -69,8 +68,7 @@ public class BoneyProposer
                     PromiseReply reply = SendPrepare(channel, slot);
                     if (reply.Id > id)
                     {
-                        id = idReadOnly + multiPaxosServers.Count;
-                        return; //This probably won't kill the whole function though...
+                        return; // This probably won't kill the whole function though...
                     }
 
                     if (reply.Id > mostRecentReadTimestamp)
@@ -92,7 +90,7 @@ public class BoneyProposer
             Thread thread = new(() =>
             {
                 if (!SendAccept(channel, slot, mostRecentReadTimestamp, valueSentToAccept))
-                    id = idReadOnly + multiPaxosServers.Count;
+                    return;
             });
             thread.Start();
         }

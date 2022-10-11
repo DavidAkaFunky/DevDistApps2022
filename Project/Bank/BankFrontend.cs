@@ -41,14 +41,13 @@ public class BankFrontend
         {
             var interceptingInvoker = channel.Intercept(clientInterceptor);
             var client = new ProjectBankService.ProjectBankServiceClient(interceptingInvoker);
-            var runConsensus = Task.Run(() =>
+            Thread thread = new(() =>
             {
                 CompareAndSwapRequest request = new() { Slot = slot, InValue = serverID };
                 var reply = client.CompareAndSwap(request);
-                Console.WriteLine(reply.OutValue);
-                // if (reply.OutValue > 0)
-                // TODO: Start 2PC?
+                Console.WriteLine("Request Delivered! Answered: {0}", reply.OutValue);
             });
+            thread.Start();
         }
     }
 }

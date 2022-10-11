@@ -44,6 +44,43 @@ internal class UnixRunner : IRunner
     }
 }
 
+internal class WindowsRunner : IRunner
+{
+    public Process Run(string cwd, string executable, string args)
+    {
+        try
+        {
+            var pwd = Directory.GetCurrentDirectory();
+            Directory.SetCurrentDirectory(cwd);
+            var p = new Process();
+            var process = Process.Start(new ProcessStartInfo
+            {
+                FileName = executable,
+                Arguments = $"{args}",
+                UseShellExecute = true,
+                CreateNoWindow = false,
+                WindowStyle = ProcessWindowStyle.Normal
+        });
+
+            if (process == null)
+                throw new DADException(ErrorCode.FailedStartingProcess);
+
+            Directory.SetCurrentDirectory(pwd);
+            return process;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+            throw new DADException(ErrorCode.FailedStartingProcess);
+        }
+    }
+
+    public Process Run(string executable, string args)
+    {
+        return Run(Directory.GetCurrentDirectory(), executable, args);
+    }
+}
+
 public class DADException : Exception
 {
     public DADException(ErrorCode code) : base(ErrorMessage.Get(code))
@@ -97,9 +134,9 @@ public class PuppetMaster
         }
 
         // TODO eu assumi que a syntax dos scripts está sempre correta, caso não se verifique, muito rapidamente se mete um regex aqui
-        IRunner runner = new UnixRunner();
+        //IRunner runner = new UnixRunner();
 
-        // IRunner runner = OperatingSystem.IsWindows() ? new WindowsRunner() : new UnixRunner();
+        IRunner runner = OperatingSystem.IsWindows() ? new WindowsRunner() : new UnixRunner();
 
         // processos vao receber como argumentos um id e o caminho para o ficheiro de config
         // depois vao à procura da sua linha e configuram-se
@@ -151,7 +188,7 @@ public class PuppetMaster
 
         processes.AddRange(banks.Select(id => runner.Run("../Bank", "dotnet", $"run {id} {args[0]}")));
 
-        processes.AddRange(clients.Select(id => runner.Run("../Client", "dotnet", $"run {id} {args[0]}")));
+        //processes.AddRange(clients.Select(id => runner.Run("../Client", "dotnet", $"run {id} {args[0]}")));
         
         do
         {

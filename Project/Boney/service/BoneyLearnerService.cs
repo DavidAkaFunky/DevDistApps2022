@@ -15,6 +15,7 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
 
     public override Task<AcceptedToLearnerReply> AcceptedToLearner(AcceptedToLearnerRequest request, ServerCallContext context)
     {
+        Console.WriteLine("Got value for slot " + request.Slot + "from client: " + request.Value);
         learner.ReceiveAccepted(request.Slot, context.RequestHeaders.GetValue("learnerAddress"), request.Id, request.Value);
         AcceptedToLearnerReply reply = new();
         return Task.FromResult(reply);

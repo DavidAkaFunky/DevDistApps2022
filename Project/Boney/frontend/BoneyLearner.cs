@@ -30,7 +30,28 @@ public class BoneyLearner
         acceptedValues[slot][acceptorAddress] = value;
         if (acceptedValues[slot].Count > multiPaxosServers.Count / 2 && new List<int>(acceptedValues[slot].Values.Distinct()).Count == 1)
         {
-            // TODO: Send result to clients AND to proposers (to add to history)
+            foreach (GrpcChannel channel in multiPaxosServers)
+            {
+                Thread thread = new(() =>
+                {
+                    // CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor).Intercept();
+                    var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(channel);
+                    ResultToProposerRequest request = new() { Slot = slot, Value = value };
+                    ResultToProposerReply reply = client.ResultToProposer(request);
+                });
+                thread.Start();
+            }
+            foreach (GrpcChannel channel in bankClients)
+            {
+                Thread thread = new(() =>
+                {
+                    // CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor).Intercept();
+                    var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(channel);
+                    ResultToBankRequest request = new() { Slot = slot, Value = value };
+                    ResultToBankReply reply = client.ResultToBank(request);
+                });
+                thread.Start();
+            }
         }
     }
 

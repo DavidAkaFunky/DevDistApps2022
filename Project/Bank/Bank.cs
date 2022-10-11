@@ -7,6 +7,7 @@ namespace DADProject;
 
 internal class Bank
 {
+
     private static void Main(string[] args)
     {
         if (args.Length < 2)
@@ -41,8 +42,8 @@ internal class Bank
         int i = 0;
         while (i < lines.Length)
         {
-            Console.WriteLine(lines[i]);
             var tokens = lines[i].Split(' ');
+
             if (tokens[0] == "F")
                 break;
 
@@ -60,12 +61,12 @@ internal class Bank
                 {
                     if (tokens.Length != 4)
                         throw new Exception("Exactly 4 arguments needed for 'P bank' lines");
-                    int serverID = int.Parse(tokens[1]);
                     bankServers.Add(tokens[3]);
-                    bankServerIDs.Add(serverID);
                     try
                     {
-                        if (serverID == id)
+                        int bankServerID = int.Parse(tokens[1]);
+                        bankServerIDs.Add(bankServerID);
+                        if (bankServerID == id)
                             address = tokens[3];
                     }
                     catch (FormatException)
@@ -102,7 +103,7 @@ internal class Bank
             ++i;
         }
 
-        Dictionary<int, Dictionary<int, string>> serversStatus = new();
+        Dictionary<int, List<int>> nonSuspectedServers = new();
         Dictionary<int, bool> isFrozen = new();
 
         if (lines.Length - i != numberOfSlots)
@@ -148,13 +149,11 @@ internal class Bank
                 if (!bankServerIDs.Contains(serverID))
                     continue;
                 if (id == serverID)
-                    isFrozen[slotNumber] = tokens[j + 1] == "F";
-                else
-                {
-                    if (!serversStatus.ContainsKey(slotNumber))
-                        serversStatus[slotNumber] = new();
-                    serversStatus[slotNumber][serverID] = tokens[j + 2];
-                }
+                    isFrozen[slotNumber] = tokens[j+1] == "F";
+                if (!nonSuspectedServers.ContainsKey(slotNumber))
+                    nonSuspectedServers[slotNumber] = new();
+                if (tokens[j+2] == "NS")
+                    nonSuspectedServers[slotNumber].Add(serverID);
             }
             ++i;
         }
@@ -166,27 +165,29 @@ internal class Bank
             throw new Exception("No number of slots given.");
 
         Uri ownUri = new Uri(address);
-
-        var type = "primary"; //primary, onHold(?? if needed while deciding who's primary,
         var currentSlot = 1;
         var slotDuration = 50000;
 
-        //-----------------------------------------Read states from input
+        BankService bankService = new BankService(id);
 
         Server server = new()
         {
-            Services = { ProjectBankService.BindService(new BankService()).Intercept(new ServerInterceptor()) },
+            Services = { ProjectBankService.BindService(bankService).Intercept(new ServerInterceptor()) },
             Ports = { new ServerPort(ownUri.Host, ownUri.Port, ServerCredentials.Insecure) }
         };
         server.Start();
 
         BankFrontend frontend = new(id, bankServers, boneyServers);
 
-        Console.WriteLine("Bank server listening on port " + ownUri.Port);
+        PrintHeader();
+
+        Console.WriteLine("Listening on port " + ownUri.Port);
 
         void HandleTimer()
         {
+            bankService.Primary = false;
             currentSlot++;
+            bankService.CurrentSlot = currentSlot;
             if (currentSlot > numberOfSlots)
             {
                 // TODO: Maybe wait until everything was finished, but how?
@@ -204,6 +205,20 @@ internal class Bank
         Console.ReadKey();
 
         server.ShutdownAsync().Wait();
+    }
+
+    public static void PrintHeader()
+    {
+        Console.WriteLine("========================================");
+        Console.WriteLine("$$$$$$$\\   $$$$$$\\  $$\\   $$\\ $$\\   $$\\ ");
+        Console.WriteLine("$$  __$$\\ $$  __$$\\ $$$\\  $$ |$$ | $$  |");
+        Console.WriteLine("$$ |  $$ |$$ /  $$ |$$$$\\ $$ |$$ |$$  / ");
+        Console.WriteLine("$$$$$$$\\ |$$$$$$$$ |$$ $$\\$$ |$$$$$  /  ");
+        Console.WriteLine("$$  __$$\\ $$  __$$ |$$ \\$$$$ |$$  $$<   ");
+        Console.WriteLine("$$ |  $$ |$$ |  $$ |$$ |\\$$$ |$$ |\\$$\\  ");
+        Console.WriteLine("$$$$$$$  |$$ |  $$ |$$ | \\$$ |$$ | \\$$\\ ");
+        Console.WriteLine("\\_______/ \\__|  \\__|\\__|  \\__|\\__|  \\__|");
+        Console.WriteLine("========================================");
     }
 }
 

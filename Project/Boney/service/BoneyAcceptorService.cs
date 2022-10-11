@@ -19,6 +19,7 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
         {
             int slot = request.Slot;
             Slot values = new(Slot.Null, 0, request.Id);
+            Console.WriteLine("Received prepare request from " + request.Id + " for slot " + slot);
             if (!acceptor.Slots.TryGetValue(slot, out values))
                 acceptor.AddOrSetSlot(slot, values);
             else if (request.Id > values.ReadTimestamp)
@@ -35,6 +36,7 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
             int slot = request.Slot;
             int value = request.Value;
             bool status = true;
+            Console.WriteLine("Received accept request from " + request.Id + " for slot " + slot + " with value " + value);
             Slot values = new(value, request.Id, request.Id);
             if (!acceptor.Slots.TryGetValue(slot, out values) || values.WriteTimestamp == values.ReadTimestamp)
             {

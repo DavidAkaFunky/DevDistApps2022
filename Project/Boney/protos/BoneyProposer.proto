@@ -4,7 +4,8 @@ option csharp_namespace = "DADProject";
 
 service ProjectBoneyProposerService {
 	rpc CompareAndSwap(CompareAndSwapRequest) returns (CompareAndSwapReply);
-    rpc FinishedCompareAndSwap(FinishedCompareAndSwapRequest) returns (FinishedCompareAndSwapReply);
+	rpc ResultToProposer(ResultToProposerRequest) returns (ResultToProposerReply);
+	rpc ResultToBank(ResultToBankRequest) returns (ResultToBankReply);
 }
 
 message CompareAndSwapRequest {
@@ -17,11 +18,20 @@ message CompareAndSwapReply {
 	int32 outValue = 1;
 }
 
-message FinishedCompareAndSwapRequest {
+message ResultToProposerRequest {
   int32 slot = 1;
-  int32 outValue = 2; //also assuming we can identify nodes with an integer
+  int32 value = 2; //also assuming we can identify nodes with an integer
 }
 
-message FinishedCompareAndSwapReply {
+message ResultToProposerReply {
+  // EMPTY
+}
+
+message ResultToBankRequest {
+  int32 slot = 1;
+  int32 value = 2; //also assuming we can identify nodes with an integer
+}
+
+message ResultToBankReply {
   // EMPTY
 }

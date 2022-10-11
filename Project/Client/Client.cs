@@ -47,6 +47,8 @@ public class Client
         AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
         ClientFrontend frontend = new(bankServers);
 
+        PrintHeader();
+
         while (true)
         {
             Console.Write("Enter command: ");
@@ -144,5 +146,19 @@ public class Client
                     break;
             }
         }
+    }
+
+    public static void PrintHeader() 
+    {
+        Console.WriteLine("==========================================================");
+        Console.WriteLine(" $$$$$$\\  $$\\       $$$$$$\\ $$$$$$$$\\ $$\\   $$\\ $$$$$$$$\\ ");
+        Console.WriteLine("$$  __$$\\ $$ |      \\_$$  _|$$  _____|$$$\\  $$ |\\__$$  __|");
+        Console.WriteLine("$$ /  \\__|$$ |        $$ |  $$ |      $$$$\\ $$ |   $$ |   ");
+        Console.WriteLine("$$ |      $$ |        $$ |  $$$$$\\    $$ $$\\$$ |   $$ |   ");
+        Console.WriteLine("$$ |      $$ |        $$ |  $$  __|   $$ \\$$$$ |   $$ |   ");
+        Console.WriteLine("$$ |  $$\\ $$ |        $$ |  $$ |      $$ |\\$$$ |   $$ |   ");
+        Console.WriteLine("\\$$$$$$  |$$$$$$$$\\ $$$$$$\\ $$$$$$$$\\ $$ | \\$$ |   $$ |   ");
+        Console.WriteLine(" \\______/ \\________|\\______|\\________|\\__|  \\__|   \\__|   ");
+        Console.WriteLine("==========================================================");
     }
 }

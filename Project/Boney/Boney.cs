@@ -32,6 +32,7 @@ internal class Boney
             return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
         }
 
+        List<int> boneyServerIDs = new();
         List<string> boneyServers = new();
         List<string> bankClients = new();
         string? address = null;
@@ -55,7 +56,9 @@ internal class Boney
                     boneyServers.Add(tokens[3]);
                     try
                     {
-                        if (int.Parse(tokens[1]) == id)
+                        int boneyServerID = int.Parse(tokens[1]);
+                        boneyServerIDs.Add(boneyServerID);
+                        if (boneyServerID == id)
                             address = tokens[3];
                     }
                     catch (FormatException)
@@ -98,7 +101,7 @@ internal class Boney
             ++i;
         }
 
-        Dictionary<int, Dictionary<int, string>> serversStatus = new();
+        Dictionary<int, List<int>> nonSuspectedServers = new();
         Dictionary<int, bool> isFrozen = new();
 
         if (lines.Length - i != numberOfSlots)
@@ -141,14 +144,14 @@ internal class Boney
                     Console.Error.WriteLine("Invalid slot details");
                     return;
                 }
+                if (!boneyServerIDs.Contains(serverID))
+                    continue;
                 if (id == serverID)
                     isFrozen[slotNumber] = tokens[j+1] == "F";
-                else
-                {
-                    if (!serversStatus.ContainsKey(slotNumber))
-                        serversStatus[slotNumber] = new();
-                    serversStatus[slotNumber][serverID] = tokens[j+2];
-                }
+                if (!nonSuspectedServers.ContainsKey(slotNumber))
+                    nonSuspectedServers[slotNumber] = new();
+                if (tokens[j+2] == "NS")
+                    nonSuspectedServers[slotNumber].Add(serverID);
             }
             ++i;
         }
@@ -162,22 +165,26 @@ internal class Boney
         int currentSlot = 1;
         int slotDuration = 100000;
 
+        BoneyProposerService proposerService = new BoneyProposerService(id, nonSuspectedServers, boneyServers, currentSlot);
         Server server = new()
         {
-            Services = { ProjectBoneyProposerService.BindService(new BoneyProposerService(id, boneyServers)),
+            Services = { ProjectBoneyProposerService.BindService(proposerService),
                          ProjectBoneyAcceptorService.BindService(new BoneyAcceptorService(address, boneyServers)),
                          ProjectBoneyLearnerService.BindService(new BoneyLearnerService(boneyServers, bankClients)) },
             Ports = { new ServerPort(ownUri.Host, ownUri.Port, ServerCredentials.Insecure) }
         };
         server.Start();
 
-        Console.WriteLine("Boney server listening on port " + ownUri.Port);
+        PrintHeader();
+
+        Console.WriteLine("Listening on port " + ownUri.Port);
 
         // BoneyAcceptor = new BoneyAcceptor();
 
         void HandleTimer()
         {
             currentSlot++;
+            proposerService.BoneySlot = currentSlot;
             Console.WriteLine("--NEW SLOT: {0}--", currentSlot);
         }
 
@@ -189,6 +196,20 @@ internal class Boney
         Console.ReadKey();
 
         server.ShutdownAsync().Wait();
+    }
+
+    public static void PrintHeader() 
+    {
+        Console.WriteLine("====================================================");
+        Console.WriteLine("$$$$$$$\\   $$$$$$\\  $$\\   $$\\ $$$$$$$$\\ $$\\     $$\\ ");
+        Console.WriteLine("$$  __$$\\ $$  __$$\\ $$$\\  $$ |$$  _____|\\$$\\   $$  |");
+        Console.WriteLine("$$ |  $$ |$$ /  $$ |$$$$\\ $$ |$$ |       \\$$\\ $$  / ");
+        Console.WriteLine("$$$$$$$\\ |$$ |  $$ |$$ $$\\$$ |$$$$$\\      \\$$$$  /  ");
+        Console.WriteLine("$$  __$$\\ $$ |  $$ |$$ \\$$$$ |$$  __|      \\$$  /   ");
+        Console.WriteLine("$$ |  $$ |$$ |  $$ |$$ |\\$$$ |$$ |          $$ |    ");
+        Console.WriteLine("$$$$$$$  | $$$$$$  |$$ | \\$$ |$$$$$$$$\\     $$ |    ");
+        Console.WriteLine("\\_______/  \\______/ \\__|  \\__|\\________|    \\__|    ");
+        Console.WriteLine("====================================================");
     }
 }
 
