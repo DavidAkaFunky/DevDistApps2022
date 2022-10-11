@@ -34,7 +34,7 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
                 outValue = -1;
             else if (!proposer.History.TryGetValue(slot, out outValue)){
                 outValue = -1;   
-                Task runConsensus = Task.Run(() => proposer.RunConsensus(slot, request.InValue));
+                proposer.RunConsensus(slot, request.InValue);
             }
         }
         Console.WriteLine($"Proposer {proposer.Id} received a CompareAndSwap request for slot {slot} with inValue {request.InValue} and outValue {outValue}");

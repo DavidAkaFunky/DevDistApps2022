@@ -9,13 +9,11 @@ public class BoneyProposer
 {
     private int id;
     private List<GrpcChannel> multiPaxosServers = new(); // All servers are proposers, learners and acceptors
-    private BoneyInterceptor boneyInterceptor;
     private Dictionary<int, int> history = new();
 
     public BoneyProposer(int id, List<string> servers)
     {
         this.id = id;
-        boneyInterceptor = new(id);
         foreach (string s in servers)
             AddServer(s);
     }
@@ -67,6 +65,7 @@ public class BoneyProposer
                 Thread thread = new(() =>
                 {
                     PromiseReply reply = SendPrepare(channel, slot);
+
                     if (reply.Id > id)
                     {
                         return; // This probably won't kill the whole function though...
@@ -78,7 +77,6 @@ public class BoneyProposer
                         valueSentToAccept = reply.Value;
                     }
 
-                    //lock (responses) doesnt work
                     CheckMajority(++responses, threads);
                 });
                 threads.Add(thread);
@@ -99,8 +97,7 @@ public class BoneyProposer
 
     public PromiseReply SendPrepare(GrpcChannel channel, int slot)
     {
-        CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor);
-        var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(interceptingInvoker);
+        var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(channel);
         PrepareRequest request = new() { Slot = slot, Id = id };
         PromiseReply reply = client.Prepare(request);
         return reply;
@@ -108,8 +105,7 @@ public class BoneyProposer
 
     public bool SendAccept(GrpcChannel channel, int slot, int readTimestamp, int value)
     {
-        CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor);
-        var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(interceptingInvoker);
+        var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(channel);
         AcceptRequest request = new() { Slot = slot, Id = readTimestamp, Value = value };
         AcceptReply reply = client.Accept(request);
         return reply.Status;

@@ -8,7 +8,6 @@ public class BankFrontend
 {
     private readonly List<GrpcChannel> bankServers = new();
     private readonly List<GrpcChannel> boneyServers = new();
-    private readonly ClientInterceptor clientInterceptor = new();
     private readonly int serverID;
 
     public BankFrontend(int id, List<string> bankServers, List<string> boneyServers)
@@ -39,7 +38,6 @@ public class BankFrontend
     {
         foreach (var channel in boneyServers)
         {
-            //var interceptingInvoker = channel.Intercept(clientInterceptor);
             var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(channel);
             Thread thread = new(() =>
             {
@@ -49,34 +47,5 @@ public class BankFrontend
             });
             thread.Start();
         }
-    }
-}
-
-internal class ClientInterceptor : Interceptor
-{
-    // private readonly ILogger logger;
-
-    //public GlobalServerLoggerInterceptor(ILogger logger) {
-    //    this.logger = logger;
-    //}
-
-    public override TResponse BlockingUnaryCall<TRequest, TResponse>(TRequest request,
-        ClientInterceptorContext<TRequest, TResponse> context,
-        BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
-    {
-        var metadata = context.Options.Headers; // read original headers
-        if (metadata == null)
-            metadata = new Metadata();
-        metadata.Add("dad", "dad-value"); // add the additional metadata
-
-        // create new context because original context is readonly
-        ClientInterceptorContext<TRequest, TResponse> modifiedContext =
-            new(context.Method, context.Host,
-                new CallOptions(metadata, context.Options.Deadline,
-                    context.Options.CancellationToken, context.Options.WriteOptions,
-                    context.Options.PropagationToken, context.Options.Credentials));
-        Console.Write("calling server...");
-        var response = base.BlockingUnaryCall(request, modifiedContext, continuation);
-        return response;
     }
 }

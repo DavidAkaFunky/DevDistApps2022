@@ -191,7 +191,7 @@ internal class Bank
 
         Server server = new()
         {
-            Services = { ProjectBankService.BindService(bankService).Intercept(new ServerInterceptor()) },
+            Services = { ProjectBankService.BindService(bankService) },
             Ports = { new ServerPort(ownUri.Host, ownUri.Port, ServerCredentials.Insecure) }
         };
         server.Start();
@@ -239,16 +239,5 @@ internal class Bank
         Console.WriteLine("$$$$$$$  |$$ |  $$ |$$ | \\$$ |$$ | \\$$\\ ");
         Console.WriteLine("\\_______/ \\__|  \\__|\\__|  \\__|\\__|  \\__|");
         Console.WriteLine("========================================");
-    }
-}
-
-public class ServerInterceptor : Interceptor
-{
-    public override Task<TResponse> UnaryServerHandler<TRequest, TResponse>(TRequest request, ServerCallContext context,
-        UnaryServerMethod<TRequest, TResponse> continuation)
-    {
-        var callId = context.RequestHeaders.GetValue("dad");
-        Console.WriteLine("DAD header: " + callId);
-        return base.UnaryServerHandler(request, context, continuation);
     }
 }

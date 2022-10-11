@@ -24,7 +24,7 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
                 acceptor.AddOrSetSlot(slot, values);
             else if (request.Id > values.ReadTimestamp)
                 acceptor.Slots[slot].ReadTimestamp = request.Id;
-            PromiseReply reply = new() { Slot = slot, Id = values.ReadTimestamp, Value = values.CurrentValue };
+            PromiseReply reply = new() { Slot = slot, Id = acceptor.Slots[slot].ReadTimestamp, Value = acceptor.Slots[slot].CurrentValue };
             return Task.FromResult(reply);
         }
     }
@@ -38,7 +38,7 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
             bool status = true;
             Console.WriteLine("Received accept request from " + request.Id + " for slot " + slot + " with value " + value);
             Slot values = new(value, request.Id, request.Id);
-            if (!acceptor.Slots.TryGetValue(slot, out values) || values.WriteTimestamp == values.ReadTimestamp)
+            if (!acceptor.Slots.TryGetValue(slot, out values) || request.Id >= values.ReadTimestamp)
             {
                 acceptor.AddOrSetSlot(slot, values);
                 acceptor.SendAcceptedToLearners(slot, value);

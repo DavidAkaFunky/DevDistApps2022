@@ -238,14 +238,3 @@ internal class Boney
         Console.WriteLine("====================================================");
     }
 }
-
-public class ServerInterceptor : Interceptor
-{
-    public override Task<TResponse> UnaryServerHandler<TRequest, TResponse>(TRequest request, ServerCallContext context,
-        UnaryServerMethod<TRequest, TResponse> continuation)
-    {
-        var callId = context.RequestHeaders.GetValue("dad");
-        Console.WriteLine("DAD header: " + callId);
-        return base.UnaryServerHandler(request, context, continuation);
-    }
-}

@@ -14,9 +14,21 @@ public class Slot
         this.ReadTimestamp = readTimestamp;
     }
 
-    public int CurrentValue { get; set; }
+    public int CurrentValue
+    {
+        get { return currentValue; }
+        set { currentValue = value; }
+    }
 
-    public int WriteTimestamp { get; set; }
+    public int WriteTimestamp
+    {
+        get { return writeTimestamp; }
+        set { writeTimestamp = value; }
+    }
 
-    public int ReadTimestamp { get; set; }
+    public int ReadTimestamp
+    {
+        get { return readTimestamp; }
+        set { readTimestamp = value; }
+    }
 }

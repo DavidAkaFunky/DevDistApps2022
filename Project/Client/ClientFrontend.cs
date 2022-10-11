@@ -8,8 +8,6 @@ namespace DADProject;
 public class ClientFrontend
 {
     private readonly List<GrpcChannel> bankServers = new();
-    private readonly ClientInterceptor clientInterceptor = new();
-
     public ClientFrontend(List<string> bankServers)
     {
         foreach (string s in bankServers)
@@ -35,8 +33,7 @@ public class ClientFrontend
     {
         foreach (var channel in bankServers)
         {
-            var interceptingInvoker = channel.Intercept(clientInterceptor);
-            var client = new ProjectClientService.ProjectClientServiceClient(interceptingInvoker);
+            var client = new ProjectClientService.ProjectClientServiceClient(channel);
             Thread thread = new(() =>
             {
                 try
@@ -59,8 +56,7 @@ public class ClientFrontend
     {
         foreach (var channel in bankServers)
         {
-            var interceptingInvoker = channel.Intercept(clientInterceptor);
-            var client = new ProjectClientService.ProjectClientServiceClient(interceptingInvoker);
+            var client = new ProjectClientService.ProjectClientServiceClient(channel);
             Thread thread = new(() =>
             {
                 try
@@ -83,8 +79,7 @@ public class ClientFrontend
     {
         foreach (var channel in bankServers)
         {
-            var interceptingInvoker = channel.Intercept(clientInterceptor);
-            var client = new ProjectClientService.ProjectClientServiceClient(interceptingInvoker);
+            var client = new ProjectClientService.ProjectClientServiceClient(channel);
             Thread thread = new(() =>
             {
                 try
@@ -101,33 +96,5 @@ public class ClientFrontend
             });
             thread.Start();
         }
-    }
-}
-
-internal class ClientInterceptor : Interceptor
-{
-    // private readonly ILogger logger;
-
-    //public GlobalServerLoggerInterceptor(ILogger logger) {
-    //    this.logger = logger;
-    //}
-
-    public override TResponse BlockingUnaryCall<TRequest, TResponse>(TRequest request,
-        ClientInterceptorContext<TRequest, TResponse> context,
-        BlockingUnaryCallContinuation<TRequest, TResponse> continuation)
-    {
-        var metadata = context.Options.Headers; // read original headers
-        if (metadata == null) metadata = new Metadata();
-        metadata.Add("dad", "dad-value"); // add the additional metadata
-
-        // create new context because original context is readonly
-        var modifiedContext =
-            new ClientInterceptorContext<TRequest, TResponse>(context.Method, context.Host,
-                new CallOptions(metadata, context.Options.Deadline,
-                    context.Options.CancellationToken, context.Options.WriteOptions,
-                    context.Options.PropagationToken, context.Options.Credentials));
-        Console.Write("calling server...");
-        var response = base.BlockingUnaryCall(request, modifiedContext, continuation);
-        return response;
     }
 }
