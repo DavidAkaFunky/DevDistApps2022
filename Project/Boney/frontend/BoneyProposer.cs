@@ -110,10 +110,20 @@ public class BoneyProposer
     {
         // CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor);
         // var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(interceptingInvoker);
-        var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(channel);
-        AcceptRequest request = new() { Slot = slot, Id = readTimestamp, Value = value };
-        AcceptReply reply = client.Accept(request);
-        return reply.Status;
+        try
+        {
+            var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(channel);
+            AcceptRequest request = new() { Slot = slot, Id = readTimestamp, Value = value };
+            Console.WriteLine("\n\n\n\n\n\n\n\n\n\n" + slot + " " + readTimestamp + " " + value);
+            AcceptReply reply = client.Accept(request);
+            Console.WriteLine(reply.Status);
+            return reply.Status;
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.ToString());
+        }
+        return false;
     }
 }
 

@@ -184,10 +184,10 @@ internal class Bank
         if (slotDuration < 0)
             throw new Exception("No slot duration given.");
 
-        Uri ownUri = new Uri(address);
+        Uri ownUri = new(address);
         var currentSlot = 1;
 
-        BankService bankService = new BankService(id);
+        BankService bankService = new(id);
 
         Server server = new()
         {
