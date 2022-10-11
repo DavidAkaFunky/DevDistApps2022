@@ -5,7 +5,6 @@ option csharp_namespace = "DADProject";
 service ProjectBoneyProposerService {
 	rpc CompareAndSwap(CompareAndSwapRequest) returns (CompareAndSwapReply);
 	rpc ResultToProposer(ResultToProposerRequest) returns (ResultToProposerReply);
-	rpc ResultToBank(ResultToBankRequest) returns (ResultToBankReply);
 }
 
 message CompareAndSwapRequest {
@@ -24,14 +23,5 @@ message ResultToProposerRequest {
 }
 
 message ResultToProposerReply {
-  // EMPTY
-}
-
-message ResultToBankRequest {
-  int32 slot = 1;
-  int32 value = 2; //also assuming we can identify nodes with an integer
-}
-
-message ResultToBankReply {
   // EMPTY
 }

@@ -55,8 +55,8 @@ public class BankService : ProjectBankService.ProjectBankServiceBase
 
     public override Task<ResultToBankReply> ResultToBank(ResultToBankRequest request, ServerCallContext context)
     {
-        
-        if (request.Slot == currentSlot && request.PrimaryID == id)
+        Console.WriteLine("GOT RESPONSE FOR SLOT " + request.Slot + ": " + request.Value);
+        if (request.Slot == currentSlot && request.Value == id)
             primary = true;
 
         return Task.FromResult(new ResultToBankReply());

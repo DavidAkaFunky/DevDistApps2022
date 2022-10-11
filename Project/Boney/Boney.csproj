@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -18,7 +18,8 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <Protobuf Include="protos\BoneyProposer.proto" GrpcServices="BoneyProposer" />
+		<Protobuf Include="..\Bank\protos\Bank.proto" GrpcServices="Bank" />
+		<Protobuf Include="protos\BoneyProposer.proto" GrpcServices="BoneyProposer" />
         <Protobuf Include="protos\BoneyAcceptor.proto" GrpcServices="BoneyAcceptor" />
         <Protobuf Include="protos\BoneyLearner.proto" GrpcServices="BoneyLearner" />
     </ItemGroup>

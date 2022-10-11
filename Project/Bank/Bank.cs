@@ -40,6 +40,7 @@ internal class Bank
         string? address = null;
         int numberOfSlots = -1;
         int i = 0;
+        int slotDuration = -1;
         while (i < lines.Length)
         {
             var tokens = lines[i].Split(' ');
@@ -90,7 +91,19 @@ internal class Bank
                     return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
                 }
             }
-            else if (tokens[0] == "T" || tokens[0] == "D")
+            else if (tokens[0] == "D")
+            {
+                try
+                {
+                    slotDuration = int.Parse(tokens[1]);
+                }
+                catch (FormatException)
+                {
+                    Console.Error.WriteLine("Invalid value for the slot duration");
+                    return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
+                }
+            }
+            else if (tokens[0] == "T")
             {
                 ++i;
                 continue;
@@ -148,11 +161,15 @@ internal class Bank
                 }
                 if (!bankServerIDs.Contains(serverID))
                     continue;
-                if (id == serverID)
-                    isFrozen[slotNumber] = tokens[j+1] == "F";
                 if (!nonSuspectedServers.ContainsKey(slotNumber))
                     nonSuspectedServers[slotNumber] = new();
-                if (tokens[j+2] == "NS")
+                if (id == serverID)
+                {
+                    isFrozen[slotNumber] = tokens[j + 1] == "F";
+                    if (!isFrozen[slotNumber])
+                        nonSuspectedServers[slotNumber].Add(serverID);
+                }
+                else if (tokens[j + 2] == "NS")
                     nonSuspectedServers[slotNumber].Add(serverID);
             }
             ++i;
@@ -164,9 +181,11 @@ internal class Bank
         if (numberOfSlots < 0)
             throw new Exception("No number of slots given.");
 
+        if (slotDuration < 0)
+            throw new Exception("No slot duration given.");
+
         Uri ownUri = new Uri(address);
         var currentSlot = 1;
-        var slotDuration = 50000;
 
         BankService bankService = new BankService(id);
 
@@ -191,7 +210,8 @@ internal class Bank
             if (currentSlot > numberOfSlots)
             {
                 // TODO: Maybe wait until everything was finished, but how?
-                return;
+                server.ShutdownAsync().Wait();
+                Environment.Exit(0);
             }
             Console.WriteLine("--NEW SLOT: {0}--", currentSlot);
             frontend.RequestCompareAndSwap(currentSlot);

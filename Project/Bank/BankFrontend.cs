@@ -39,8 +39,8 @@ public class BankFrontend
     {
         foreach (var channel in boneyServers)
         {
-            var interceptingInvoker = channel.Intercept(clientInterceptor);
-            var client = new ProjectBankService.ProjectBankServiceClient(interceptingInvoker);
+            //var interceptingInvoker = channel.Intercept(clientInterceptor);
+            var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(channel);
             Thread thread = new(() =>
             {
                 CompareAndSwapRequest request = new() { Slot = slot, InValue = serverID };

@@ -38,6 +38,7 @@ internal class Boney
         string? address = null;
         int numberOfSlots = -1; // Is this needed for Boney servers? Hmmm
         int i = 0;
+        int slotDuration = -1;
         while (i < lines.Length)
         {
             var tokens = lines[i].Split(' ');
@@ -88,7 +89,19 @@ internal class Boney
                     return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
                 }
             }
-            else if (tokens[0] == "T" || tokens[0] == "D")
+            else if (tokens[0] == "D")
+            {
+                try
+                {
+                    slotDuration = int.Parse(tokens[1]);
+                }
+                catch (FormatException)
+                {
+                    Console.Error.WriteLine("Invalid value for the slot duration");
+                    return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
+                }
+            }
+            else if (tokens[0] == "T")
             {
                 ++i;
                 continue;
@@ -146,11 +159,15 @@ internal class Boney
                 }
                 if (!boneyServerIDs.Contains(serverID))
                     continue;
-                if (id == serverID)
-                    isFrozen[slotNumber] = tokens[j+1] == "F";
                 if (!nonSuspectedServers.ContainsKey(slotNumber))
                     nonSuspectedServers[slotNumber] = new();
-                if (tokens[j+2] == "NS")
+                if (id == serverID)
+                {
+                    isFrozen[slotNumber] = tokens[j + 1] == "F";
+                    if (!isFrozen[slotNumber])
+                        nonSuspectedServers[slotNumber].Add(serverID);
+                }
+                else if (tokens[j + 2] == "NS")
                     nonSuspectedServers[slotNumber].Add(serverID);
             }
             ++i;
@@ -158,18 +175,21 @@ internal class Boney
 
         if (address is null)
             throw new Exception("(This should never happen but) the config file doesn't contain an address for the server.");
+        
         if (numberOfSlots < 0)
             throw new Exception("No number of slots given.");
+        
+        if (slotDuration < 0)
+            throw new Exception("No slot duration given.");
 
         Uri ownUri = new Uri(address);
         int currentSlot = 1;
-        int slotDuration = 100000;
 
         BoneyProposerService proposerService = new BoneyProposerService(id, nonSuspectedServers, boneyServers, currentSlot);
         Server server = new()
         {
             Services = { ProjectBoneyProposerService.BindService(proposerService),
-                         ProjectBoneyAcceptorService.BindService(new BoneyAcceptorService(address, boneyServers)),
+                         ProjectBoneyAcceptorService.BindService(new BoneyAcceptorService(id, boneyServers)),
                          ProjectBoneyLearnerService.BindService(new BoneyLearnerService(boneyServers, bankClients)) },
             Ports = { new ServerPort(ownUri.Host, ownUri.Port, ServerCredentials.Insecure) }
         };
@@ -177,7 +197,7 @@ internal class Boney
 
         PrintHeader();
 
-        Console.WriteLine("Listening on port " + ownUri.Port);
+        Console.WriteLine("Server " + ownUri.Host + " listening on port " + ownUri.Port);
 
         // BoneyAcceptor = new BoneyAcceptor();
 
@@ -185,6 +205,12 @@ internal class Boney
         {
             currentSlot++;
             proposerService.BoneySlot = currentSlot;
+            if (currentSlot > numberOfSlots)
+            {
+                // TODO: Maybe wait until everything was finished, but how?
+                server.ShutdownAsync().Wait();
+                Environment.Exit(0);
+            }
             Console.WriteLine("--NEW SLOT: {0}--", currentSlot);
         }
 

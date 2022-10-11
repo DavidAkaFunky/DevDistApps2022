@@ -7,7 +7,7 @@ public class BoneyLearner
 {
     private List<GrpcChannel> multiPaxosServers = new();
     private List<GrpcChannel> bankClients = new();
-    private Dictionary<int, Dictionary<string, int>> acceptedValues = new();
+    private Dictionary<int, Dictionary<int, int>> acceptedValues = new();
 
     public BoneyLearner(List<string> servers, List<string> clients)
     {
@@ -23,13 +23,15 @@ public class BoneyLearner
         channels.Add(channel);
     }
 
-    public void ReceiveAccepted(int slot, string acceptorAddress, int id, int value)
+    public void ReceiveAccepted(int slot, int id, int value)
     {
         if (!acceptedValues.ContainsKey(slot))
-            acceptedValues.Add(slot, new Dictionary<string, int>());
-        acceptedValues[slot][acceptorAddress] = value;
+            acceptedValues.Add(slot, new Dictionary<int, int>());
+        acceptedValues[slot][id] = value;
+        Console.WriteLine("ENTERED HERE " + acceptedValues[slot].Count + new List<int>(acceptedValues[slot].Values.Distinct()).Count);
         if (acceptedValues[slot].Count > multiPaxosServers.Count / 2 && new List<int>(acceptedValues[slot].Values.Distinct()).Count == 1)
         {
+            Console.WriteLine("ENTERED HERE TOO");
             foreach (GrpcChannel channel in multiPaxosServers)
             {
                 Thread thread = new(() =>
@@ -46,8 +48,9 @@ public class BoneyLearner
                 Thread thread = new(() =>
                 {
                     // CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor).Intercept();
-                    var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(channel);
+                    var client = new ProjectBankService.ProjectBankServiceClient(channel);
                     ResultToBankRequest request = new() { Slot = slot, Value = value };
+                    // There is a bug here
                     ResultToBankReply reply = client.ResultToBank(request);
                 });
                 thread.Start();
