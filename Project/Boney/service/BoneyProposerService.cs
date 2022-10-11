@@ -28,10 +28,11 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
         lock (proposer)
         {
             bool assumeLeader = nonSuspectedServers[boneySlot].Any() ? nonSuspectedServers[boneySlot].Min() == proposer.Id : false;
+            Console.WriteLine("inValue is " + request.InValue + " assumeLeader is " + assumeLeader + " consensus already running is " + proposer.History.TryGetValue(slot, out outValue));
             // Make sure it has no concluded consensus value and it hasn't started consensus already
             if (!assumeLeader)
                 outValue = -1;
-            else if (!proposer.History.TryGetValue(slot, out outValue) || outValue < 0){
+            else if (!proposer.History.TryGetValue(slot, out outValue)){
                 outValue = -1;   
                 Task runConsensus = Task.Run(() => proposer.RunConsensus(slot, request.InValue));
             }

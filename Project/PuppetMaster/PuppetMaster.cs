@@ -185,7 +185,6 @@ public class PuppetMaster
         }
         // desnecessario, se podermos assumir que o input esta sempre correto, podemos lancar os processos enquanto o ficheiro é lido
         processes.AddRange(boneys.Select(id => runner.Run("../Boney", "dotnet", $"run {id} {args[0]}")));
-        Thread.Sleep(2000);
         processes.AddRange(banks.Select(id => runner.Run("../Bank", "dotnet", $"run {id} {args[0]}")));
         //Thread.Sleep(2000);
         //processes.AddRange(clients.Select(id => runner.Run("../Client", "dotnet", $"run {id} {args[0]}")));

@@ -9,12 +9,13 @@ public class BoneyProposer
 {
     private int id;
     private List<GrpcChannel> multiPaxosServers = new(); // All servers are proposers, learners and acceptors
-    // private BoneyInterceptor boneyInterceptor = new();
+    private BoneyInterceptor boneyInterceptor;
     private Dictionary<int, int> history = new();
 
     public BoneyProposer(int id, List<string> servers)
     {
         this.id = id;
+        boneyInterceptor = new(id);
         foreach (string s in servers)
             AddServer(s);
     }
@@ -98,9 +99,8 @@ public class BoneyProposer
 
     public PromiseReply SendPrepare(GrpcChannel channel, int slot)
     {
-        // CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor);
-        // var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(interceptingInvoker);
-        var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(channel);
+        CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor);
+        var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(interceptingInvoker);
         PrepareRequest request = new() { Slot = slot, Id = id };
         PromiseReply reply = client.Prepare(request);
         return reply;
@@ -108,22 +108,11 @@ public class BoneyProposer
 
     public bool SendAccept(GrpcChannel channel, int slot, int readTimestamp, int value)
     {
-        // CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor);
-        // var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(interceptingInvoker);
-        try
-        {
-            var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(channel);
-            AcceptRequest request = new() { Slot = slot, Id = readTimestamp, Value = value };
-            Console.WriteLine("\n\n\n\n\n\n\n\n\n\n" + slot + " " + readTimestamp + " " + value);
-            AcceptReply reply = client.Accept(request);
-            Console.WriteLine(reply.Status);
-            return reply.Status;
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine(e.ToString());
-        }
-        return false;
+        CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor);
+        var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(interceptingInvoker);
+        AcceptRequest request = new() { Slot = slot, Id = readTimestamp, Value = value };
+        AcceptReply reply = client.Accept(request);
+        return reply.Status;
     }
 }
 

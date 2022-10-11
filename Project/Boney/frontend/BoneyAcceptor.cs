@@ -8,13 +8,13 @@ public class BoneyAcceptor
 {
     private List<GrpcChannel> multiPaxosServers = new();
     private Dictionary<int, Slot> slots = new(); // <slot, [currentValue, writeTimestamp, readTimestamp]>
-    // private BoneyInterceptor boneyInterceptor;
+    private BoneyInterceptor boneyInterceptor;
     private readonly int id;
 
     public BoneyAcceptor(int id, List<string> servers)
     {
         this.id = id;
-        // this.boneyInterceptor = new(address);
+        this.boneyInterceptor = new(id);
         foreach (string s in servers)
             AddServer(s);
     }
@@ -41,7 +41,7 @@ public class BoneyAcceptor
         {
             Thread thread = new(() =>
             {
-                // CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor).Intercept();
+                CallInvoker interceptingInvoker = channel.Intercept(boneyInterceptor);
                 var client = new ProjectBoneyLearnerService.ProjectBoneyLearnerServiceClient(channel);
                 AcceptedToLearnerRequest request = new() { Slot = slot, Id = id, Value = value };
                 AcceptedToLearnerReply reply = client.AcceptedToLearner(request);

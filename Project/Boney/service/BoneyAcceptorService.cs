@@ -45,7 +45,6 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
             }
             else
                 status = false;
-            // TODO #2: It must send to *all bank clients* if it reached a majority
             AcceptReply reply = new() { Status = status };
             return Task.FromResult(reply);
         }

@@ -220,7 +220,7 @@ internal class Bank
         Timer timer = new(slotDuration);
         timer.Elapsed += (sender, e) => HandleTimer();
         timer.Start();
-
+        frontend.RequestCompareAndSwap(currentSlot);
         Console.WriteLine("Press any key to stop the server...");
         Console.ReadKey();
 
