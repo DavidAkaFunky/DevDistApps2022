@@ -128,22 +128,7 @@ internal class Boney
                 lines[i] = lines[i].Replace(c, string.Empty);
 
             string[] tokens = lines[i].Split();
-            int slotNumber; 
-            if (tokens[0] != "F")
-            {
-                Console.Error.WriteLine("Invalid slot details");
-                return;
-            }
-        
-            try
-            {
-                slotNumber = int.Parse(tokens[1]);
-            }
-            catch (FormatException)
-            {
-                Console.Error.WriteLine("Invalid slot details");
-                return;
-            }
+            int slotNumber = int.Parse(tokens[1]); 
 
             for (int j = 2; j < tokens.Length; j += 3)
             {
@@ -183,9 +168,10 @@ internal class Boney
             throw new Exception("No slot duration given.");
 
         Uri ownUri = new(address);
-        int currentSlot = 1;
-
-        BoneyProposerService proposerService = new(id, nonSuspectedServers, boneyServers, currentSlot);
+        
+        // TODO isto ainda nao existe
+        List<BoneyFrontend> frontends = new List<BoneyFrontend>();
+        BoneyProposerService proposerService = new(id, frontends);
         Server server = new()
         {
             Services = { ProjectBoneyProposerService.BindService(proposerService),
@@ -203,15 +189,14 @@ internal class Boney
 
         void HandleTimer()
         {
-            currentSlot++;
-            proposerService.BoneySlot = currentSlot;
+            proposerService.CurrentSlot++;
             //if (currentSlot > numberOfSlots)
             //{
             //    // TODO: Maybe wait until everything was finished, but how?
             //    server.ShutdownAsync().Wait();
             //    Environment.Exit(0);
             //}
-            Console.WriteLine("--NEW SLOT: {0}--", currentSlot);
+            Console.WriteLine("--NEW SLOT: {0}--", proposerService.CurrentSlot);
         }
 
         Timer timer = new(slotDuration);

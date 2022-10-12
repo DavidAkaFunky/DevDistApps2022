@@ -1,6 +1,4 @@
 ﻿using Grpc.Core;
-using Grpc.Core.Interceptors;
-using System.Text.RegularExpressions;
 using Timer = System.Timers.Timer;
 
 namespace DADProject;
@@ -10,14 +8,9 @@ internal class Bank
 
     private static void Main(string[] args)
     {
-        if (args.Length < 2)
+        if (args.Length != 2)
         {
-            Console.Error.WriteLine("Too few arguments: [id] [configPath]");
-            return;
-        }
-        else if (args.Length > 2)
-        {
-            Console.Error.WriteLine("Too many arguments: [id] [configPath]");
+            Console.Error.WriteLine("Wrong number of arguments: [id] [configPath]");
             return;
         }
 

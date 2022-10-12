@@ -6,34 +6,49 @@ service ProjectBankService {
 	rpc ReadBalance(ReadBalanceRequest) returns (ReadBalanceReply);
 	rpc Deposit(DepositRequest) returns (DepositReply);
 	rpc Withdraw(WithdrawRequest) returns (WithdrawReply);
-	rpc ResultToBank(ResultToBankRequest) returns (ResultToBankReply);
+	rpc AcceptCompareSwapResult (CompareSwapResult) returns (CompareSwapReply);
 }
+
+message Metadata {
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack = 3;
+}
+
 message ReadBalanceRequest {
 	// EMPTY
+	Metadata metadata = 1;
 }
 message ReadBalanceReply {
-	double balance = 1;
+	Metadata metadata = 1;
+	double balance = 2;
 }
 
 message DepositRequest {
-	double amount = 1;
+	Metadata metadata = 1;
+	double amount = 2;
 }
 message DepositReply {
 	// EMPTY
+	Metadata metadata = 1;
 }
 
 message WithdrawRequest {
-	double amount = 1;
+	Metadata metadata = 1;
+	double amount = 2;
 }
 message WithdrawReply {
-	bool status = 1;
+	Metadata metadata = 1;
+	bool status = 2;
 }
 
-message ResultToBankRequest {
-  int32 slot = 1;
-  int32 value = 2; //also assuming we can identify nodes with an integer
+message CompareSwapResult {
+	Metadata metadata = 1;
+  int32 slot = 2;
+  int32 value = 3; //also assuming we can identify nodes with an integer
 }
 
-message ResultToBankReply {
+message CompareSwapReply {
   // EMPTY
+	Metadata metadata = 1;
 }

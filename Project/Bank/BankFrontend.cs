@@ -1,9 +1,8 @@
 ﻿using Grpc.Core;
-using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 
 namespace DADProject;
-
+/*
 public class BankFrontend
 {
     private readonly List<GrpcChannel> bankServers = new();
@@ -47,5 +46,57 @@ public class BankFrontend
             });
             thread.Start();
         }
+    }
+} */
+
+public class BankFrontend
+{
+    private readonly int _clientId;
+    private int _seq;
+    private readonly List<GrpcChannel> _bankServers = new();
+
+    public BankFrontend(int clientId, List<string> serverAddress)
+    {
+        _clientId = clientId;
+        _seq = 0;
+        serverAddress.ForEach(addr => _bankServers.Add(GrpcChannel.ForAddress(addr)));
+    }
+
+    public async void ReadBalance()
+    {
+        Metadata metadata = new();
+        metadata.SenderId = _clientId;
+        metadata.Seq = _seq++;
+        metadata.Ack = -1;
+        _bankServers.ForEach(channel =>
+        {
+            var stub = new ProjectBankService.ProjectBankServiceClient(channel);
+        });
+
+    }
+
+    public void Deposit(double amount)
+    {
+        Metadata metadata = new();
+        metadata.SenderId = _clientId;
+        metadata.Seq = _seq++;
+        metadata.Ack = -1;
+    }
+
+    public void Withdraw(double amount)
+    {
+        Metadata metadata = new();
+        metadata.SenderId = _clientId;
+        metadata.Seq = _seq++;
+        metadata.Ack = -1;
+    }
+
+    public void SendCompareSwapResult(int slot, int value)
+    {
+        Metadata metadata = new();
+        metadata.SenderId = _clientId;
+        metadata.Seq = _seq++;
+        metadata.Ack = -1;
+
     }
 }

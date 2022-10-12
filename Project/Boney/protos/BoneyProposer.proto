@@ -4,24 +4,33 @@ option csharp_namespace = "DADProject";
 
 service ProjectBoneyProposerService {
 	rpc CompareAndSwap(CompareAndSwapRequest) returns (CompareAndSwapReply);
-	rpc ResultToProposer(ResultToProposerRequest) returns (ResultToProposerReply);
+	// rpc ResultToProposer(ResultToProposerRequest) returns (ResultToProposerReply);
+	// TODO review ^
+}
+
+message Metadata {
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack = 3;
 }
 
 message CompareAndSwapRequest {
-	int32 slot = 1;
-	int32 inValue = 2; //also assuming we can identify nodes with an integer
+	Metadata metadata = 1;
+	int32 slot = 2;
+	int32 inValue = 3; 
 }
 
-// -1 if Boney isn't the perceived leader and consensus hasn't been reached, consensus' outValue otherwise
 message CompareAndSwapReply {
-	int32 outValue = 1;
+	Metadata metadata = 1;
+	int32 outValue = 2;
 }
 
 message ResultToProposerRequest {
-  int32 slot = 1;
-  int32 value = 2; //also assuming we can identify nodes with an integer
+	Metadata metadata = 1;
+  int32 slot = 2;
+  int32 value = 3; 
 }
 
 message ResultToProposerReply {
-  // EMPTY
+	Metadata metadata = 1;
 }

@@ -6,11 +6,16 @@ namespace DADProject;
 // ChatServerServiceBase is the generated base implementation of the service
 public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceBase
 {
-    private BoneyAcceptor acceptor;
+    private List<BoneyFrontend> _serverFrontends;
+    private int _ack;
+    private int _id;
+    private Dictionary<int, Slot> _slots;
 
-    public BoneyAcceptorService(int id, List<string> servers)
+    public BoneyAcceptorService(int id, List<BoneyFrontend> frontends)
     {
-        acceptor = new(id, servers);
+        _id = id;
+        _ack = 0;
+        _serverFrontends = frontends;
     }
 
     public override Task<PromiseReply> Prepare(PrepareRequest request, ServerCallContext context)
