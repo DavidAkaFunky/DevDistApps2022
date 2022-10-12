@@ -51,10 +51,8 @@ public class BankService : ProjectBankService.ProjectBankServiceBase
 
     public override Task<CompareSwapReply> AcceptCompareSwapResult(CompareSwapResult request, ServerCallContext context)
     {
-        Console.WriteLine("GOT COMPARE AND SWAP VALUE FOR SLOT " + request.Slot + " AND THE VALUE IS " + request.Value);
         if (request.Value == id)
         {
-            Console.WriteLine("I AM THE LEADER FOR THE SLOT " + request.Slot);
             isPrimary[request.Slot] = true;
             // TODO: Eventually run 2PC at the beginning of slot?
         }

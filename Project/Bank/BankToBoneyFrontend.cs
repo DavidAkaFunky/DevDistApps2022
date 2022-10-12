@@ -23,17 +23,13 @@ public class BankToBoneyFrontend
     {
         var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(channel);
         Console.WriteLine("SENDING COMPARE AND SWAP REQUEST FOR SLOT " + slot);
-        Thread thread = new(() =>
+        CompareAndSwapRequest request = new() { Slot = slot, InValue = clientID };
+        var reply = client.CompareAndSwap(request);
+        Console.WriteLine("GOT INITIAL COMPARE AND SWAP VALUE FOR SLOT " + slot + " AND THE VALUE IS " + reply.OutValue);
+        if (reply.OutValue > 0)
         {
-            CompareAndSwapRequest request = new() { Slot = slot, InValue = clientID };
-            var reply = client.CompareAndSwap(request);
-            Console.WriteLine("GOT INITIAL COMPARE AND SWAP VALUE FOR SLOT " + slot + " AND THE VALUE IS " + reply.OutValue);
-            if (reply.OutValue > 0)
-            {
-                Console.WriteLine("I AM THE LEADER FOR THE SLOT " + slot);
-                isPrimary[slot] = true;
-            }
-        });
-        thread.Start();
+            Console.WriteLine("I AM THE LEADER FOR THE SLOT " + slot);
+            isPrimary[slot] = true;
+        }
     }
 }

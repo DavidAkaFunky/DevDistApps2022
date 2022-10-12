@@ -62,7 +62,9 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 
             //ao receber accept(valor, request.timestampId),
             //o acceptor aceita valor a nao ser que readTimestamp > request.TimestampId.
-
+            Console.WriteLine("GOT ACCEPT FOR SLOT " + request.Slot + " WITH VALUE " + request.Value);
+            Console.WriteLine("CURRENT READ TIMESTAMP IS " + slotInfo.ReadTimestamp);
+            Console.WriteLine("REQUEST TIMESTAMP IS " + request.TimestampId);
             if (slotInfo.ReadTimestamp <= request.TimestampId)
             {
                 reply.Status = true;
@@ -73,19 +75,14 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
                 // atualiza tuplo do acceptor para o slot dado
                 slots[request.Slot] = slotInfo;
             }
+            Console.WriteLine(" STATUS IS " + reply.Status);
         }
 
         // Se foi aceite, avisar os learners
         if (reply.Status)
             serverFrontends.ForEach(server =>
             {
-                var thread = new Thread(() =>
-                {
-                    // (slot: int, timestampId: int, value: int)
-                    server.AcceptedToLearner(request.Slot, request.TimestampId, request.Value);
-                });
-
-                thread.Start();
+                server.AcceptedToLearner(request.Slot, id, request.Value);
             });
 
         return Task.FromResult(reply);

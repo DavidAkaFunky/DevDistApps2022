@@ -84,41 +84,44 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
         // escolher valor mais recente das Promises
         var responses = 0;
         var threads = new List<Thread>();
+        var stop = false;
         sendAccept[currentSlot] = true;
 
         //if (id != 1)
         {
-            Console.WriteLine("SENDING PREPARE: SLOT " + currentSlot);
             sendAccept[currentSlot] = false;
             serverFrontends.ForEach(server =>
             {
-                var thread = new Thread(() =>
+                // (value: int, timestampId: int)
+                var reply = server.Prepare(currentSlot, id);
+
+                //TODO stop on nack (-1, -1)
+                if (reply.Value == -1 && reply.WriteTimestamp == -1)
                 {
-                    // (value: int, timestampId: int)
-                    var reply = server.Prepare(currentSlot, id);
+                    //AbortAllThreads(threads);
+                    stop = true;
+                    Console.WriteLine("RECEIVED NACK FROM SERVER");
+                    return; // ISTO PROVAVELMENTE N VAI FECHAR TUDO :/
+                }
 
-                    //TODO stop on nack (-1, -1)
-                    if (reply.Value == -1 && reply.WriteTimestamp == -1)
-                    {
-                        AbortAllThreads(threads);
-                        return; // ISTO PROVAVELMENTE N VAI FECHAR TUDO :/
-                    }
+                Console.WriteLine("RECEIVED **ACK** FROM SERVER");
 
-                    if (reply.WriteTimestamp > timestamp)
-                    {
-                        value = reply.Value;
-                        timestamp = reply.WriteTimestamp;
-                    }
+                if (reply.WriteTimestamp > timestamp)
+                {
+                    Console.WriteLine("Updating value...");
+                    value = reply.Value;
+                    timestamp = reply.WriteTimestamp;
+                }
 
-                    CheckMajority(++responses, threads);
-                });
-
-                threads.Add(thread);
+                //CheckMajority(++responses, threads);
             });
         }
 
         // isto é ultra feio, eu sei, aceito sugestões melhores
-        while (!sendAccept[currentSlot]);
+        //while (!sendAccept[currentSlot]);
+
+        Console.WriteLine("STOP? " + stop);
+        if (stop) return Task.FromResult(reply);
 
         // enviar accept(<value mais recente>) a todos
         // TODO: meter isto assincrono (tasks ou threads?)
@@ -126,8 +129,7 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
         Console.WriteLine("SENDING ACCEPT: SLOT " + currentSlot + " VALUE: " + value);
         serverFrontends.ForEach(server =>
         {
-            var thread = new Thread(() => server.Accept(currentSlot, timestamp, value));
-            thread.Start();
+            server.Accept(currentSlot, timestamp, value);
         });
 
         return Task.FromResult(reply);

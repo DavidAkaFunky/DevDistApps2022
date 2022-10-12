@@ -33,7 +33,7 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
         {
             if (!acceptedValues.ContainsKey(request.Slot))
                 acceptedValues.Add(request.Slot, new Dictionary<int, int>());
-            acceptedValues[request.Slot][id] = request.Value;
+            acceptedValues[request.Slot][request.Id] = request.Value;
 
             if (HasConsensualMajority(request.Slot))
             {
