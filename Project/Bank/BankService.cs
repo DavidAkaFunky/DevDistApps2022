@@ -8,12 +8,14 @@ public class BankService : ProjectBankService.ProjectBankServiceBase
 {
     private int id;
     private readonly BankAccount account = new();
+    private readonly List<BankFrontend> _bankFrontends = new();
     private bool primary = false; //  primary/backup
     private int currentSlot = 1 ;
 
-    public BankService(int id) 
+    public BankService(int id, List<BankFrontend> frontends) 
     {
-        this.id = id; 
+        this.id = id;
+        _bankFrontends = frontends;
     }
 
     public bool Primary

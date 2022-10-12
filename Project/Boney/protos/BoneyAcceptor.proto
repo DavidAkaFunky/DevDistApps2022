@@ -7,32 +7,34 @@ service ProjectBoneyAcceptorService {
 	rpc Accept(AcceptRequest) returns (AcceptReply);
 }
 
-message Metadata {
+message PrepareRequest {
 	int32 senderId = 1;
 	int32 seq = 2;
 	int32 ack = 3;
-}
-
-message PrepareRequest {
-	Metadata metadata = 1;
-	int32 slot = 2;
-	int32 timestampId = 3;
+	int32 slot = 4;
+	int32 timestampId = 5;
 }
 
 message PromiseReply {
-	Metadata metadata = 1;
-	int32 value = 2;
-	int32 writeTimestamp = 3;
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack = 3;
+	int32 value = 4;
+	int32 writeTimestamp = 5;
 }
 
 message AcceptRequest {
-	Metadata metadata = 1;
-	int32 slot = 2;
-	int32 timestampId = 3;
-	int32 value = 4;
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack = 3;
+	int32 slot = 4;
+	int32 timestampId = 5;
+	int32 value = 6;
 }
 
 message AcceptReply {
-	Metadata metadata = 1;
-	bool status = 2;
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack = 3;
+	bool status = 4;
 }

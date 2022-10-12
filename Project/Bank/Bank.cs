@@ -179,8 +179,14 @@ internal class Bank
 
         Uri ownUri = new(address);
         var currentSlot = 1;
-
-        BankService bankService = new(id);
+        var bankFrontends = new List<BankFrontend>();
+        bankServers.ForEach(serverAddr =>
+        {
+            bankFrontends.Add(new BankFrontend(id, serverAddr));
+        }); 
+        
+        // TODO use this to communicate inside service 
+        BankService bankService = new(id, bankFrontends);
 
         Server server = new()
         {
@@ -189,7 +195,7 @@ internal class Bank
         };
         server.Start();
 
-        BankFrontend frontend = new(id, bankServers, boneyServers);
+       
 
         PrintHeader();
 
@@ -207,7 +213,8 @@ internal class Bank
                 Environment.Exit(0);
             }
             Console.WriteLine("--NEW SLOT: {0}--", currentSlot);
-            frontend.RequestCompareAndSwap(currentSlot);
+            // TODO vvvvvvv
+            // bankTo.ForEach(frontend => frontend.Send(currentSlot));
         }
 
         Timer timer = new(slotDuration);

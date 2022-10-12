@@ -169,15 +169,20 @@ internal class Boney
 
         List<BoneyFrontend> boneyToBoneyfrontends = new List<BoneyFrontend>();
         List<BankFrontend> boneyToBankfrontends = new List<BankFrontend>();
+        
+        bankClients.ForEach(serverAddr => boneyToBankfrontends.Add(new(id, serverAddr)));
+        boneyServers.ForEach(serverAddr => boneyToBoneyfrontends.Add(new(id, serverAddr)));
 
         BoneyProposerService proposerService = new(id, boneyToBoneyfrontends);
+        BoneyAcceptorService acceptorService = new(id, boneyToBoneyfrontends);
+        BoneyLearnerService learnerService = new(id, boneyToBankfrontends, boneyToBoneyfrontends);
 
         Uri ownUri = new(address);
         Server server = new()
         {
             Services = { ProjectBoneyProposerService.BindService(proposerService),
-                         ProjectBoneyAcceptorService.BindService(new BoneyAcceptorService(id, boneyToBoneyfrontends)),
-                         ProjectBoneyLearnerService.BindService(new BoneyLearnerService(id, boneyToBankfrontends, boneyToBoneyfrontends)) },
+                         ProjectBoneyAcceptorService.BindService(acceptorService),
+                         ProjectBoneyLearnerService.BindService(learnerService) },
             Ports = { new ServerPort(ownUri.Host, ownUri.Port, ServerCredentials.Insecure) }
         };
         server.Start();

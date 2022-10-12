@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+
 option csharp_namespace = "DADProject";
 
 service ProjectBoneyProposerService {
@@ -8,29 +9,31 @@ service ProjectBoneyProposerService {
 	// TODO review ^
 }
 
-message Metadata {
+message CompareAndSwapRequest {
 	int32 senderId = 1;
 	int32 seq = 2;
 	int32 ack = 3;
-}
-
-message CompareAndSwapRequest {
-	Metadata metadata = 1;
-	int32 slot = 2;
-	int32 inValue = 3; 
+	int32 slot = 4;
+	int32 inValue = 5; 
 }
 
 message CompareAndSwapReply {
-	Metadata metadata = 1;
-	int32 outValue = 2;
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack = 3;
+	int32 outValue = 4;
 }
 
 message ResultToProposerRequest {
-	Metadata metadata = 1;
-	int32 slot = 2;
-	int32 value = 3; 
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack = 3;
+	int32 slot = 4;
+	int32 value = 5; 
 }
 
 message ResultToProposerReply {
-	Metadata metadata = 1;
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack = 3;
 }

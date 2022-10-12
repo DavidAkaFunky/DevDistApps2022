@@ -9,43 +9,54 @@ service ProjectBankService {
 	rpc AcceptCompareSwapResult (CompareSwapResult) returns (CompareSwapReply);
 }
 
-message Metadata {
-	int32 senderId = 1;
-	int32 seq = 2;
-	int32 ack = 3;
-}
 
 message ReadBalanceRequest {
-	Metadata metadata = 1;
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack=3;
 }
 message ReadBalanceReply {
-	Metadata metadata = 1;
-	double balance = 2;
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack=3;
+	double balance = 4;
 }
 
 message DepositRequest {
-	Metadata metadata = 1;
-	double amount = 2;
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack=3;
+	double amount = 4;
 }
 message DepositReply {
-	Metadata metadata = 1;
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack=3;
 }
 
 message WithdrawRequest {
-	Metadata metadata = 1;
-	double amount = 2;
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack=3;
+	double amount = 4;
 }
 message WithdrawReply {
-	Metadata metadata = 1;
-	bool status = 2;
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack=3;
+	bool status = 4;
 }
 
 message CompareSwapResult {
-	Metadata metadata = 1;
-	int32 slot = 2;
-	int32 value = 3; 
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack=3;
+	int32 slot = 4;
+	int32 value = 5; 
 }
 
 message CompareSwapReply {
-	Metadata metadata = 1;
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack=3;
 }

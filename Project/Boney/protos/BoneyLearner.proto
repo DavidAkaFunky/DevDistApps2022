@@ -13,6 +13,8 @@ message AcceptedToLearnerRequest {
 }
 
 message AcceptedToLearnerReply {
-    // EMPTY
+    int32 slot = 1;
+    int32 timestampId = 2;
+    int32 value = 3;
 }
 
