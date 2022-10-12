@@ -1,4 +1,5 @@
 ﻿using Grpc.Core;
+using System.Collections.Concurrent;
 using Timer = System.Timers.Timer;
 
 namespace DADProject;
@@ -181,20 +182,13 @@ internal class Bank
         var currentSlot = 1;
         var bankToBankFrontends = new List<BankToBankFrontend>();
         var bankToBoneyFrontends = new List<BankToBoneyFrontend>();
+        var isPrimary = new ConcurrentDictionary<int, bool>();
 
-        bankServers.ForEach(serverAddr =>
-        {
-            bankToBankFrontends.Add(new BankToBankFrontend(id, serverAddr));
-        });
-
-        boneyServers.ForEach(serverAddr =>
-        {
-            bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr));
-        });
-
+        bankServers.ForEach(serverAddr => bankToBankFrontends.Add(new(id, serverAddr)));
+        boneyServers.ForEach(serverAddr => bankToBoneyFrontends.Add(new(id, serverAddr, isPrimary)));
 
         // TODO use this to communicate inside service 
-        BankService bankService = new(id, bankToBoneyFrontends);
+        var bankService = new BankService(id, isPrimary);
 
         Server server = new()
         {
@@ -210,8 +204,7 @@ internal class Bank
 
         void HandleTimer()
         {
-            bankService.Primary = false;
-            currentSlot++;
+            isPrimary[++currentSlot] = false;
             bankService.CurrentSlot = currentSlot;
             if (currentSlot > numberOfSlots)
             {

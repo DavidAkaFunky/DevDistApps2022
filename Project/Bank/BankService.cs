@@ -1,4 +1,5 @@
 ﻿using Grpc.Core;
+using System.Collections.Concurrent;
 
 namespace DADProject;
 
@@ -8,20 +9,13 @@ public class BankService : ProjectBankService.ProjectBankServiceBase
 {
     private int id;
     private readonly BankAccount account = new();
-    private readonly List<BankToBoneyFrontend> bankToBoneyFrontends = new();
-    private bool primary = false; //  primary/backup
-    private int currentSlot = 1 ;
+    private ConcurrentDictionary<int, bool> isPrimary; //  primary/backup
+    private int currentSlot = 1;
 
-    public BankService(int id, List<BankToBoneyFrontend> bankToBoneyFrontends) 
+    public BankService(int id, ConcurrentDictionary<int, bool> isPrimary) 
     {
         this.id = id;
-        this.bankToBoneyFrontends = bankToBoneyFrontends;
-    }
-
-    public bool Primary
-    {
-        get { return primary; }
-        set { primary = value; }
+        this.isPrimary = isPrimary;
     }
 
     public int CurrentSlot
@@ -57,10 +51,13 @@ public class BankService : ProjectBankService.ProjectBankServiceBase
 
     public override Task<CompareSwapReply> AcceptCompareSwapResult(CompareSwapResult request, ServerCallContext context)
     {
-        Console.WriteLine("GOT RESPONSE FOR SLOT " + request.Slot + ": " + request.Value);
-        if (request.Slot == currentSlot && request.Value == id)
-            primary = true;
+        Console.WriteLine("GOT COMPARE AND SWAP VALUE FOR SLOT " + request.Slot + " AND THE VALUE IS " + request.Value);
+        if (request.Value == id)
+        {
+            Console.WriteLine("I AM THE LEADER FOR THE SLOT " + request.Slot);
+            isPrimary[request.Slot] = true;
             // TODO: Eventually run 2PC at the beginning of slot?
+        }
 
         return Task.FromResult(new CompareSwapReply());
     }

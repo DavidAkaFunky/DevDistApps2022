@@ -54,14 +54,11 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 
     public override Task<AcceptReply> Accept(AcceptRequest request, ServerCallContext context)
     {
-        AcceptReply reply = new()
-        {
-            Status = false
-        };
+        var reply = new AcceptReply() { Status = false };
 
         lock (slots)
         {
-            Slot slotInfo = slots.GetValueOrDefault(request.Slot, new(Slot.Bottom, 0, 0));
+            var slotInfo = slots.GetValueOrDefault(request.Slot, new(Slot.Bottom, 0, 0));
 
             //ao receber accept(valor, request.timestampId),
             //o acceptor aceita valor a nao ser que readTimestamp > request.TimestampId.
@@ -78,14 +75,17 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
             }
         }
 
-        // TODO meter isto assincrono (tasks ou threads?)
-        //Enviar resultado para os learners
+        // Se foi aceite, avisar os learners
         if (reply.Status)
             serverFrontends.ForEach(server =>
             {
-                // (slot: int, timestampId: int, value: int)
-                server.AcceptedToLearner(request.Slot, request.TimestampId, request.Value);
+                var thread = new Thread(() =>
+                {
+                    // (slot: int, timestampId: int, value: int)
+                    server.AcceptedToLearner(request.Slot, request.TimestampId, request.Value);
+                });
 
+                thread.Start();
             });
 
         return Task.FromResult(reply);

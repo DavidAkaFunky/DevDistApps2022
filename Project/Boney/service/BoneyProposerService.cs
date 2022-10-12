@@ -1,4 +1,5 @@
 ﻿using Grpc.Core;
+using System.Collections.Concurrent;
 
 namespace DADProject;
 
@@ -8,14 +9,24 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
     private int currentSlot;
     private readonly List<BoneyToBoneyFrontend> serverFrontends;
 
-    private readonly Dictionary<int, int> slotsHistory = new();//change to concurrentDic
-    private readonly Dictionary<int, int> firstBlood = new();
+    private readonly ConcurrentDictionary<int, int> slotsHistory;
+    private readonly Dictionary<int, int> firstBlood = new(); // Might not be needed
+    private readonly Dictionary<int, bool> sendAccept = new();
+    private readonly Dictionary<int, bool> isPerceivedLeader = new();
 
-    public BoneyProposerService(int id, List<BoneyToBoneyFrontend> frontends)
+    public BoneyProposerService(int id, List<BoneyToBoneyFrontend> frontends, Dictionary<int, List<int>> nonSuspectedServers, ConcurrentDictionary<int, int> slotsHistory)
     {
         this.id = id;
         this.currentSlot = 1;
         this.serverFrontends = frontends;
+        this.slotsHistory = slotsHistory;
+
+        foreach (KeyValuePair<int, List<int>> slot in nonSuspectedServers)
+        {
+            // pensa que e lider se a lista de servidores vivos para um slot n estiver vazia (duh)
+            // e se o minimo dos valores da lista for ele proprio
+            isPerceivedLeader[slot.Key] = slot.Value.Count > 0 && slot.Value.Min() == id;
+        }
     }
 
     public int CurrentSlot
@@ -24,66 +35,99 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
         set => currentSlot = value;
     }
 
+    public void AbortAllThreads(List<Thread> threads)
+    {
+        threads.ForEach(thread => thread.Abort());
+        threads.Clear();
+    }
+
+    public void CheckMajority(int responses, List<Thread> threads)
+    {
+        if (responses > serverFrontends.Count / 2)
+            AbortAllThreads(threads);
+    }
+
     public override Task<CompareAndSwapReply> CompareAndSwap(CompareAndSwapRequest request, ServerCallContext context)
     {
-        // calcular quem vai ser o "lider" do paxos
-        var possibleLeaders = new List<List<int>>();
+        var reply = new CompareAndSwapReply() { OutValue = -1 };
 
-        var reply = new CompareAndSwapReply();
+        // se eu for o lider, prossigo
+        // se nao (dicionario vazio ou o menor valor n é o meu), desisto
+        if (!isPerceivedLeader[request.Slot]) return Task.FromResult(reply);
 
-        lock (slotsHistory) lock (firstBlood)
+        Console.WriteLine("I THINK I AM THE LEADER FOR SLOT " + request.Slot);
+
+        lock (slotsHistory) // If using, lock (firstBlood)
         {
             // verificar se slot ja foi decidido, se sim, retorna
             reply.OutValue = slotsHistory.GetValueOrDefault(currentSlot, 0);
 
             if (reply.OutValue != 0) return Task.FromResult(reply);
 
-            // slotsHistory[currentSlot] = -1 
+            slotsHistory[currentSlot] = -1;
 
             // pode n ser preciso 
             // verificar se já começou algum consenso para o slot, se sim retorna
-            if (firstBlood.ContainsKey(currentSlot)) return Task.FromResult(reply);
+            //if (firstBlood.ContainsKey(currentSlot)) return Task.FromResult(reply);
 
-            firstBlood.Add(currentSlot, request.InValue);
+            //firstBlood.Add(currentSlot, request.InValue);
         }
 
-        // se eu for o lider, prossigo
-        // se nao, morro
-        // TODO: Isto tem de ser trocado para ver qual é o menor valor!
-        if (!possibleLeaders[currentSlot].Contains(id)) return Task.FromResult(reply);
+        Console.WriteLine("STARTING CONSENSUS FOR SLOT " + request.Slot);
 
         var value = request.InValue;
         var timestamp = id;
-
-        // TODO esperamos por todos mas so precisa maioria (usar a check majority antiga?)
 
         // se eu for o lider:
         // vou mandar um prepare(n) para todos os acceptors (assumindo que nao sou o primeiro)
         // espero por maioria de respostas (Promise com valor, id da msg mais recente)
         // escolher valor mais recente das Promises
-        if (id != 1)
+        var responses = 0;
+        var threads = new List<Thread>();
+        sendAccept[currentSlot] = true;
+
+        //if (id != 1)
+        {
+            Console.WriteLine("SENDING PREPARE: SLOT " + currentSlot);
+            sendAccept[currentSlot] = false;
             serverFrontends.ForEach(server =>
             {
-                // (value: int, timestampId: int)
-                var reply = server.Prepare(currentSlot, id);
-
-                //TODO stop on nack (-1, -1)
-                if (reply.Value == -1 && reply.WriteTimestamp == -1)
-                    return; // ISTO PROVAVELMENTE N VAI FECHAR TUDO :/
-
-                if (reply.WriteTimestamp > timestamp)
+                var thread = new Thread(() =>
                 {
-                    value = reply.Value;
-                    timestamp = reply.WriteTimestamp;
-                }
+                    // (value: int, timestampId: int)
+                    var reply = server.Prepare(currentSlot, id);
+
+                    //TODO stop on nack (-1, -1)
+                    if (reply.Value == -1 && reply.WriteTimestamp == -1)
+                    {
+                        AbortAllThreads(threads);
+                        return; // ISTO PROVAVELMENTE N VAI FECHAR TUDO :/
+                    }
+
+                    if (reply.WriteTimestamp > timestamp)
+                    {
+                        value = reply.Value;
+                        timestamp = reply.WriteTimestamp;
+                    }
+
+                    CheckMajority(++responses, threads);
+                });
+
+                threads.Add(thread);
             });
-        
+        }
+
+        // isto é ultra feio, eu sei, aceito sugestões melhores
+        while (!sendAccept[currentSlot]);
+
         // enviar accept(<value mais recente>) a todos
         // TODO: meter isto assincrono (tasks ou threads?)
         // esperar por maioria (para efeitos de historico)
+        Console.WriteLine("SENDING ACCEPT: SLOT " + currentSlot + " VALUE: " + value);
         serverFrontends.ForEach(server =>
         {
-            server.Accept(currentSlot, timestamp, value);
+            var thread = new Thread(() => server.Accept(currentSlot, timestamp, value));
+            thread.Start();
         });
 
         return Task.FromResult(reply);

@@ -1,5 +1,6 @@
 ﻿using Grpc.Core;
 using Grpc.Core.Interceptors;
+using System.Collections.Concurrent;
 using Timer = System.Timers.Timer;
 
 namespace DADProject;
@@ -173,9 +174,11 @@ internal class Boney
         bankClients.ForEach(serverAddr => boneyToBankfrontends.Add(new(id, serverAddr)));
         boneyServers.ForEach(serverAddr => boneyToBoneyfrontends.Add(new(id, serverAddr)));
 
-        var proposerService = new BoneyProposerService(id, boneyToBoneyfrontends);
+        var slotsHistory = new ConcurrentDictionary<int, int>();
+
+        var proposerService = new BoneyProposerService(id, boneyToBoneyfrontends, nonSuspectedServers, slotsHistory);
         var acceptorService = new BoneyAcceptorService(id, boneyToBoneyfrontends);
-        var learnerService = new BoneyLearnerService(id, boneyToBankfrontends, boneyToBoneyfrontends);
+        var learnerService = new BoneyLearnerService(id, boneyToBankfrontends, boneyServers.Count, slotsHistory);
 
         var ownUri = new Uri(address);
         var server = new Server()

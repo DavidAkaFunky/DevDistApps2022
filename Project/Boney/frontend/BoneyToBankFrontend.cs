@@ -5,14 +5,14 @@ namespace DADProject;
 
 public class BoneyToBankFrontend
 {
-    private readonly int _clientId;
-    private int _seq;
+    private readonly int clientID;
+    private int seq;
     private readonly GrpcChannel channel;
 
-    public BoneyToBankFrontend(int clientId, string serverAddress)
+    public BoneyToBankFrontend(int clientID, string serverAddress)
     {
-        _clientId = clientId;
-        _seq = 0;
+        this.clientID = clientID;
+        seq = 0;
         channel = GrpcChannel.ForAddress(serverAddress);
     }
 

@@ -6,14 +6,14 @@ namespace DADProject;
 
 public class BoneyToBoneyFrontend
 {
-    private readonly int _clientId;
-    private int _seq;
+    private readonly int clientID;
+    private int seq;
     private readonly GrpcChannel channel;
 
-    public BoneyToBoneyFrontend(int clientId, string serverAddress)
+    public BoneyToBoneyFrontend(int clientID, string serverAddress)
     {
-        _clientId = clientId;
-        _seq = 0;
+        this.clientID = clientID;
+        seq = 0;
         channel = GrpcChannel.ForAddress(serverAddress);
     }
 
