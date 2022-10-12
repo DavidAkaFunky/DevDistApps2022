@@ -1,4 +1,6 @@
+using Grpc.Core;
 using Grpc.Net.Client;
+using System;
 
 namespace DADProject;
 
@@ -15,9 +17,10 @@ public class BoneyFrontend
         channel = GrpcChannel.ForAddress(serverAddress);
     }
 
-    // Proposer
     // TODO add metadata
-    public Tuple<int, int> Prepare(int slot, int id)
+
+    // Proposer
+    public PromiseReply Prepare(int slot, int id)
     {
         var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(channel);
         var request = new PrepareRequest
@@ -26,7 +29,7 @@ public class BoneyFrontend
             TimestampId = id
         };
         var reply = client.Prepare(request);
-        return new Tuple<int, int>(reply.TimestampId, reply.Value);
+        return reply;
     }
 
     public void Accept(int slot, int id, int value)
@@ -34,7 +37,7 @@ public class BoneyFrontend
         var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(channel);
         var request = new AcceptRequest()
         {
-            Id = id,
+            TimestampId = id,
             Slot = slot,
             Value = value
         };
@@ -42,12 +45,42 @@ public class BoneyFrontend
     }
     
     // Bank
-    public void CompareAndSwap(int slot, int value) {}
+    public void RequestCompareAndSwap(int slot, int value) 
+    {
+        var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(channel);
+        CompareAndSwapRequest request = new() 
+        { 
+            Slot = slot, 
+            InValue = value 
+        };
+        var reply = client.CompareAndSwap(request);
+        Console.WriteLine("Request Delivered! Answered: {0}", reply.OutValue);
+    }
     
     // Acceptor 
-    public void AcceptedToLearner(int slot, int id, int value) {}
+    public void AcceptedToLearner(int slot, int id, int value) 
+    {
+        var client = new ProjectBoneyLearnerService.ProjectBoneyLearnerServiceClient(channel);
+        var request = new AcceptedToLearnerRequest()
+        {
+            Slot = slot,
+            TimestampId = id,
+            Value = value
+        };
+
+        client.AcceptedToLearner(request);
+    }
     
     // Learner
-    public void ResultToProposer(int slot, int value) {}
-    
+    public void ResultToProposer(int slot, int value) {
+
+        var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(channel);
+        var request = new ResultToProposerRequest()
+        {
+            Slot = slot,
+            Value = value
+        };
+
+        client.ResultToProposer(request);
+    }
 }

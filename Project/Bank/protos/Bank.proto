@@ -16,7 +16,6 @@ message Metadata {
 }
 
 message ReadBalanceRequest {
-	// EMPTY
 	Metadata metadata = 1;
 }
 message ReadBalanceReply {
@@ -29,7 +28,6 @@ message DepositRequest {
 	double amount = 2;
 }
 message DepositReply {
-	// EMPTY
 	Metadata metadata = 1;
 }
 
@@ -44,11 +42,10 @@ message WithdrawReply {
 
 message CompareSwapResult {
 	Metadata metadata = 1;
-  int32 slot = 2;
-  int32 value = 3; //also assuming we can identify nodes with an integer
+	int32 slot = 2;
+	int32 value = 3; 
 }
 
 message CompareSwapReply {
-  // EMPTY
 	Metadata metadata = 1;
 }

@@ -2,24 +2,41 @@ using Grpc.Core;
 
 namespace DADProject;
 
-// ChatServerService is the namespace defined in the protobuf
-// ChatServerServiceBase is the generated base implementation of the service
 public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearnerServiceBase
 {
-    private BoneyLearner learner;
+    private int id;
+    private int ack = 0;
+    private readonly List<BankFrontend> boneyToBankFrontends;
+    private readonly List<BoneyFrontend> boneyToBoneyFrontends;
+    private readonly Dictionary<int, Tuple<int, int>> acceptedMessagess = new();
+    private readonly Dictionary<int, int> slotsHistory = new();//change to concurrentDic
 
-    public BoneyLearnerService(List<string> servers, List<string> clients)
+    public BoneyLearnerService(int id, List<BankFrontend> boneyToBankFrontends, List<BoneyFrontend> boneyToBoneyFrontends)
     {
-        learner = new(servers, clients);
+        this.id = id;
+        this.boneyToBankFrontends = boneyToBankFrontends;
+        this.boneyToBoneyFrontends = boneyToBoneyFrontends;
     }
 
     public override Task<AcceptedToLearnerReply> AcceptedToLearner(AcceptedToLearnerRequest request, ServerCallContext context)
     {
-        lock (learner)
+        
+
+        if(true)
         {
-            Console.WriteLine("Got value for slot " + request.Slot + "from client: " + request.Value);
-            learner.ReceiveAccepted(request.Slot, request.Id, request.Value);
+            boneyToBankFrontends.ForEach(server =>
+            {
+                server.SendCompareSwapResult(request.Slot, request.Value);
+            });
+
+            //might not be needed
+            boneyToBoneyFrontends.ForEach(server =>
+            {
+                server.ResultToProposer(request.Slot, request.Value);
+                
+            });
         }
+
         AcceptedToLearnerReply reply = new();
         return Task.FromResult(reply);
     }

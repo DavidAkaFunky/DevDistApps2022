@@ -2,7 +2,7 @@ namespace DADProject;
 
 public class Slot
 {
-    public static readonly int Null = -1;
+    public static readonly int Bottom = -1;
     private int currentValue;
     private int writeTimestamp;
     private int readTimestamp;

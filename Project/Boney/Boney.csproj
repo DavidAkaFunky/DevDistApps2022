@@ -10,6 +10,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <Compile Remove="service\SlotInfo.cs" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Google.Protobuf" Version="3.13.0" />
         <PackageReference Include="Google.Protobuf.Tools" Version="3.21.7" />
         <PackageReference Include="Grpc.Core" Version="2.32.0" />
@@ -18,6 +22,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+        <ProjectReference Include="..\Bank\Bank.csproj" />
 		<Protobuf Include="..\Bank\protos\Bank.proto" GrpcServices="Bank" />
 		<Protobuf Include="protos\BoneyProposer.proto" GrpcServices="BoneyProposer" />
         <Protobuf Include="protos\BoneyAcceptor.proto" GrpcServices="BoneyAcceptor" />

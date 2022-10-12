@@ -53,13 +53,13 @@ public class BankService : ProjectBankService.ProjectBankServiceBase
         }
     }
 
-    public override Task<ResultToBankReply> ResultToBank(ResultToBankRequest request, ServerCallContext context)
+    public override Task<CompareSwapReply> AcceptCompareSwapResult(CompareSwapResult request, ServerCallContext context)
     {
         Console.WriteLine("GOT RESPONSE FOR SLOT " + request.Slot + ": " + request.Value);
         if (request.Slot == currentSlot && request.Value == id)
             primary = true;
 
-        return Task.FromResult(new ResultToBankReply());
+        return Task.FromResult(new CompareSwapReply());
         
     }
 }

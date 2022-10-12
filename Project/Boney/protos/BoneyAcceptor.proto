@@ -21,15 +21,14 @@ message PrepareRequest {
 
 message PromiseReply {
 	Metadata metadata = 1;
-	// int32 slot = 2;
-	int32 timestampId = 2;
-	int32 value = 3;
+	int32 value = 2;
+	int32 writeTimestamp = 3;
 }
 
 message AcceptRequest {
 	Metadata metadata = 1;
 	int32 slot = 2;
-	int32 id = 3;
+	int32 timestampId = 3;
 	int32 value = 4;
 }
 

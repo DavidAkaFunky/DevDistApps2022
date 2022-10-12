@@ -4,7 +4,7 @@ option csharp_namespace = "DADProject";
 
 service ProjectBoneyProposerService {
 	rpc CompareAndSwap(CompareAndSwapRequest) returns (CompareAndSwapReply);
-	// rpc ResultToProposer(ResultToProposerRequest) returns (ResultToProposerReply);
+	rpc ResultToProposer(ResultToProposerRequest) returns (ResultToProposerReply);
 	// TODO review ^
 }
 
@@ -27,8 +27,8 @@ message CompareAndSwapReply {
 
 message ResultToProposerRequest {
 	Metadata metadata = 1;
-  int32 slot = 2;
-  int32 value = 3; 
+	int32 slot = 2;
+	int32 value = 3; 
 }
 
 message ResultToProposerReply {

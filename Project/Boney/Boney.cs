@@ -114,7 +114,7 @@ internal class Boney
             ++i;
         }
 
-        Dictionary<int, List<int>> nonSuspectedServers = new();
+        var nonSuspectedServers = new Dictionary<int, List<int>>();
         Dictionary<int, bool> isFrozen = new();
 
         if (lines.Length - i != numberOfSlots)
@@ -167,16 +167,17 @@ internal class Boney
         if (slotDuration < 0)
             throw new Exception("No slot duration given.");
 
+        List<BoneyFrontend> boneyToBoneyfrontends = new List<BoneyFrontend>();
+        List<BankFrontend> boneyToBankfrontends = new List<BankFrontend>();
+
+        BoneyProposerService proposerService = new(id, boneyToBoneyfrontends);
+
         Uri ownUri = new(address);
-        
-        // TODO isto ainda nao existe
-        List<BoneyFrontend> frontends = new List<BoneyFrontend>();
-        BoneyProposerService proposerService = new(id, frontends);
         Server server = new()
         {
             Services = { ProjectBoneyProposerService.BindService(proposerService),
-                         ProjectBoneyAcceptorService.BindService(new BoneyAcceptorService(id, boneyServers)),
-                         ProjectBoneyLearnerService.BindService(new BoneyLearnerService(boneyServers, bankClients)) },
+                         ProjectBoneyAcceptorService.BindService(new BoneyAcceptorService(id, boneyToBoneyfrontends)),
+                         ProjectBoneyLearnerService.BindService(new BoneyLearnerService(id, boneyToBankfrontends, boneyToBoneyfrontends)) },
             Ports = { new ServerPort(ownUri.Host, ownUri.Port, ServerCredentials.Insecure) }
         };
         server.Start();
