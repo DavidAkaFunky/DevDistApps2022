@@ -51,6 +51,7 @@ public class BankService : ProjectBankService.ProjectBankServiceBase
 
     public override Task<CompareSwapReply> AcceptCompareSwapResult(CompareSwapResult request, ServerCallContext context)
     {
+        Console.WriteLine("Received result for slot {0}: {1}", request.Slot, request.Value);
         if (request.Value == id)
         {
             isPrimary[request.Slot] = true;

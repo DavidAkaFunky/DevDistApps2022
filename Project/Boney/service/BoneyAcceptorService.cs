@@ -54,6 +54,8 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 
     public override Task<AcceptReply> Accept(AcceptRequest request, ServerCallContext context)
     {
+
+        Console.WriteLine("Acceptor: skkkdkdk");
         var reply = new AcceptReply() { Status = false };
 
         lock (slots)

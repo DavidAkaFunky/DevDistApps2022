@@ -10,8 +10,6 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
     private readonly List<BoneyToBoneyFrontend> serverFrontends;
 
     private readonly ConcurrentDictionary<int, int> slotsHistory;
-    private readonly Dictionary<int, int> firstBlood = new(); // Might not be needed
-    private readonly Dictionary<int, bool> sendAccept = new();
     private readonly Dictionary<int, bool> isPerceivedLeader = new();
 
     public BoneyProposerService(int id, List<BoneyToBoneyFrontend> frontends, Dictionary<int, List<int>> nonSuspectedServers, ConcurrentDictionary<int, int> slotsHistory)
@@ -35,23 +33,21 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
         set => currentSlot = value;
     }
 
-    public void AbortAllThreads(List<Thread> threads)
-    {
-        threads.ForEach(thread => thread.Abort());
-        threads.Clear();
-    }
+    //public void AbortAllThreads(List<Thread> threads)
+    //{
+    //    threads.ForEach(thread => thread.Abort());
+    //    threads.Clear();
+    //}
 
-    public void CheckMajority(int responses, List<Thread> threads)
-    {
-        if (responses > serverFrontends.Count / 2)
-            AbortAllThreads(threads);
-    }
+    //public void CheckMajority(int responses, List<Thread> threads)
+    //{
+    //    if (responses > serverFrontends.Count / 2)
+    //        AbortAllThreads(threads);
+    //}
 
     public override Task<CompareAndSwapReply> CompareAndSwap(CompareAndSwapRequest request, ServerCallContext context)
     {
         var reply = new CompareAndSwapReply() { OutValue = -1 };
-
-        Console.WriteLine("I THINK I AM THE LEADER FOR SLOT " + request.Slot);
 
         lock (slotsHistory) // If using, lock (firstBlood)
         {
@@ -61,19 +57,13 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
             if (reply.OutValue != 0) return Task.FromResult(reply);
 
             slotsHistory[currentSlot] = -1; //caso ja tenha começado consensus
-
-            // pode n ser preciso 
-            // verificar se já começou algum consenso para o slot, se sim retorna
-            //if (firstBlood.ContainsKey(currentSlot)) return Task.FromResult(reply);
-
-            //firstBlood.Add(currentSlot, request.InValue);
         }
 
         // se eu for o lider, prossigo
         // se nao (dicionario vazio ou o menor valor n é o meu), desisto
-        if (!isPerceivedLeader[request.Slot]) return Task.FromResult(reply);
+        if (!isPerceivedLeader[currentSlot]) return Task.FromResult(reply);
 
-        Console.WriteLine("STARTING CONSENSUS FOR SLOT " + request.Slot);
+        Console.WriteLine("Proposer: STARTING CONSENSUS FOR SLOT " + request.Slot);
 
         var value = request.InValue;
         var timestamp = id;
@@ -88,17 +78,16 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
         {
             serverFrontends.ForEach(server =>
             {
-                var response = server.Prepare(currentSlot, id);
+                var response = server.Prepare(request.Slot, id);
 
-                //TODO stop on nack (-1, -1)
                 if (response.Value == -1 && response.WriteTimestamp == -1)
                 {
-                    Console.WriteLine("RECEIVED NACK FROM SERVER");
+                    Console.WriteLine("Proposer: RECEIVED **NACK**");
                     stop = true;
                 } 
                 else if (response.WriteTimestamp > timestamp)
                 {
-                    Console.WriteLine("RECEIVED **ACK** FROM SERVER");
+                    Console.WriteLine("Procposer: RECEIVED **ACK**");
                     value = response.Value;
                     timestamp = response.WriteTimestamp;
                 }
@@ -107,12 +96,15 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
 
         if (stop) return Task.FromResult(reply);
 
+        Console.WriteLine("Proposer: Send ACCEPT for slot {0} \n ========> Value: {1} / TS: {2}",
+            currentSlot, value, timestamp);
+
         // enviar accept(<value mais recente>) a todos
         // TODO: meter isto assincrono (tasks ou threads?)
         // esperar por maioria (para efeitos de historico)
         serverFrontends.ForEach(server =>
         {
-            server.Accept(currentSlot, timestamp, value);
+            server.Accept(request.Slot, timestamp, value);
         });
 
         return Task.FromResult(reply);

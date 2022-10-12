@@ -64,7 +64,7 @@ public class BoneyToBoneyFrontend
         var request = new AcceptedToLearnerRequest()
         {
             Slot = slot,
-            Id = id,
+            TimestampId = id,
             Value = value
         };
 
