@@ -45,17 +45,17 @@ public class BoneyToBoneyFrontend
     }
     
     // Bank
-    public void RequestCompareAndSwap(int slot, int value) 
-    {
-        var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(channel);
-        CompareAndSwapRequest request = new() 
-        { 
-            Slot = slot, 
-            InValue = value 
-        };
-        var reply = client.CompareAndSwap(request);
-        Console.WriteLine("Request Delivered! Answered: {0}", reply.OutValue);
-    }
+    //public void RequestCompareAndSwap(int slot, int value) 
+    //{
+    //    var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(channel);
+    //    CompareAndSwapRequest request = new() 
+    //    { 
+    //        Slot = slot, 
+    //        InValue = value 
+    //    };
+    //    var reply = client.CompareAndSwap(request);
+    //    Console.WriteLine("Request Delivered! Answered: {0}", reply.OutValue);
+    //}
     
     // Acceptor 
     public void AcceptedToLearner(int slot, int id, int value) 

@@ -51,10 +51,6 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
     {
         var reply = new CompareAndSwapReply() { OutValue = -1 };
 
-        // se eu for o lider, prossigo
-        // se nao (dicionario vazio ou o menor valor n é o meu), desisto
-        if (!isPerceivedLeader[request.Slot]) return Task.FromResult(reply);
-
         Console.WriteLine("I THINK I AM THE LEADER FOR SLOT " + request.Slot);
 
         lock (slotsHistory) // If using, lock (firstBlood)
@@ -64,7 +60,7 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
 
             if (reply.OutValue != 0) return Task.FromResult(reply);
 
-            slotsHistory[currentSlot] = -1;
+            slotsHistory[currentSlot] = -1; //caso ja tenha começado consensus
 
             // pode n ser preciso 
             // verificar se já começou algum consenso para o slot, se sim retorna
@@ -73,60 +69,47 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
             //firstBlood.Add(currentSlot, request.InValue);
         }
 
+        // se eu for o lider, prossigo
+        // se nao (dicionario vazio ou o menor valor n é o meu), desisto
+        if (!isPerceivedLeader[request.Slot]) return Task.FromResult(reply);
+
         Console.WriteLine("STARTING CONSENSUS FOR SLOT " + request.Slot);
 
         var value = request.InValue;
         var timestamp = id;
+        var stop = false;
 
         // se eu for o lider:
         // vou mandar um prepare(n) para todos os acceptors (assumindo que nao sou o primeiro)
         // espero por maioria de respostas (Promise com valor, id da msg mais recente)
         // escolher valor mais recente das Promises
-        var responses = 0;
-        var threads = new List<Thread>();
-        var stop = false;
-        sendAccept[currentSlot] = true;
 
-        //if (id != 1)
+        if (id != 1)
         {
-            sendAccept[currentSlot] = false;
             serverFrontends.ForEach(server =>
             {
-                // (value: int, timestampId: int)
-                var reply = server.Prepare(currentSlot, id);
+                var response = server.Prepare(currentSlot, id);
 
                 //TODO stop on nack (-1, -1)
-                if (reply.Value == -1 && reply.WriteTimestamp == -1)
+                if (response.Value == -1 && response.WriteTimestamp == -1)
                 {
-                    //AbortAllThreads(threads);
-                    stop = true;
                     Console.WriteLine("RECEIVED NACK FROM SERVER");
-                    return; // ISTO PROVAVELMENTE N VAI FECHAR TUDO :/
-                }
-
-                Console.WriteLine("RECEIVED **ACK** FROM SERVER");
-
-                if (reply.WriteTimestamp > timestamp)
+                    stop = true;
+                } 
+                else if (response.WriteTimestamp > timestamp)
                 {
-                    Console.WriteLine("Updating value...");
-                    value = reply.Value;
-                    timestamp = reply.WriteTimestamp;
+                    Console.WriteLine("RECEIVED **ACK** FROM SERVER");
+                    value = response.Value;
+                    timestamp = response.WriteTimestamp;
                 }
-
-                //CheckMajority(++responses, threads);
             });
         }
 
-        // isto é ultra feio, eu sei, aceito sugestões melhores
-        //while (!sendAccept[currentSlot]);
-
-        Console.WriteLine("STOP? " + stop);
         if (stop) return Task.FromResult(reply);
 
         // enviar accept(<value mais recente>) a todos
         // TODO: meter isto assincrono (tasks ou threads?)
         // esperar por maioria (para efeitos de historico)
-        Console.WriteLine("SENDING ACCEPT: SLOT " + currentSlot + " VALUE: " + value);
         serverFrontends.ForEach(server =>
         {
             server.Accept(currentSlot, timestamp, value);
