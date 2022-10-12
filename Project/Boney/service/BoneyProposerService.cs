@@ -30,28 +30,32 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
         // calcular quem vai ser o "lider" do paxos
         var possibleLeaders = new List<List<int>>();
 
-        // verificar se slot ja foi decidido, se sim, retorna
         var reply = new CompareAndSwapReply();
-        reply.OutValue = slotsHistory.GetValueOrDefault(currentSlot, 0);
 
-        if (reply.OutValue != 0) return Task.FromResult(reply);
-
-        // verificar se já começou algum consenso para o slot, se sim retorna
-        if (firstBlood.ContainsKey(currentSlot)) return Task.FromResult(reply);
-
-        firstBlood.Add(currentSlot, request.InValue);
-
-        // se eu for o lider, corro o paxos
+        // se eu for o lider, prossigo
         // se nao, morro
         if (!possibleLeaders[currentSlot].Contains(id)) return Task.FromResult(reply);
+
+        lock (slotsHistory) lock (firstBlood)
+        {
+            // verificar se slot ja foi decidido, se sim, retorna
+            reply.OutValue = slotsHistory.GetValueOrDefault(currentSlot, 0);
+
+            if (reply.OutValue != 0) return Task.FromResult(reply);
+
+            // verificar se já começou algum consenso para o slot, se sim retorna
+            if (firstBlood.ContainsKey(currentSlot)) return Task.FromResult(reply);
+
+            firstBlood.Add(currentSlot, request.InValue);
+        }
 
         var value = request.InValue;
         var timestamp = 0;
 
-        // TODO esperamos por todos mas so precisa maioria
+        // TODO esperamos por todos mas so precisa maioria (usar a check majority antiga?)
         
-        // se eu for o lider
-        // vou mandar um prepare(n) para todos os accepters
+        // se eu for o lider:
+        // vou mandar um prepare(n) para todos os acceptors (assumindo que nao sou o primeiro)
         // espero por maioria de respostas (Promise com id da msg mais recente, valor)
         // escolher valor mais recente das Promises
         if (id != 1)
@@ -67,7 +71,7 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
             });
         
         // enviar accept(<value mais recente>) a todos
-        // TODO meter isto assincrono
+        // TODO meter isto assincrono (tasks ou threads?)
         // esperar por maioria (para efeitos de historico)
         serverFrontends.ForEach(server =>
         {

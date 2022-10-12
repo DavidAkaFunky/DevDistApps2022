@@ -22,11 +22,11 @@ public class BoneyFrontend
         var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(channel);
         var request = new PrepareRequest
         {
-            Id = id,
-            Slot = slot
+            Slot = slot,
+            TimestampId = id
         };
         var reply = client.Prepare(request);
-        return new Tuple<int, int>(reply.Id, reply.Value);
+        return new Tuple<int, int>(reply.TimestampId, reply.Value);
     }
 
     public void Accept(int slot, int id, int value)
