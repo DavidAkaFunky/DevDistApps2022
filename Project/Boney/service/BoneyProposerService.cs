@@ -6,12 +6,12 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
 {
     private int id;
     private int currentSlot;
-    private readonly List<BoneyFrontend> serverFrontends;
+    private readonly List<BoneyToBoneyFrontend> serverFrontends;
 
     private readonly Dictionary<int, int> slotsHistory = new();//change to concurrentDic
     private readonly Dictionary<int, int> firstBlood = new();
 
-    public BoneyProposerService(int id, List<BoneyFrontend> frontends)
+    public BoneyProposerService(int id, List<BoneyToBoneyFrontend> frontends)
     {
         this.id = id;
         this.currentSlot = 1;

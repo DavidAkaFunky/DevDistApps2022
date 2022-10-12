@@ -8,10 +8,10 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 {
     private int id;
     private int ack = 0;
-    private List<BoneyFrontend> serverFrontends;
+    private List<BoneyToBoneyFrontend> serverFrontends;
     private Dictionary<int, Slot> slots = new();
 
-    public BoneyAcceptorService(int id, List<BoneyFrontend> frontends)
+    public BoneyAcceptorService(int id, List<BoneyToBoneyFrontend> frontends)
     {
         this.id = id;
         this.serverFrontends = frontends;

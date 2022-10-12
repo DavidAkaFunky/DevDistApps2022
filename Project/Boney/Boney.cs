@@ -32,9 +32,9 @@ internal class Boney
             return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
         }
 
-        List<int> boneyServerIDs = new();
-        List<string> boneyServers = new();
-        List<string> bankClients = new();
+        var boneyServerIDs = new List<int>();
+        var boneyServers = new List<string>();
+        var bankClients = new List<string>();
         string? address = null;
         int numberOfSlots = -1; // Is this needed for Boney servers? Hmmm
         int i = 0;
@@ -115,7 +115,7 @@ internal class Boney
         }
 
         var nonSuspectedServers = new Dictionary<int, List<int>>();
-        Dictionary<int, bool> isFrozen = new();
+        var isFrozen = new Dictionary<int, bool>();
 
         if (lines.Length - i != numberOfSlots)
         {
@@ -167,18 +167,18 @@ internal class Boney
         if (slotDuration < 0)
             throw new Exception("No slot duration given.");
 
-        List<BoneyFrontend> boneyToBoneyfrontends = new List<BoneyFrontend>();
-        List<BankFrontend> boneyToBankfrontends = new List<BankFrontend>();
+        var boneyToBankfrontends = new List<BoneyToBankFrontend>();
+        var boneyToBoneyfrontends = new List<BoneyToBoneyFrontend>();
         
         bankClients.ForEach(serverAddr => boneyToBankfrontends.Add(new(id, serverAddr)));
         boneyServers.ForEach(serverAddr => boneyToBoneyfrontends.Add(new(id, serverAddr)));
 
-        BoneyProposerService proposerService = new(id, boneyToBoneyfrontends);
-        BoneyAcceptorService acceptorService = new(id, boneyToBoneyfrontends);
-        BoneyLearnerService learnerService = new(id, boneyToBankfrontends, boneyToBoneyfrontends);
+        var proposerService = new BoneyProposerService(id, boneyToBoneyfrontends);
+        var acceptorService = new BoneyAcceptorService(id, boneyToBoneyfrontends);
+        var learnerService = new BoneyLearnerService(id, boneyToBankfrontends, boneyToBoneyfrontends);
 
-        Uri ownUri = new(address);
-        Server server = new()
+        var ownUri = new Uri(address);
+        var server = new Server()
         {
             Services = { ProjectBoneyProposerService.BindService(proposerService),
                          ProjectBoneyAcceptorService.BindService(acceptorService),

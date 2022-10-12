@@ -6,12 +6,12 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
 {
     private int id;
     private int ack = 0;
-    private readonly List<BankFrontend> boneyToBankFrontends;
-    private readonly List<BoneyFrontend> boneyToBoneyFrontends;
+    private readonly List<BoneyToBankFrontend> boneyToBankFrontends;
+    private readonly List<BoneyToBoneyFrontend> boneyToBoneyFrontends;
     private readonly Dictionary<int, Tuple<int, int>> acceptedMessagess = new();
     private readonly Dictionary<int, int> slotsHistory = new();//change to concurrentDic
 
-    public BoneyLearnerService(int id, List<BankFrontend> boneyToBankFrontends, List<BoneyFrontend> boneyToBoneyFrontends)
+    public BoneyLearnerService(int id, List<BoneyToBankFrontend> boneyToBankFrontends, List<BoneyToBoneyFrontend> boneyToBoneyFrontends)
     {
         this.id = id;
         this.boneyToBankFrontends = boneyToBankFrontends;

@@ -4,13 +4,13 @@ using System;
 
 namespace DADProject;
 
-public class BoneyFrontend
+public class BoneyToBoneyFrontend
 {
     private readonly int _clientId;
     private int _seq;
     private readonly GrpcChannel channel;
 
-    public BoneyFrontend(int clientId, string serverAddress)
+    public BoneyToBoneyFrontend(int clientId, string serverAddress)
     {
         _clientId = clientId;
         _seq = 0;

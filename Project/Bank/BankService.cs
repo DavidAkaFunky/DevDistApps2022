@@ -8,14 +8,14 @@ public class BankService : ProjectBankService.ProjectBankServiceBase
 {
     private int id;
     private readonly BankAccount account = new();
-    private readonly List<BankFrontend> _bankFrontends = new();
+    private readonly List<BankToBoneyFrontend> bankToBoneyFrontends = new();
     private bool primary = false; //  primary/backup
     private int currentSlot = 1 ;
 
-    public BankService(int id, List<BankFrontend> frontends) 
+    public BankService(int id, List<BankToBoneyFrontend> bankToBoneyFrontends) 
     {
         this.id = id;
-        _bankFrontends = frontends;
+        this.bankToBoneyFrontends = bankToBoneyFrontends;
     }
 
     public bool Primary
@@ -60,8 +60,8 @@ public class BankService : ProjectBankService.ProjectBankServiceBase
         Console.WriteLine("GOT RESPONSE FOR SLOT " + request.Slot + ": " + request.Value);
         if (request.Slot == currentSlot && request.Value == id)
             primary = true;
+            // TODO: Eventually run 2PC at the beginning of slot?
 
         return Task.FromResult(new CompareSwapReply());
-        
     }
 }

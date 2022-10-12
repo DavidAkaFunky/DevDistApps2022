@@ -109,8 +109,8 @@ internal class Bank
             ++i;
         }
 
-        Dictionary<int, List<int>> nonSuspectedServers = new();
-        Dictionary<int, bool> isFrozen = new();
+        var nonSuspectedServers = new Dictionary<int, List<int>>();
+        var isFrozen = new Dictionary<int, bool>();
 
         if (lines.Length - i != numberOfSlots)
         {
@@ -179,22 +179,22 @@ internal class Bank
 
         Uri ownUri = new(address);
         var currentSlot = 1;
-        var bankToBankFrontends = new List<BankFrontend>();
-        var bankToBoneyFrontends = new List<BoneyFrontend>();
-        
+        var bankToBankFrontends = new List<BankToBankFrontend>();
+        var bankToBoneyFrontends = new List<BankToBoneyFrontend>();
+
         bankServers.ForEach(serverAddr =>
         {
-            bankToBankFrontends.Add(new BankFrontend(id, serverAddr));
+            bankToBankFrontends.Add(new BankToBankFrontend(id, serverAddr));
         });
 
         boneyServers.ForEach(serverAddr =>
         {
-            bankToBoneyFrontends.Add(new BoneyFrontend(id, serverAddr));
+            bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr));
         });
 
 
         // TODO use this to communicate inside service 
-        BankService bankService = new(id, bankToBankFrontends);
+        BankService bankService = new(id, bankToBoneyFrontends);
 
         Server server = new()
         {
@@ -220,14 +220,14 @@ internal class Bank
                 Environment.Exit(0);
             }
             Console.WriteLine("--NEW SLOT: {0}--", currentSlot);
-            bankToBoneyFrontends.ForEach(frontend => frontend.Send(currentSlot));
+            bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(currentSlot));
         }
 
         Timer timer = new(slotDuration);
         timer.Elapsed += (sender, e) => HandleTimer();
         timer.Start();
 
-        bankToBoneyFrontends.ForEach(frontend => frontend.Send(currentSlot));
+        bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(currentSlot));
         
         Console.WriteLine("Press any key to stop the server...");
         Console.ReadKey();

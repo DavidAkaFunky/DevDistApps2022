@@ -1,9 +1,0 @@
-syntax = "proto3";
-
-option csharp_namespace = "DADProject";
-
-message DADMetadata {
-	int32 senderId = 1;
-	int32 seq = 2;
-	int32 ack = 3;
-}
