@@ -22,9 +22,9 @@ internal class UnixRunner : IRunner
             var process = Process.Start(new ProcessStartInfo
             {
                 FileName = "alacritty",
-                Arguments = $"-e sh -c \"{executable} {args}\"" 
+                Arguments = $"-e sh -c \"{executable} {args} ; sleep 3600 \""
             });
-            
+
             if (process == null)
                 throw new DADException(ErrorCode.FailedStartingProcess);
 
@@ -60,7 +60,7 @@ internal class WindowsRunner : IRunner
                 UseShellExecute = true,
                 CreateNoWindow = false,
                 WindowStyle = ProcessWindowStyle.Normal
-        });
+            });
 
             if (process == null)
                 throw new DADException(ErrorCode.FailedStartingProcess);
@@ -127,7 +127,8 @@ public class PuppetMaster
             Console.Error.WriteLine("Filename not passed as argument");
             return;
         }
-        else if (args.Length > 1)
+
+        if (args.Length > 1)
         {
             Console.Error.WriteLine("Too many arguments");
             return;
@@ -181,14 +182,14 @@ public class PuppetMaster
                         break;
                 }
             }
-
         }
+
         // desnecessario, se podermos assumir que o input esta sempre correto, podemos lancar os processos enquanto o ficheiro é lido
         processes.AddRange(boneys.Select(id => runner.Run("../Boney", "dotnet", $"run {id} {args[0]}")));
         processes.AddRange(banks.Select(id => runner.Run("../Bank", "dotnet", $"run {id} {args[0]}")));
         //Thread.Sleep(2000);
         //processes.AddRange(clients.Select(id => runner.Run("../Client", "dotnet", $"run {id} {args[0]}")));
-        
+
         do
         {
             Console.WriteLine("Type 'exit' to kill all processes");

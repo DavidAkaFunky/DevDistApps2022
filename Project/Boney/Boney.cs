@@ -1,6 +1,5 @@
-﻿using Grpc.Core;
-using Grpc.Core.Interceptors;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
+using Grpc.Core;
 using Timer = System.Timers.Timer;
 
 namespace DADProject;
@@ -14,7 +13,8 @@ internal class Boney
             Console.Error.WriteLine("Too few arguments: [id] [configPath]");
             return;
         }
-        else if (args.Length > 2)
+
+        if (args.Length > 2)
         {
             Console.Error.WriteLine("Too many arguments: [id] [configPath]");
             return;
@@ -37,9 +37,9 @@ internal class Boney
         var boneyServers = new List<string>();
         var bankClients = new List<string>();
         string? address = null;
-        int numberOfSlots = -1; // Is this needed for Boney servers? Hmmm
-        int i = 0;
-        int slotDuration = -1;
+        var numberOfSlots = -1; // Is this needed for Boney servers? Hmmm
+        var i = 0;
+        var slotDuration = -1;
         while (i < lines.Length)
         {
             var tokens = lines[i].Split(' ');
@@ -58,7 +58,7 @@ internal class Boney
                     boneyServers.Add(tokens[3]);
                     try
                     {
-                        int boneyServerID = int.Parse(tokens[1]);
+                        var boneyServerID = int.Parse(tokens[1]);
                         boneyServerIDs.Add(boneyServerID);
                         if (boneyServerID == id)
                             address = tokens[3];
@@ -112,6 +112,7 @@ internal class Boney
                 Console.Error.WriteLine("Invalid line");
                 return;
             }
+
             ++i;
         }
 
@@ -123,15 +124,16 @@ internal class Boney
             Console.Error.WriteLine("Invalid number of slot details");
             return;
         }
+
         while (i < lines.Length)
         {
-            foreach (var c in new string[] { ",", "(", ")" })
+            foreach (var c in new[] { ",", "(", ")" })
                 lines[i] = lines[i].Replace(c, string.Empty);
 
-            string[] tokens = lines[i].Split();
-            int slotNumber = int.Parse(tokens[1]); 
+            var tokens = lines[i].Split();
+            var slotNumber = int.Parse(tokens[1]);
 
-            for (int j = 2; j < tokens.Length; j += 3)
+            for (var j = 2; j < tokens.Length; j += 3)
             {
                 int serverID;
                 try
@@ -143,10 +145,11 @@ internal class Boney
                     Console.Error.WriteLine("Invalid slot details");
                     return;
                 }
+
                 if (!boneyServerIDs.Contains(serverID))
                     continue;
                 if (!nonSuspectedServers.ContainsKey(slotNumber))
-                    nonSuspectedServers[slotNumber] = new();
+                    nonSuspectedServers[slotNumber] = new List<int>();
                 if (id == serverID)
                 {
                     isFrozen[slotNumber] = tokens[j + 1] == "F";
@@ -154,25 +157,29 @@ internal class Boney
                         nonSuspectedServers[slotNumber].Add(serverID);
                 }
                 else if (tokens[j + 2] == "NS")
+                {
                     nonSuspectedServers[slotNumber].Add(serverID);
+                }
             }
+
             ++i;
         }
 
         if (address is null)
-            throw new Exception("(This should never happen but) the config file doesn't contain an address for the server.");
-        
+            throw new Exception(
+                "(This should never happen but) the config file doesn't contain an address for the server.");
+
         if (numberOfSlots < 0)
             throw new Exception("No number of slots given.");
-        
+
         if (slotDuration < 0)
             throw new Exception("No slot duration given.");
 
         var boneyToBankfrontends = new List<BoneyToBankFrontend>();
         var boneyToBoneyfrontends = new List<BoneyToBoneyFrontend>();
-        
-        bankClients.ForEach(serverAddr => boneyToBankfrontends.Add(new(id, serverAddr)));
-        boneyServers.ForEach(serverAddr => boneyToBoneyfrontends.Add(new(id, serverAddr)));
+
+        bankClients.ForEach(serverAddr => boneyToBankfrontends.Add(new BoneyToBankFrontend(id, serverAddr)));
+        boneyServers.ForEach(serverAddr => boneyToBoneyfrontends.Add(new BoneyToBoneyFrontend(id, serverAddr)));
 
         var slotsHistory = new ConcurrentDictionary<int, int>();
 
@@ -181,14 +188,18 @@ internal class Boney
         var learnerService = new BoneyLearnerService(id, boneyToBankfrontends, boneyServers.Count, slotsHistory);
 
         var ownUri = new Uri(address);
-        var server = new Server()
+        var server = new Server
         {
-            Services = { ProjectBoneyProposerService.BindService(proposerService),
-                         ProjectBoneyAcceptorService.BindService(acceptorService),
-                         ProjectBoneyLearnerService.BindService(learnerService) },
+            Services =
+            {
+                ProjectBoneyProposerService.BindService(proposerService),
+                ProjectBoneyAcceptorService.BindService(acceptorService),
+                ProjectBoneyLearnerService.BindService(learnerService)
+            },
             Ports = { new ServerPort(ownUri.Host, ownUri.Port, ServerCredentials.Insecure) }
         };
         server.Start();
+        Thread.Sleep(5000);
 
         PrintHeader();
 
@@ -218,7 +229,7 @@ internal class Boney
         server.ShutdownAsync().Wait();
     }
 
-    public static void PrintHeader() 
+    public static void PrintHeader()
     {
         Console.WriteLine("====================================================");
         Console.WriteLine("$$$$$$$\\   $$$$$$\\  $$\\   $$\\ $$$$$$$$\\ $$\\     $$\\ ");

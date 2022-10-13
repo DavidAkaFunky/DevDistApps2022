@@ -1,20 +1,18 @@
-﻿using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
+﻿using Grpc.Core;
 
 namespace DADProject;
 
-
 public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceBase
 {
-    private int id;
+    private readonly int id;
+    private readonly List<BoneyToBoneyFrontend> serverFrontends;
+    private readonly Dictionary<int, Slot> slots = new();
     private int ack = 0;
-    private List<BoneyToBoneyFrontend> serverFrontends;
-    private Dictionary<int, Slot> slots = new();
 
     public BoneyAcceptorService(int id, List<BoneyToBoneyFrontend> frontends)
     {
         this.id = id;
-        this.serverFrontends = frontends;
+        serverFrontends = frontends;
     }
 
     // TODO juntar metadata
@@ -25,7 +23,7 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 
         lock (slots)
         {
-            var slotInfo = slots.GetValueOrDefault(request.Slot, new(Slot.Bottom, 0, 0));
+            var slotInfo = slots.GetValueOrDefault(request.Slot, new Slot(Slot.Bottom, 0, 0));
 
             // compara request.TimestampId com readTimestamp
             if (request.TimestampId >= slotInfo.ReadTimestamp)
@@ -54,13 +52,12 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 
     public override Task<AcceptReply> Accept(AcceptRequest request, ServerCallContext context)
     {
-
         Console.WriteLine("Acceptor: skkkdkdk");
-        var reply = new AcceptReply() { Status = false };
+        var reply = new AcceptReply { Status = false };
 
         lock (slots)
         {
-            var slotInfo = slots.GetValueOrDefault(request.Slot, new(Slot.Bottom, 0, 0));
+            var slotInfo = slots.GetValueOrDefault(request.Slot, new Slot(Slot.Bottom, 0, 0));
 
             //ao receber accept(valor, request.timestampId),
             //o acceptor aceita valor a nao ser que readTimestamp > request.TimestampId.
@@ -81,9 +78,10 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
             serverFrontends.ForEach(server =>
             {
                 server.AcceptedToLearner(request.Slot, id, request.Value);
+                Console.WriteLine("AAAAAAAAAA");
             });
 
+        Console.WriteLine("Returning from accept routine");
         return Task.FromResult(reply);
     }
-
 }

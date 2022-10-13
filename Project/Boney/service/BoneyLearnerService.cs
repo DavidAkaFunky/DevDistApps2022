@@ -19,7 +19,6 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
         this.id = id;
         this.boneyToBankFrontends = boneyToBankFrontends;
         majority = (numberOfAcceptors >> 1) + 1;
-        Console.WriteLine(majority.ToString());
         this.slotsHistory = slotsHistory;
     }
 

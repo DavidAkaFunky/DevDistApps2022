@@ -143,7 +143,7 @@ internal class Bank
             Ports = { new ServerPort(ownUri.Host, ownUri.Port, ServerCredentials.Insecure) }
         };
         server.Start();
-
+        Thread.Sleep(5000);
 
         PrintHeader();
 
