@@ -24,6 +24,7 @@ internal struct ServerState
 
 internal class Boney
 {
+    private static int _boneySlot = 1;
     private static string _address = "";
     private static readonly List<string> _boneyAddresses = new();
     private static readonly List<int> _boneyIDs = new();
@@ -144,9 +145,13 @@ internal class Boney
         var slotsHistory = new ConcurrentDictionary<int, int>();
         var slotsInfo = new ConcurrentDictionary<int, Slot>();
         var isPerceivedLeader = new Dictionary<int, bool>();
+        var isFrozen = new Dictionary<int, bool>();
 
         for (int slot = 0; slot < _serverStates.Count; slot++)
         {
+            // ver se está frozen em cada slot
+            isFrozen[slot + 1] = _serverStates[slot][id].IsFrozen;
+
             // pls don't blame me for spaghetti code, couldn't find a way to convert it
             // directly to list without converting to dict and then getting the keys
             var notSuspected = _serverStates[slot].Where(server => !server.Value.IsSuspected)
@@ -162,9 +167,9 @@ internal class Boney
 
         //======================================================SERVICES===========================================
 
-        var proposerService = new BoneyProposerService(id, slotsHistory, slotsInfo);
-        var acceptorService = new BoneyAcceptorService(id, boneyToBoneyfrontends, slotsInfo);
-        var learnerService = new BoneyLearnerService(id, boneyToBankfrontends, _boneyAddresses.Count, slotsHistory);
+        var proposerService = new BoneyProposerService(id, slotsHistory, slotsInfo, isFrozen, _boneySlot);
+        var acceptorService = new BoneyAcceptorService(id, boneyToBoneyfrontends, slotsInfo, isFrozen, _boneySlot);
+        var learnerService = new BoneyLearnerService(id, boneyToBankfrontends, _boneyAddresses.Count, slotsHistory, isFrozen, _boneySlot);
 
         var ownUri = new Uri(_address);
         var server = new Server
@@ -183,14 +188,16 @@ internal class Boney
         PrintHeader();
         Console.WriteLine("Server " + ownUri.Host + " listening on port " + ownUri.Port);
 
-        Paxos(
-            id,
-            _slotDuration,
-            _slotCount,
-            boneyToBoneyfrontends,
-            isPerceivedLeader, 
-            slotsInfo,
-            slotsHistory);
+        Paxos(id,
+              _slotDuration,
+              _slotCount,
+              boneyToBoneyfrontends,
+              isPerceivedLeader, 
+              slotsInfo,
+              slotsHistory,
+              proposerService,
+              acceptorService,
+              learnerService);
 
         Console.WriteLine("Press any key to stop the server...");
         Console.ReadKey();
@@ -219,9 +226,11 @@ internal class Boney
         List<BoneyToBoneyFrontend> frontends,
         Dictionary<int, bool> isPerceivedLeader, 
         ConcurrentDictionary<int, Slot> slotsInfo,
-        ConcurrentDictionary<int, int> slotHistory)
+        ConcurrentDictionary<int, int> slotHistory,
+        BoneyProposerService proposerService,
+        BoneyAcceptorService acceptorService,
+        BoneyLearnerService learnerService)
     {
-        int boneySlot = 1;
         int timestampId = id;
         Slot slotToPropose;
 
@@ -231,15 +240,18 @@ internal class Boney
 
         void HandleSlotTimer()
         {
-            boneySlot++;
+            _boneySlot++;
             //if (boneySlot > slotCount)
-                // FINISH
-            Console.WriteLine("--NEW SLOT: {0}--", boneySlot);
+            // FINISH
+            proposerService.CurrentSlot = _boneySlot;
+            acceptorService.CurrentSlot = _boneySlot;
+            learnerService.CurrentSlot = _boneySlot;
+            Console.WriteLine("--NEW SLOT: {0}--", _boneySlot);
         }
 
         timer.Elapsed += (sender, e) => HandleSlotTimer();
         timer.Start();
-        Console.WriteLine("--NEW SLOT: {0}--", boneySlot);
+        Console.WriteLine("--NEW SLOT: {0}--", _boneySlot);
 
         //======================================================================================================
         //TODO ----> Locks
@@ -247,7 +259,7 @@ internal class Boney
         while(true)
         {
             //Loop enquanto nao sou lider
-            if (!isPerceivedLeader[boneySlot]) continue;
+            if (!isPerceivedLeader[_boneySlot]) continue;
 
             var mostRecentslot = slotHistory.Count + 1;
 
