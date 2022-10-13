@@ -111,7 +111,6 @@ internal class Boney
                                 isSuspected = isFrozen;
                             else
                                 isSuspected = fields[i + 2] == "S";
-                            Console.WriteLine(isSuspected);
                             var state = new ServerState
                             { IsFrozen = isFrozen, IsSuspected = isSuspected };
                             states.Add(_id, state);
@@ -158,7 +157,6 @@ internal class Boney
                                                   .ToDictionary(server => server.Key, server => server.Value)
                                                   .Keys.ToList();
 
-            Console.WriteLine(notSuspected.Count);
             // pensa que e lider se a lista de servidores vivos para um slot n estiver vazia (duh)
             // e se o minimo dos valores da lista for ele proprio
             isPerceivedLeader[slot + 1] = notSuspected.Count > 0 && notSuspected.Min() == id;
