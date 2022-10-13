@@ -26,7 +26,7 @@ public class BankToBoneyFrontend
         CompareAndSwapRequest request = new() { Slot = slot, InValue = clientID };
         var reply = client.CompareAndSwap(request);
         Console.WriteLine("GOT INITIAL COMPARE AND SWAP VALUE FOR SLOT " + slot + " AND THE VALUE IS " + reply.OutValue);
-        if (reply.OutValue > 0)
+        if (reply.OutValue > 0 && reply.OutValue == clientID)
         {
             Console.WriteLine("I AM THE LEADER FOR THE SLOT " + slot);
             isPrimary[slot] = true;
