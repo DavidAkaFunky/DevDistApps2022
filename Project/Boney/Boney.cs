@@ -31,7 +31,6 @@ internal class Boney
     private static int _slotCount;
     private static readonly List<int> _wallTimes = new();
     private static int _slotDuration;
-    private static int _currentSlot = 1;
     private static readonly List<Dictionary<int, ServerState>> _serverStates = new();
 
     private static Command GetType(string line, out string[] tokens)
@@ -187,6 +186,7 @@ internal class Boney
         Paxos(
             id,
             _slotDuration,
+            _slotCount,
             boneyToBoneyfrontends,
             isPerceivedLeader, 
             slotsInfo,
@@ -215,6 +215,7 @@ internal class Boney
     public static void Paxos(
         int id,
         int slotDuration,
+        int slotCount,
         List<BoneyToBoneyFrontend> frontends,
         Dictionary<int, bool> isPerceivedLeader, 
         ConcurrentDictionary<int, Slot> slotsInfo,
@@ -231,6 +232,8 @@ internal class Boney
         void HandleSlotTimer()
         {
             boneySlot++;
+            //if (boneySlot > slotCount)
+                // FINISH
             Console.WriteLine("--NEW SLOT: {0}--", boneySlot);
         }
 
