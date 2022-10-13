@@ -1,18 +1,20 @@
 ﻿using Grpc.Core;
+using System.Collections.Concurrent;
 
 namespace DADProject;
 
 public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceBase
 {
     private readonly int id;
-    private readonly List<BoneyToBoneyFrontend> serverFrontends;
-    private readonly Dictionary<int, Slot> slots = new();
     private int ack = 0;
+    private readonly List<BoneyToBoneyFrontend> serverFrontends;
+    private readonly ConcurrentDictionary<int, Slot> slotsInfo;
 
-    public BoneyAcceptorService(int id, List<BoneyToBoneyFrontend> frontends)
+    public BoneyAcceptorService(int id, List<BoneyToBoneyFrontend> frontends, ConcurrentDictionary<int, Slot> slotsInfo)
     {
         this.id = id;
         serverFrontends = frontends;
+        this.slotsInfo = slotsInfo;
     }
 
     // TODO juntar metadata
@@ -21,9 +23,9 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
     {
         var reply = new PromiseReply();
 
-        lock (slots)
+        lock (slotsInfo)
         {
-            var slotInfo = slots.GetValueOrDefault(request.Slot, new Slot(Slot.Bottom, 0, 0));
+            var slotInfo = slotsInfo.GetValueOrDefault(request.Slot, new Slot(Slot.Bottom, 0, 0));
 
             // compara request.TimestampId com readTimestamp
             if (request.TimestampId >= slotInfo.ReadTimestamp)
@@ -44,7 +46,7 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
             }
 
             // atualiza tuplo do acceptor para o slot dado
-            slots[request.Slot] = slotInfo;
+            slotsInfo[request.Slot] = slotInfo;
         }
 
         return Task.FromResult(reply);
@@ -55,9 +57,9 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
         Console.WriteLine("Acceptor: skkkdkdk");
         var reply = new AcceptReply { Status = false };
 
-        lock (slots)
+        lock (slotsInfo)
         {
-            var slotInfo = slots.GetValueOrDefault(request.Slot, new Slot(Slot.Bottom, 0, 0));
+            var slotInfo = slotsInfo.GetValueOrDefault(request.Slot, new Slot(Slot.Bottom, 0, 0));
 
             //ao receber accept(valor, request.timestampId),
             //o acceptor aceita valor a nao ser que readTimestamp > request.TimestampId.
@@ -69,7 +71,7 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
                 slotInfo.WriteTimestamp = request.TimestampId;
 
                 // atualiza tuplo do acceptor para o slot dado
-                slots[request.Slot] = slotInfo;
+                slotsInfo[request.Slot] = slotInfo;
             }
         }
 

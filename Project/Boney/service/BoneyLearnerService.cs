@@ -5,13 +5,13 @@ namespace DADProject;
 
 public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearnerServiceBase
 {
-    private readonly List<BoneyToBankFrontend> boneyToBankFrontends;
-    private readonly int majority;
-
-    private readonly Dictionary<int, List<int>> receivedAccepts = new();
-    private readonly ConcurrentDictionary<int, int> slotsHistory;
-    private int ack = 0;
     private int id;
+    private int ack = 0;
+    private readonly int majority;
+    private readonly List<BoneyToBankFrontend> boneyToBankFrontends;
+
+    private readonly ConcurrentDictionary<int, int> slotsHistory;
+    private readonly ConcurrentDictionary<int, List<int>> receivedAccepts = new();
 
     public BoneyLearnerService(int id, List<BoneyToBankFrontend> boneyToBankFrontends, int numberOfAcceptors,
         ConcurrentDictionary<int, int> slotsHistory)
@@ -38,7 +38,7 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
             int[] aux = { request.Value, request.TimestampId, 0 };
             var acceptCounter = receivedAccepts.GetValueOrDefault(request.Slot, new List<int>(aux));
             Console.WriteLine("GetValueOrDefault");
-            receivedAccepts.TryAdd(request.Slot, acceptCounter);
+            if (!receivedAccepts.TryAdd(request.Slot, acceptCounter)) receivedAccepts[request.Slot] = acceptCounter;
 
 
             Console.WriteLine("if 1");

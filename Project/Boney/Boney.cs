@@ -175,16 +175,31 @@ internal class Boney
         if (slotDuration < 0)
             throw new Exception("No slot duration given.");
 
+
+        //======================================================FRONTENDS==========================================
+
         var boneyToBankfrontends = new List<BoneyToBankFrontend>();
         var boneyToBoneyfrontends = new List<BoneyToBoneyFrontend>();
 
         bankClients.ForEach(serverAddr => boneyToBankfrontends.Add(new BoneyToBankFrontend(id, serverAddr)));
         boneyServers.ForEach(serverAddr => boneyToBoneyfrontends.Add(new BoneyToBoneyFrontend(id, serverAddr)));
 
-        var slotsHistory = new ConcurrentDictionary<int, int>();
+        //==================================================CONSENSUS_INFO=========================================
 
-        var proposerService = new BoneyProposerService(id, boneyToBoneyfrontends, nonSuspectedServers, slotsHistory);
-        var acceptorService = new BoneyAcceptorService(id, boneyToBoneyfrontends);
+
+        var slotsHistory = new ConcurrentDictionary<int, int>();
+        var slotsInfo = new ConcurrentDictionary<int, Slot>();
+        var isPerceivedLeader = new Dictionary<int, bool>(); 
+
+        foreach (var slot in nonSuspectedServers)
+            // pensa que e lider se a lista de servidores vivos para um slot n estiver vazia (duh)
+            // e se o minimo dos valores da lista for ele proprio
+            isPerceivedLeader[slot.Key] = slot.Value.Count > 0 && slot.Value.Min() == id;
+
+        //======================================================SERVICES===========================================
+
+        var proposerService = new BoneyProposerService(id, slotsHistory, slotsInfo);
+        var acceptorService = new BoneyAcceptorService(id, boneyToBoneyfrontends, slotsInfo);
         var learnerService = new BoneyLearnerService(id, boneyToBankfrontends, boneyServers.Count, slotsHistory);
 
         var ownUri = new Uri(address);
@@ -202,26 +217,15 @@ internal class Boney
         Thread.Sleep(5000);
 
         PrintHeader();
-
         Console.WriteLine("Server " + ownUri.Host + " listening on port " + ownUri.Port);
 
-        // BoneyAcceptor = new BoneyAcceptor();
-
-        void HandleTimer()
-        {
-            proposerService.CurrentSlot++;
-            //if (currentSlot > numberOfSlots)
-            //{
-            //    // TODO: Maybe wait until everything was finished, but how?
-            //    server.ShutdownAsync().Wait();
-            //    Environment.Exit(0);
-            //}
-            Console.WriteLine("--NEW SLOT: {0}--", proposerService.CurrentSlot);
-        }
-
-        Timer timer = new(slotDuration);
-        timer.Elapsed += (sender, e) => HandleTimer();
-        timer.Start();
+        Paxos(
+            id,
+            slotDuration,
+            boneyToBoneyfrontends,
+            isPerceivedLeader, 
+            slotsInfo,
+            slotsHistory);
 
         Console.WriteLine("Press any key to stop the server...");
         Console.ReadKey();
@@ -241,5 +245,97 @@ internal class Boney
         Console.WriteLine("$$$$$$$  | $$$$$$  |$$ | \\$$ |$$$$$$$$\\     $$ |    ");
         Console.WriteLine("\\_______/  \\______/ \\__|  \\__|\\________|    \\__|    ");
         Console.WriteLine("====================================================");
+    }
+
+    public static void Paxos(
+        int id,
+        int slotDuration,
+        List<BoneyToBoneyFrontend> frontends,
+        Dictionary<int, bool> isPerceivedLeader, 
+        ConcurrentDictionary<int, Slot> slotsInfo,
+        ConcurrentDictionary<int, int> slotHistory)
+    {
+        int boneySlot = 1;
+        int timestampId = id;
+        Slot slotToPropose;
+
+        //========================================BONEY_SLOT_TIMER====================================================
+
+        Timer timer = new(slotDuration);
+
+        void HandleSlotTimer()
+        {
+            boneySlot++;
+            Console.WriteLine("--NEW SLOT: {0}--", boneySlot);
+        }
+
+        timer.Elapsed += (sender, e) => HandleSlotTimer();
+        timer.Start();
+        Console.WriteLine("--NEW SLOT: {0}--", boneySlot);
+
+        //======================================================================================================
+        //TODO ----> Locks
+
+        while(true)
+        {
+            //Loop enquanto nao sou lider
+            if (!isPerceivedLeader[boneySlot]) continue;
+
+            var mostRecentslot = slotHistory.Count + 1;
+
+            //sou lider, verificar se tenho valor para propor para o slot mais recente
+            if (!slotsInfo.TryGetValue(mostRecentslot, out slotToPropose)) continue;
+
+            // se nao (dicionario vazio ou o menor valor n é o meu), desisto 
+
+            Console.WriteLine("Proposer: STARTING CONSENSUS FOR SLOT " + mostRecentslot);
+
+            var value = slotToPropose.CurrentValue;
+            var ts = timestampId;
+            var stop = false;
+
+            // se eu for o lider:
+            // vou mandar um prepare(n) para todos os acceptors (assumindo que nao sou o primeiro)
+            // espero por maioria de respostas (Promise com valor, id da msg mais recente)
+            // escolher valor mais recente das Promises
+
+            if (timestampId != 1)
+                frontends.ForEach(server =>
+                {
+                    var response = server.Prepare(mostRecentslot, id);
+
+                    if (response.Value == -1 && response.WriteTimestamp == -1)
+                    {
+                        Console.WriteLine("Proposer: RECEIVED **NACK**");
+                        stop = true;
+                    }
+                    else if (response.WriteTimestamp > ts)
+                    {
+                        Console.WriteLine("Procposer: RECEIVED **ACK**");
+                        value = response.Value;
+                        ts = response.WriteTimestamp;
+                    }
+                });
+
+            if (stop)
+            {
+                //MAYBE aumentar timestampId
+                continue;
+            }
+
+            Console.WriteLine("Proposer: Send ACCEPT for slot {0} \n ========> Value: {1} / TS: {2}",
+                mostRecentslot, value, ts);
+
+            // enviar accept(<value mais recente>) a todos
+            // TODO: meter isto assincrono (tasks ou threads?)
+            // esperar por maioria (para efeitos de historico)
+            frontends.ForEach(server =>
+            {
+                Console.WriteLine($"Proposer: ACCEPT TO {server.ServerAddress} SENT");
+                server.Accept(mostRecentslot, ts, value);
+                Console.WriteLine($"Proposer: ACCEPT TO {server.ServerAddress} REPLY");
+            });
+
+        }
     }
 }
