@@ -166,9 +166,9 @@ internal class Bank
 
         Timer timer = new(_slotDuration);
         timer.Elapsed += (sender, e) => HandleTimer();
-        // timer.Start();
+        timer.Start();
 
-        // bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
+        bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
 
         Console.WriteLine("Press any key to stop the server...");
         Console.ReadKey();
