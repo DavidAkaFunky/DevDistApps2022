@@ -4,176 +4,131 @@ using Timer = System.Timers.Timer;
 
 namespace DADProject;
 
+internal enum Command
+{
+    BoneyServer,
+    BankServer,
+    Client,
+    SlotCount,
+    WallTime,
+    SlotDuration,
+    SlotState,
+    Invalid
+}
+
+internal struct ServerState
+{
+    public bool IsFrozen;
+    public bool IsSuspected;
+}
+
 internal class Boney
 {
-    private static void Main(string[] args)
+    private static string _address = "";
+    private static readonly List<string> _boneyAddresses = new();
+    private static readonly List<int> _boneyIDs = new();
+    private static readonly List<string> _bankAddresses = new();
+    private static int _slotCount;
+    private static readonly List<int> _wallTimes = new();
+    private static int _slotDuration;
+    private static int _currentSlot = 1;
+    private static readonly List<Dictionary<int, ServerState>> _serverStates = new();
+
+    private static Command GetType(string line, out string[] tokens)
     {
-        if (args.Length < 2)
+        if (line.Length == 0)
         {
-            Console.Error.WriteLine("Too few arguments: [id] [configPath]");
+            tokens = Array.Empty<string>();
+            return Command.Invalid;
+        }
+
+        tokens = line.Split(' ');
+        return tokens[0] switch
+        {
+            "P" => tokens[2] switch
+            {
+                "boney" => Command.BoneyServer,
+                "bank" => Command.BankServer,
+                _ => Command.Client
+            },
+            "S" => Command.SlotCount,
+            "T" => Command.WallTime,
+            "D" => Command.SlotDuration,
+            "F" => Command.SlotState,
+            _ => Command.Invalid,
+        };
+    }
+
+    public static void Main(string[] args)
+    {
+        if (args.Length != 2)
+        {
+            Console.Error.WriteLine("Wrong number of arguments: [id] [configPath]");
             return;
         }
 
-        if (args.Length > 2)
-        {
-            Console.Error.WriteLine("Too many arguments: [id] [configPath]");
-            return;
-        }
-
-        string[] lines;
-        int id;
-        try
-        {
-            lines = File.ReadAllLines(args[1]);
-            id = int.Parse(args[0]);
-        }
-        catch (Exception)
+        if (!int.TryParse(args[0], out var id))
         {
             Console.Error.WriteLine("Invalid arguments");
             return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
         }
 
-        var boneyServerIDs = new List<int>();
-        var boneyServers = new List<string>();
-        var bankClients = new List<string>();
-        string? address = null;
-        var numberOfSlots = -1; // Is this needed for Boney servers? Hmmm
-        var i = 0;
-        var slotDuration = -1;
-        while (i < lines.Length)
+        try
         {
-            var tokens = lines[i].Split(' ');
+            File.ReadLines(args[1]).ToList().ForEach(line =>
+            {
+                switch (GetType(line, out var tokens))
+                {
+                    case Command.BankServer:
+                        _bankAddresses.Add(tokens[3]);
+                        break;
+                    case Command.BoneyServer:
+                        _boneyIDs.Add(int.Parse(tokens[1]));
+                        _boneyAddresses.Add(tokens[3]);
+                        break;
+                    case Command.SlotCount:
+                        _slotCount = int.Parse(tokens[1]);
+                        break;
+                    case Command.WallTime:
+                        tokens[1].Split(':').ToList().ForEach(time => _wallTimes.Add(int.Parse(time)));
+                        break;
+                    case Command.SlotDuration:
+                        _slotDuration = int.Parse(tokens[1]);
+                        break;
+                    case Command.SlotState:
+                        // Giga Cursed
+                        foreach (var c in new string[] { ",", "(", ")" })
+                            line = line.Replace(c, string.Empty);
+                        var fields = line.Split();
+                        Dictionary<int, ServerState> states = new();
+                        for (var i = 2; i < fields.Length; i += 3)
+                        {
+                            var _id = int.Parse(fields[i]);
+                            if (!_boneyIDs.Contains(_id)) continue;
+                            bool isFrozen = fields[i + 1] != "N";
+                            bool isSuspected;
+                            if (_id == id)
+                                isSuspected = isFrozen;
+                            else
+                                isSuspected = fields[i + 2] == "S";
+                            Console.WriteLine(isSuspected);
+                            var state = new ServerState
+                            { IsFrozen = isFrozen, IsSuspected = isSuspected };
+                            states.Add(_id, state);
+                        }
 
-            if (tokens[0] == "F")
-                break;
-
-            if (tokens[0] == "P")
-            {
-                if (tokens.Length < 3)
-                    throw new Exception("At least 3 arguments needed for 'P' lines");
-                if (tokens[2] == "boney")
-                {
-                    if (tokens.Length != 4)
-                        throw new Exception("Exactly 4 arguments needed for 'P boney' lines");
-                    boneyServers.Add(tokens[3]);
-                    try
-                    {
-                        var boneyServerID = int.Parse(tokens[1]);
-                        boneyServerIDs.Add(boneyServerID);
-                        if (boneyServerID == id)
-                            address = tokens[3];
-                    }
-                    catch (FormatException)
-                    {
-                        Console.Error.WriteLine("Invalid id for Boney server");
-                        return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
-                    }
+                        _serverStates.Add(states);
+                        break;
                 }
-                else if (tokens[2] == "bank")
-                {
-                    if (tokens.Length != 4)
-                        throw new Exception("Exactly 4 arguments needed for 'P bank' lines");
-                    bankClients.Add(tokens[3]);
-                }
-            }
-            else if (tokens[0] == "S")
-            {
-                if (tokens.Length != 2)
-                    throw new Exception("Exactly 2 arguments needed for 'S' lines");
-                try
-                {
-                    numberOfSlots = int.Parse(tokens[1]);
-                }
-                catch (FormatException)
-                {
-                    Console.Error.WriteLine("Invalid value for number of slots");
-                    return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
-                }
-            }
-            else if (tokens[0] == "D")
-            {
-                try
-                {
-                    slotDuration = int.Parse(tokens[1]);
-                }
-                catch (FormatException)
-                {
-                    Console.Error.WriteLine("Invalid value for the slot duration");
-                    return; // TODO: throw new DADException(ErrorCode.MissingConfigFile) does not work 
-                }
-            }
-            else if (tokens[0] == "T")
-            {
-                ++i;
-                continue;
-            }
-            else
-            {
-                Console.Error.WriteLine("Invalid line");
-                return;
-            }
-
-            ++i;
+            });
         }
-
-        var nonSuspectedServers = new Dictionary<int, List<int>>();
-        var isFrozen = new Dictionary<int, bool>();
-
-        if (lines.Length - i != numberOfSlots)
+        catch (Exception)
         {
-            Console.Error.WriteLine("Invalid number of slot details");
+            Console.Error.WriteLine("Cannot open file");
             return;
         }
 
-        while (i < lines.Length)
-        {
-            foreach (var c in new[] { ",", "(", ")" })
-                lines[i] = lines[i].Replace(c, string.Empty);
-
-            var tokens = lines[i].Split();
-            var slotNumber = int.Parse(tokens[1]);
-
-            for (var j = 2; j < tokens.Length; j += 3)
-            {
-                int serverID;
-                try
-                {
-                    serverID = int.Parse(tokens[j]);
-                }
-                catch (FormatException)
-                {
-                    Console.Error.WriteLine("Invalid slot details");
-                    return;
-                }
-
-                if (!boneyServerIDs.Contains(serverID))
-                    continue;
-                if (!nonSuspectedServers.ContainsKey(slotNumber))
-                    nonSuspectedServers[slotNumber] = new List<int>();
-                if (id == serverID)
-                {
-                    isFrozen[slotNumber] = tokens[j + 1] == "F";
-                    if (!isFrozen[slotNumber])
-                        nonSuspectedServers[slotNumber].Add(serverID);
-                }
-                else if (tokens[j + 2] == "NS")
-                {
-                    nonSuspectedServers[slotNumber].Add(serverID);
-                }
-            }
-
-            ++i;
-        }
-
-        if (address is null)
-            throw new Exception(
-                "(This should never happen but) the config file doesn't contain an address for the server.");
-
-        if (numberOfSlots < 0)
-            throw new Exception("No number of slots given.");
-
-        if (slotDuration < 0)
-            throw new Exception("No slot duration given.");
+        _address = _boneyAddresses[id - 1];
 
 
         //======================================================FRONTENDS==========================================
@@ -181,28 +136,38 @@ internal class Boney
         var boneyToBankfrontends = new List<BoneyToBankFrontend>();
         var boneyToBoneyfrontends = new List<BoneyToBoneyFrontend>();
 
-        bankClients.ForEach(serverAddr => boneyToBankfrontends.Add(new BoneyToBankFrontend(id, serverAddr)));
-        boneyServers.ForEach(serverAddr => boneyToBoneyfrontends.Add(new BoneyToBoneyFrontend(id, serverAddr)));
+        _bankAddresses.ForEach(serverAddr => boneyToBankfrontends.Add(new BoneyToBankFrontend(id, serverAddr)));
+        _boneyAddresses.ForEach(serverAddr => boneyToBoneyfrontends.Add(new BoneyToBoneyFrontend(id, serverAddr)));
 
         //==================================================CONSENSUS_INFO=========================================
 
 
         var slotsHistory = new ConcurrentDictionary<int, int>();
         var slotsInfo = new ConcurrentDictionary<int, Slot>();
-        var isPerceivedLeader = new Dictionary<int, bool>(); 
+        var isPerceivedLeader = new Dictionary<int, bool>();
 
-        foreach (var slot in nonSuspectedServers)
+        for (int slot = 0; slot < _serverStates.Count; slot++)
+        {
+            // pls don't blame me for spaghetti code, couldn't find a way to convert it
+            // directly to list without converting to dict and then getting the keys
+            var notSuspected = _serverStates[slot].Where(server => !server.Value.IsSuspected)
+                                                  .ToDictionary(server => server.Key, server => server.Value)
+                                                  .Keys.ToList();
+
+            Console.WriteLine(notSuspected.Count);
             // pensa que e lider se a lista de servidores vivos para um slot n estiver vazia (duh)
             // e se o minimo dos valores da lista for ele proprio
-            isPerceivedLeader[slot.Key] = slot.Value.Count > 0 && slot.Value.Min() == id;
+            isPerceivedLeader[slot + 1] = notSuspected.Count > 0 && notSuspected.Min() == id;
+        }
+            
 
         //======================================================SERVICES===========================================
 
         var proposerService = new BoneyProposerService(id, slotsHistory, slotsInfo);
         var acceptorService = new BoneyAcceptorService(id, boneyToBoneyfrontends, slotsInfo);
-        var learnerService = new BoneyLearnerService(id, boneyToBankfrontends, boneyServers.Count, slotsHistory);
+        var learnerService = new BoneyLearnerService(id, boneyToBankfrontends, _boneyAddresses.Count, slotsHistory);
 
-        var ownUri = new Uri(address);
+        var ownUri = new Uri(_address);
         var server = new Server
         {
             Services =
@@ -221,7 +186,7 @@ internal class Boney
 
         Paxos(
             id,
-            slotDuration,
+            _slotDuration,
             boneyToBoneyfrontends,
             isPerceivedLeader, 
             slotsInfo,
