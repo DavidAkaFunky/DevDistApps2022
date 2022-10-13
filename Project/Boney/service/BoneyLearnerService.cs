@@ -67,12 +67,14 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
             //verificar se o contador atingiu a maioria
             if (receivedAccepts[request.Slot][2] >= majority)
             {
-                Console.WriteLine("Learner: Got majority for slot {0}", request.Slot);
+                Console.WriteLine(
+                    "---------------------------Learner: Got majority for slot {0}-------------------------",
+                    request.Slot);
                 slotsHistory[request.Slot] = receivedAccepts[request.Slot][1];
 
                 boneyToBankFrontends.ForEach(server =>
                 {
-                    server.SendCompareSwapResult(request.Slot, receivedAccepts[request.Slot][1]);
+                    server.SendCompareSwapResult(request.Slot, receivedAccepts[request.Slot][0]);
                 });
             }
         }

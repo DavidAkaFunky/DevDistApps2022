@@ -190,10 +190,8 @@ public class PuppetMaster
         //Thread.Sleep(2000);
         //processes.AddRange(clients.Select(id => runner.Run("../Client", "dotnet", $"run {id} {args[0]}")));
 
-        do
-        {
-            Console.WriteLine("Type 'exit' to kill all processes");
-        } while (Console.ReadLine() != "exit");
+        Console.WriteLine("Type anything to kill all processes");
+        Console.ReadLine();
 
         processes.ForEach(process => process.Kill());
     }
