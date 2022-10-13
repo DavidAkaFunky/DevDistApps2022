@@ -77,8 +77,9 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
         if (reply.Status)
             serverFrontends.ForEach(server =>
             {
-                server.AcceptedToLearner(request.Slot, id, request.Value);
-                Console.WriteLine("AAAAAAAAAA");
+                Console.WriteLine("Acceptor : -- Sent Accepted To Learner");
+                server.AcceptedToLearner(request.Slot, request.TimestampId, request.Value);
+                Console.WriteLine("Acceptor : -- Returned from sending Accepted To Learner");
             });
 
         Console.WriteLine("Returning from accept routine");
