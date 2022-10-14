@@ -5,16 +5,26 @@ namespace DADProject;
 
 public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceBase
 {
-    private readonly int id;
     private int ack = 0;
+    private int currentSlot;
+    private readonly int id;
+    private readonly Dictionary<int, bool> isFrozen;
     private readonly List<BoneyToBoneyFrontend> serverFrontends;
     private readonly ConcurrentDictionary<int, Slot> slotsInfo;
 
-    public BoneyAcceptorService(int id, List<BoneyToBoneyFrontend> frontends, ConcurrentDictionary<int, Slot> slotsInfo)
+    public BoneyAcceptorService(int id, List<BoneyToBoneyFrontend> frontends, ConcurrentDictionary<int, Slot> slotsInfo, Dictionary<int, bool> isFrozen, int currentSlot)
     {
         this.id = id;
         serverFrontends = frontends;
         this.slotsInfo = slotsInfo;
+        this.isFrozen = isFrozen;
+        this.currentSlot = currentSlot;
+    }
+
+    public int CurrentSlot
+    {
+        get { return currentSlot; }
+        set { currentSlot = value; }
     }
 
     // TODO juntar metadata

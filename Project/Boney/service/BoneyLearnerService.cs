@@ -5,21 +5,30 @@ namespace DADProject;
 
 public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearnerServiceBase
 {
-    private int id;
     private int ack = 0;
+    private int currentSlot;
+    private readonly int id;
     private readonly int majority;
     private readonly List<BoneyToBankFrontend> boneyToBankFrontends;
-
+    private readonly Dictionary<int, bool> isFrozen;
     private readonly ConcurrentDictionary<int, int> slotsHistory;
     private readonly ConcurrentDictionary<int, List<int>> receivedAccepts = new();
 
     public BoneyLearnerService(int id, List<BoneyToBankFrontend> boneyToBankFrontends, int numberOfAcceptors,
-        ConcurrentDictionary<int, int> slotsHistory)
+                               ConcurrentDictionary<int, int> slotsHistory, Dictionary<int, bool> isFrozen, int currentSlot)
     {
         this.id = id;
         this.boneyToBankFrontends = boneyToBankFrontends;
         majority = (numberOfAcceptors >> 1) + 1;
         this.slotsHistory = slotsHistory;
+        this.isFrozen = isFrozen;
+        this.currentSlot = currentSlot;
+    }
+
+    public int CurrentSlot
+    {
+        get { return currentSlot; }
+        set { currentSlot = value; }
     }
 
     public override Task<AcceptedToLearnerReply> AcceptedToLearner(AcceptedToLearnerRequest request,

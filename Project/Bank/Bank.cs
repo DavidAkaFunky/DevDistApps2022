@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using Grpc.Core;
 using Timer = System.Timers.Timer;
 
@@ -27,11 +28,12 @@ internal class Bank
     private static string _address = "";
     private static readonly List<string> _boneyAddresses = new();
     private static readonly List<string> _bankAddresses = new();
+    private static readonly List<int> _bankIDs = new();
     private static int _slotCount;
     private static readonly List<int> _wallTimes = new();
     private static int _slotDuration;
     private static int _currentSlot = 1;
-    private static readonly List<Dictionary<int, ServerState>> serverStates = new();
+    private static readonly List<Dictionary<int, ServerState>> _serverStates = new();
 
     private static Command GetType(string line, out string[] tokens)
     {
@@ -42,26 +44,20 @@ internal class Bank
         }
 
         tokens = line.Split(' ');
-        switch (tokens[0])
+        return tokens[0] switch
         {
-            case "P":
-                return tokens[2] switch
-                {
-                    "boney" => Command.BoneyServer,
-                    "bank" => Command.BankServer,
-                    _ => Command.Client
-                };
-            case "S":
-                return Command.SlotCount;
-            case "T":
-                return Command.WallTime;
-            case "D":
-                return Command.SlotDuration;
-            case "F":
-                return Command.SlotState;
-            default:
-                return Command.Invalid;
-        }
+            "P" => tokens[2] switch
+            {
+                "boney" => Command.BoneyServer,
+                "bank" => Command.BankServer,
+                _ => Command.Client
+            },
+            "S" => Command.SlotCount,
+            "T" => Command.WallTime,
+            "D" => Command.SlotDuration,
+            "F" => Command.SlotState,
+            _ => Command.Invalid,
+        };
     }
 
     public static void Main(string[] args)
@@ -82,10 +78,10 @@ internal class Bank
         {
             File.ReadLines(args[1]).ToList().ForEach(line =>
             {
-                var idString = args[0];
                 switch (GetType(line, out var tokens))
                 {
                     case Command.BankServer:
+                        _bankIDs.Add(int.Parse(tokens[1]));
                         _bankAddresses.Add(tokens[3]);
                         break;
                     case Command.BoneyServer:
@@ -102,22 +98,31 @@ internal class Bank
                         break;
                     case Command.SlotState:
                         // Giga Cursed
-                        var split = line.Split().ToList().FindAll(str => str != "(" && str != ")" && str != ",");
+                        foreach (var c in new string[] { ",", "(", ")" })
+                            line = line.Replace(c, string.Empty);
+                        var fields = line.Split();
                         Dictionary<int, ServerState> states = new();
-                        var fields = string.Join("", split).Split(' ');
                         for (var i = 2; i < fields.Length; i += 3)
                         {
+                            var _id = int.Parse(fields[i]);
+                            if (!_bankIDs.Contains(_id)) continue;
+                            bool isFrozen = fields[i + 1] != "N";
+                            bool isSuspected;
+                            if (_id == id)
+                                isSuspected = isFrozen;
+                            else
+                                isSuspected = fields[i + 2] == "S";
                             var state = new ServerState
-                                { IsFrozen = fields[i + 1] != "N", IsSuspected = fields[i + 2] == "S" };
-                            states.Add(int.Parse(fields[i]), state);
+                            { IsFrozen = isFrozen, IsSuspected = isSuspected };
+                            states.Add(_id, state);
                         }
 
-                        serverStates.Add(states);
+                        _serverStates.Add(states);
                         break;
                 }
             });
         }
-        catch (Exception e)
+        catch (Exception)
         {
             Console.Error.WriteLine("Cannot open file");
             return;
