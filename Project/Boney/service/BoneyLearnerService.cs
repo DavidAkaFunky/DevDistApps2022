@@ -75,7 +75,7 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
                 Console.WriteLine(
                     "---------------------------Learner: {0}: GOT MAJORITY-------------------------",
                     request.Slot);
-                slotsHistory[request.Slot] = receivedAccepts[request.Slot][1];
+                slotsHistory[request.Slot] = receivedAccepts[request.Slot][0];
 
                 boneyToBankFrontends.ForEach(server =>
                 {
