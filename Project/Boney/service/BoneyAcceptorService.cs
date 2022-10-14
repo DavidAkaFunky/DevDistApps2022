@@ -32,7 +32,7 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
             {
                 // se request.TimestampId > readTimestamp, responde ack(valor, writeTimestamp)
                 // onde valor e o valor mais recente aceite (ou ⊥/Bottom/-1 se n existir), e writeTimestamp e o instante da proposta
-
+                Console.WriteLine("Acceptor: {0}: ACCEPTED Prepare with timestamp {1}", request.Slot, request.TimestampId);
                 slotInfo.ReadTimestamp = request.TimestampId;
 
                 reply.Value = slotInfo.CurrentValue;
@@ -40,6 +40,7 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
             }
             else
             {
+                Console.WriteLine("Acceptor: {0}: REJECTED Prepare with timestamp {1}", request.Slot, request.TimestampId);
                 //caso contrario, envia nack(-1, -1)
                 reply.Value = -1;
                 reply.WriteTimestamp = -1;
@@ -54,7 +55,6 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 
     public override Task<AcceptReply> Accept(AcceptRequest request, ServerCallContext context)
     {
-        Console.WriteLine("Acceptor: skkkdkdk");
         var reply = new AcceptReply { Status = false };
 
         lock (slotsInfo)
@@ -65,6 +65,9 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
             //o acceptor aceita valor a nao ser que readTimestamp > request.TimestampId.
             if (slotInfo.ReadTimestamp <= request.TimestampId)
             {
+                Console.WriteLine("Acceptor: {0}: ACCEPTED Accept with timestamp {1} and value {2}",
+                    request.Slot, request.TimestampId, request.Value);
+                
                 reply.Status = true;
 
                 slotInfo.CurrentValue = request.Value;
@@ -72,6 +75,10 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 
                 // atualiza tuplo do acceptor para o slot dado
                 slotsInfo[request.Slot] = slotInfo;
+            } else
+            {
+                Console.WriteLine("Acceptor: {0}: REJECTED Accept with timestamp {1} and value {2}",
+                    request.Slot, request.TimestampId, request.Value);
             }
         }
 
