@@ -34,34 +34,30 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
     public override Task<AcceptedToLearnerReply> AcceptedToLearner(AcceptedToLearnerRequest request,
         ServerCallContext context)
     {
-        Console.WriteLine("Outside Accepted To Learner");
         lock (receivedAccepts)
         lock (slotsHistory)
         {
             if (slotsHistory.ContainsKey(request.Slot) && slotsHistory[request.Slot] > 0)
                 return Task.FromResult(new AcceptedToLearnerReply());
 
-            Console.WriteLine("Inside Accepted To Learner");
-            //change var name
+
             //List -> [valor, timestamp, contador]
             int[] aux = { request.Value, request.TimestampId, 0 };
             var acceptCounter = receivedAccepts.GetValueOrDefault(request.Slot, new List<int>(aux));
-            Console.WriteLine("GetValueOrDefault");
             if (!receivedAccepts.TryAdd(request.Slot, acceptCounter)) receivedAccepts[request.Slot] = acceptCounter;
 
 
-            Console.WriteLine("if 1");
             if (request.TimestampId == acceptCounter[1] && request.Value == acceptCounter[0])
             {
                 //se value e timestamp coincidem com accepts anteriors aumenta o contador
-                Console.WriteLine("Learner: NEW Accept for slot {0} \n =======> TS: {1} / Count: {2}"
+                Console.WriteLine("Learner: {0}: NEW Accept\n =======> TS: {1} / Count: {2}"
                     , request.Slot, request.TimestampId, receivedAccepts[request.Slot][2]);
                 receivedAccepts[request.Slot][2]++;
             }
             else if (request.TimestampId > acceptCounter[1])
             {
                 //caso tenha um timestamp maior que o guardado, recomeca o contador
-                Console.WriteLine("Learner: NEW Accept for slot {0} \n =======> New TS: {1} / Count: {2}"
+                Console.WriteLine("Learner: {0}: NEW Accept\n =======> New TS: {1} / Count: {2}"
                     , request.Slot, request.TimestampId, receivedAccepts[request.Slot][2]);
                 receivedAccepts[request.Slot][0] = request.Value;
                 receivedAccepts[request.Slot][1] = request.TimestampId;
@@ -69,7 +65,7 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
             }
             else
             {
-                Console.WriteLine("Learner: NEW Accept for slot {0} \n =======> IGNORED", request.Slot);
+                Console.WriteLine("Learner: {0}: NEW Accept\n =======> IGNORED", request.Slot);
                 return Task.FromResult(new AcceptedToLearnerReply());
             }
 
@@ -77,7 +73,7 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
             if (receivedAccepts[request.Slot][2] >= majority)
             {
                 Console.WriteLine(
-                    "---------------------------Learner: Got majority for slot {0}-------------------------",
+                    "---------------------------Learner: {0}: GOT MAJORITY-------------------------",
                     request.Slot);
                 slotsHistory[request.Slot] = receivedAccepts[request.Slot][1];
 
@@ -88,7 +84,7 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
             }
         }
 
-        Console.WriteLine("Returned from Learner Routine");
+        //Console.WriteLine("Returned from Learner Routine");
         return Task.FromResult(new AcceptedToLearnerReply());
     }
 }

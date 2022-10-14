@@ -266,7 +266,7 @@ internal class Boney
 
             // se nao (dicionario vazio ou o menor valor n é o meu), desisto 
 
-            Console.WriteLine("Proposer: STARTING CONSENSUS FOR SLOT " + mostRecentslot);
+            Console.WriteLine("Proposer: " + mostRecentslot + ": STARTING CONSENSUS" );
 
             var value = slotToPropose.CurrentValue;
             var ts = timestampId;
@@ -278,9 +278,12 @@ internal class Boney
             // escolher valor mais recente das Promises
 
             if (timestampId != 1)
+            {
+                Console.WriteLine("Proposer: {0}: Send Prepare with timestamp {1}", mostRecentslot, timestampId);
+
                 frontends.ForEach(server =>
                 {
-                    var response = server.Prepare(mostRecentslot, id);
+                    var response = server.Prepare(mostRecentslot, timestampId);
 
                     if (response.Value == -1 && response.WriteTimestamp == -1)
                     {
@@ -294,6 +297,7 @@ internal class Boney
                         ts = response.WriteTimestamp;
                     }
                 });
+            }
 
             if (stop)
             {
@@ -301,7 +305,7 @@ internal class Boney
                 continue;
             }
 
-            Console.WriteLine("Proposer: Send ACCEPT for slot {0} \n ========> Value: {1} / TS: {2}",
+            Console.WriteLine("Proposer: {0}: Send ACCEPT \n ========> Value: {1} / TS: {2}",
                 mostRecentslot, value, ts);
 
             // enviar accept(<value mais recente>) a todos
