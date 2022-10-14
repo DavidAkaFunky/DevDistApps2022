@@ -269,7 +269,7 @@ internal class Boney
             Console.WriteLine("Proposer: " + mostRecentslot + ": STARTING CONSENSUS" );
 
             var value = slotToPropose.CurrentValue;
-            var ts = timestampId;
+            var ts = 0;
             var stop = false;
 
             // se eu for o lider:
@@ -314,7 +314,7 @@ internal class Boney
             frontends.ForEach(server =>
             {
                 Console.WriteLine($"Proposer: ACCEPT TO {server.ServerAddress} SENT");
-                server.Accept(mostRecentslot, ts, value);
+                server.Accept(mostRecentslot, timestampId, value);
                 Console.WriteLine($"Proposer: ACCEPT TO {server.ServerAddress} REPLY");
             });
 
