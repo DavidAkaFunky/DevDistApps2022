@@ -1,0 +1,58 @@
+1. Introduction
+
+- Gossip
+	- Highly scalable;
+	- Resilient to network omissions or node failures
+	- Problem: High message overhead
+
+- Tree-based broadcast
+	- Small message complexity
+	- Problem: prone to failures
+
+- Bimodal multicast:
+	- Stages
+		- Stage 1: IP-multicast -> not widely deployed in large-scale
+		- Stage 2: Gossip -> mask omissions that may occur in stage 1
+	- Combines tree-based and gossip-based primitives
+	- Problem: May present undesired complexity due to the combination of 2 distinct protocols
+
+- Plumtree (proposed by the paper)
+	- Broadcast tree embedded in a gossip-based overlay
+	- Message broadcast done by using push gossip on the tree branches
+	- Unused branches still used to propagate messages using lazy-push gossip
+
+2. Gossip Protocols
+
+2.1. Rationale
+
+- After receiving a message, when it wishes to forward it, each node chooses "t" random nodes to send it to;
+	- Exception: The message was already received (=> the node must keep a history of seen + delivered messages)
+- The randomness of the choice has (dis)advantages:
+	- Adv: Scalable and tolerant to faults operation model;
+	- Disadv: Full knowledge of the network is required to select the nodes, which by itself is not scalable (in size and time to keep the network's membership info up-to-date)
+		- Minor optimization: Keep partial views (subsets of the network) => Only some peers are *neighbours* of a given peer.
+
+2.2. Gossip Strategies
+
+- Eager push: Once the message is received for the 1st time, it's immediately forwarded to the selected peers.
+- Lazy push: When it's received for the 1st time, only the message ID is sent, and only if the receiving peers haven't received the message yet, they'll explicitly request the message.
+- Pull: Periodically, each node queries selected peers about recently received messages, then the new information is sent in the reply.
+
+- EP is less latent (data sent on 1st message) than LP and pull but produces more redundant traffic.
+- [SPECULATIVE, PLS CHECK WITH PROFS] Pull allows nodes to request for messages until they get them, providing extra resilience to the protocol in case of network failures.
+
+2.3. Metrics
+
+- Reliability
+	- % of active nodes
+	- 100% = all active nodes got (<=> delivered) a given message = atomic broadcast [WHY?]
+
+- Relative message redundancy (RMR)
+	- [m/(n-1)] - 1; m = payload messages, n = nodes != 1
+	- RMR = 0 <=> only 1 message per node (e.g. 3 nodes only need 2 messages for full knowledge)
+	- High RMR <=> Poor network usage (too many repeated <=> discarded messages)
+	- Goal: Combine low RMR with high reliability (a low RMR can be unreliable because a network/node failure can collapse the protocol)
+
+- Last Delivery Hop (LDH)
+	- # of hops required to broadcast to all recipients (incremented in each gossip transmission)
+	- Related to the "diameter"/latency of the gossip overlay
