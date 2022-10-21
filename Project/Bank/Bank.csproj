@@ -10,6 +10,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <None Remove="protos\BankTwoPC.proto" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Google.Protobuf" Version="3.21.6" />
         <PackageReference Include="Google.Protobuf.Tools" Version="3.21.7" />
         <PackageReference Include="Grpc.Core" Version="2.32.0" />
@@ -19,6 +23,7 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
 		<Protobuf Include="..\Boney\protos\BoneyProposer.proto" GrpcServices="BoneyProposer" />
+		<Protobuf Include="protos\BankTwoPC.proto" GrpcServices="Bank" />
 		<Protobuf Include="protos\BankServer.proto" GrpcServices="Bank" />
     </ItemGroup>
 
