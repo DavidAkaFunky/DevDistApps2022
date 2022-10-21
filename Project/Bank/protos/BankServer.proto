@@ -2,7 +2,7 @@
 
 option csharp_namespace = "DADProject";
 
-service ProjectBankService {
+service ProjectBankServerService {
 	rpc ReadBalance(ReadBalanceRequest) returns (ReadBalanceReply);
 	rpc Deposit(DepositRequest) returns (DepositReply);
 	rpc Withdraw(WithdrawRequest) returns (WithdrawReply);
@@ -54,7 +54,6 @@ message CompareSwapResult {
 	int32 slot = 4;
 	int32 value = 5; 
 }
-
 message CompareSwapReply {
 	int32 senderId = 1;
 	int32 seq = 2;

@@ -30,8 +30,7 @@ public class BoneyToBoneyFrontend
             Slot = slot,
             TimestampId = id
         };
-        var reply = client.Prepare(request);
-        return reply;
+        return client.Prepare(request);
     }
 
     public void Accept(int slot, int id, int value)
@@ -43,7 +42,7 @@ public class BoneyToBoneyFrontend
             Slot = slot,
             Value = value
         };
-        var reply = client.Accept(request);
+        client.Accept(request);
     }
 
     // Bank
@@ -70,7 +69,7 @@ public class BoneyToBoneyFrontend
             Value = value
         };
 
-        var reply = client.AcceptedToLearner(request);
+        client.AcceptedToLearner(request);
     }
 
     // Learner
@@ -83,6 +82,6 @@ public class BoneyToBoneyFrontend
             Value = value
         };
 
-        var reply = client.ResultToProposer(request);
+        client.ResultToProposer(request);
     }
 }

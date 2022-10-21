@@ -1,0 +1,39 @@
+﻿syntax = "proto3";
+
+option csharp_namespace = "DADProject";
+
+service ProjectBankTwoPCService {
+	rpc TwoPCTentative(TwoPCTentativeRequest) returns (TwoPCTentativeReply);
+	rpc TwoPCCommit(TwoPCCommitRequest) returns (TwoPCCommitReply);
+}
+
+message TwoPCTentativeRequest {
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack = 3;
+	int32 slot = 4;
+	int32 clientId = 5;
+	int32 clientSeqNumber = 6;
+	int32 globalSeqNumber = 7; 
+}
+message TwoPCTentativeReply {
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack = 3;
+}
+
+message TwoPCCommitRequest {
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack = 3;
+	int32 slot = 4;
+	int32 clientId = 5;
+	int32 clientSeqNumber = 6;
+	string message = 7;
+	int32 globalSeqNumber = 8; 
+}
+message TwoPCCommitReply {
+	int32 senderId = 1;
+	int32 seq = 2;
+	int32 ack = 3;
+}

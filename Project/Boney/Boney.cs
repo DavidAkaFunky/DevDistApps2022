@@ -217,17 +217,16 @@ internal class Boney
         Console.WriteLine("====================================================");
     }
 
-    public static void Paxos(
-        int id,
-        int slotDuration,
-        int slotCount,
-        List<BoneyToBoneyFrontend> frontends,
-        Dictionary<int, bool> isPerceivedLeader, 
-        ConcurrentDictionary<int, Slot> slotsInfo,
-        ConcurrentDictionary<int, int> slotHistory,
-        BoneyProposerService proposerService,
-        BoneyAcceptorService acceptorService,
-        BoneyLearnerService learnerService)
+    public static void Paxos(int id,
+                             int slotDuration,
+                             int slotCount,
+                             List<BoneyToBoneyFrontend> frontends,
+                             Dictionary<int, bool> isPerceivedLeader, 
+                             ConcurrentDictionary<int, Slot> slotsInfo,
+                             ConcurrentDictionary<int, int> slotHistory,
+                             BoneyProposerService proposerService,
+                             BoneyAcceptorService acceptorService,
+                             BoneyLearnerService learnerService)
     {
         int timestampId = id;
         Slot slotToPropose;

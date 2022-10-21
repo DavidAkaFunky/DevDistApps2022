@@ -33,7 +33,7 @@ public class ClientFrontend
     {
         foreach (var channel in bankServers)
         {
-            var client = new ProjectClientService.ProjectClientServiceClient(channel);
+            var client = new ProjectBankServerService.ProjectBankServerServiceClient(channel);
             Thread thread = new(() =>
             {
                 try
@@ -56,7 +56,7 @@ public class ClientFrontend
     {
         foreach (var channel in bankServers)
         {
-            var client = new ProjectClientService.ProjectClientServiceClient(channel);
+            var client = new ProjectBankServerService.ProjectBankServerServiceClient(channel);
             Thread thread = new(() =>
             {
                 try
@@ -79,7 +79,7 @@ public class ClientFrontend
     {
         foreach (var channel in bankServers)
         {
-            var client = new ProjectClientService.ProjectClientServiceClient(channel);
+            var client = new ProjectBankServerService.ProjectBankServerServiceClient(channel);
             Thread thread = new(() =>
             {
                 try

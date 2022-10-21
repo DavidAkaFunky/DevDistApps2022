@@ -140,11 +140,11 @@ internal class Bank
             bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr, isPrimary)));
 
         // TODO use this to communicate inside service 
-        var bankService = new BankService(id, isPrimary);
+        var bankService = new BankServerService(id, isPrimary);
 
         Server server = new()
         {
-            Services = { ProjectBankService.BindService(bankService) },
+            Services = { ProjectBankServerService.BindService(bankService) },
             Ports = { new ServerPort(ownUri.Host, ownUri.Port, ServerCredentials.Insecure) }
         };
         server.Start();
@@ -181,6 +181,8 @@ internal class Bank
         server.ShutdownAsync().Wait();
     }
 
+
+
     public static void PrintHeader()
     {
         Console.WriteLine("========================================");
@@ -194,4 +196,5 @@ internal class Bank
         Console.WriteLine("\\_______/ \\__|  \\__|\\__|  \\__|\\__|  \\__|");
         Console.WriteLine("========================================");
     }
+
 }

@@ -5,14 +5,14 @@ namespace DADProject;
 
 // ChatServerService is the namespace defined in the protobuf
 // ChatServerServiceBase is the generated base implementation of the service
-public class BankService : ProjectBankService.ProjectBankServiceBase
+public class BankServerService : ProjectBankServerService.ProjectBankServerServiceBase
 {
     private int id;
     private readonly BankAccount account = new();
     private ConcurrentDictionary<int, bool> isPrimary; //  primary/backup
     private int currentSlot = 1;
 
-    public BankService(int id, ConcurrentDictionary<int, bool> isPrimary) 
+    public BankServerService(int id, ConcurrentDictionary<int, bool> isPrimary) 
     {
         this.id = id;
         this.isPrimary = isPrimary;
