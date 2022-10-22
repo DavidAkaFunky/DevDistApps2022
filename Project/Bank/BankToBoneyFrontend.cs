@@ -9,9 +9,9 @@ public class BankToBoneyFrontend
     private readonly int clientID;
     private int seq;
     private readonly GrpcChannel channel;
-    private ConcurrentDictionary<int, bool> isPrimary; //  primary/backup
+    private ConcurrentDictionary<int, int> isPrimary; //  primary/backup
 
-    public BankToBoneyFrontend(int clientID, string serverAddress, ConcurrentDictionary<int, bool> isPrimary)
+    public BankToBoneyFrontend(int clientID, string serverAddress, ConcurrentDictionary<int, int> isPrimary)
     {
         this.clientID = clientID;
         this.seq = 0;
@@ -26,10 +26,10 @@ public class BankToBoneyFrontend
         CompareAndSwapRequest request = new() { Slot = slot, InValue = clientID };
         var reply = client.CompareAndSwap(request);
         Console.WriteLine("GOT INITIAL COMPARE AND SWAP VALUE FOR SLOT " + slot + " AND THE VALUE IS " + reply.OutValue);
-        if (reply.OutValue > 0 && reply.OutValue == clientID)
+        if (reply.OutValue > 0)
         {
             //Console.WriteLine("I AM THE LEADER FOR THE SLOT " + slot);
-            isPrimary[slot] = true;
+            isPrimary[slot] = reply.OutValue;
         }
     }
 }

@@ -9,10 +9,10 @@ public class BankServerService : ProjectBankServerService.ProjectBankServerServi
 {
     private int id;
     private readonly BankAccount account = new();
-    private ConcurrentDictionary<int, bool> isPrimary; //  primary/backup
+    private ConcurrentDictionary<int, int> isPrimary; //  primary/backup
     private int currentSlot = 1;
 
-    public BankServerService(int id, ConcurrentDictionary<int, bool> isPrimary) 
+    public BankServerService(int id, ConcurrentDictionary<int, int> isPrimary) 
     {
         this.id = id;
         this.isPrimary = isPrimary;
@@ -52,11 +52,7 @@ public class BankServerService : ProjectBankServerService.ProjectBankServerServi
     public override Task<CompareSwapReply> AcceptCompareSwapResult(CompareSwapResult request, ServerCallContext context)
     {
         Console.WriteLine("Received result for slot {0}: {1}", request.Slot, request.Value);
-        if (request.Value == id)
-        {
-            isPrimary[request.Slot] = true;
-            // TODO: Eventually run 2PC at the beginning of slot?
-        }
+        isPrimary[request.Slot] = request.Value;
 
         return Task.FromResult(new CompareSwapReply());
     }

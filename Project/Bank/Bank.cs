@@ -133,7 +133,7 @@ internal class Bank
         Uri ownUri = new(_address);
         // var bankToBankFrontends = new List<BankToBankFrontend>();
         var bankToBoneyFrontends = new List<BankToBoneyFrontend>();
-        var isPrimary = new ConcurrentDictionary<int, bool>();
+        var isPrimary = new ConcurrentDictionary<int, int>();
 
         // _bankAddresses.ForEach(serverAddr => bankToBankFrontends.Add(new BankToBankFrontend(id, serverAddr)));
         _boneyAddresses.ForEach(serverAddr =>
@@ -156,7 +156,7 @@ internal class Bank
 
         void HandleTimer()
         {
-            isPrimary[++_currentSlot] = false;
+            isPrimary[++_currentSlot] = -1;
             bankService.CurrentSlot = _currentSlot;
             if (_currentSlot > _slotCount)
             {
