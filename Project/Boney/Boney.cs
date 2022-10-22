@@ -251,7 +251,6 @@ internal class Boney
         Console.WriteLine("--NEW SLOT: {0}--", _boneySlot);
 
         //======================================================================================================
-        //TODO ----> Locks
 
         while(true)
         {

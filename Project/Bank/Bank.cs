@@ -25,6 +25,7 @@ internal struct ServerState
 
 internal class Bank
 {
+    private static int _currentSlot = 1;
     private static string _address = "";
     private static readonly List<string> _boneyAddresses = new();
     private static readonly List<string> _bankAddresses = new();
@@ -32,7 +33,6 @@ internal class Bank
     private static int _slotCount;
     private static readonly List<int> _wallTimes = new();
     private static int _slotDuration;
-    private static int _currentSlot = 1;
     private static readonly List<Dictionary<int, ServerState>> _serverStates = new();
 
     private static Command GetType(string line, out string[] tokens)
@@ -128,23 +128,37 @@ internal class Bank
             return;
         }
 
-        _address = _bankAddresses[id - _boneyAddresses.Count - 1];
+        //==================================Service Info======================================
 
-        Uri ownUri = new(_address);
-        // var bankToBankFrontends = new List<BankToBankFrontend>();
-        var bankToBoneyFrontends = new List<BankToBoneyFrontend>();
         var isPrimary = new ConcurrentDictionary<int, int>();
+        var toCommitCommands = new ConcurrentDictionary<int, ClientCommand> ();
+        var committedCommands = new ConcurrentDictionary<int, ClientCommand> ();
 
-        // _bankAddresses.ForEach(serverAddr => bankToBankFrontends.Add(new BankToBankFrontend(id, serverAddr)));
+        //===================================Server Initialization============================
+
+        _address = _bankAddresses[id - _boneyAddresses.Count - 1];
+        Uri ownUri = new(_address);
+
+        var bankToBankFrontends = new List<BankToBankFrontend>();
+        var bankToBoneyFrontends = new List<BankToBoneyFrontend>();
+
+        _bankAddresses.ForEach(serverAddr => 
+            bankToBankFrontends.Add(new BankToBankFrontend(id, serverAddr)));
+
         _boneyAddresses.ForEach(serverAddr =>
             bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr, isPrimary)));
 
-        // TODO use this to communicate inside service 
-        var bankService = new BankServerService(id, isPrimary);
+        var bankServerService = new BankServerService(id, isPrimary);
+        var bank2PCService = new BankTwoPCService(id, isPrimary);
+
 
         Server server = new()
         {
-            Services = { ProjectBankServerService.BindService(bankService) },
+            Services = 
+            { 
+                ProjectBankServerService.BindService(bankServerService),
+                ProjectBankTwoPCService.BindService(bank2PCService)
+            },
             Ports = { new ServerPort(ownUri.Host, ownUri.Port, ServerCredentials.Insecure) }
         };
         server.Start();
@@ -154,15 +168,20 @@ internal class Bank
 
         Console.WriteLine("Listening on port " + ownUri.Port);
 
+        //============================Set Timer==========================
         void HandleTimer()
         {
-            isPrimary[++_currentSlot] = -1;
-            bankService.CurrentSlot = _currentSlot;
+            _currentSlot++;
+            isPrimary[_currentSlot] = -1;
+
+            bankServerService.CurrentSlot = _currentSlot;
+            bank2PCService.CurrentSlot = _currentSlot;
+
             if (_currentSlot > _slotCount)
             {
                 // TODO: Maybe wait until everything was finished, but how?
-                server.ShutdownAsync().Wait();
-                Environment.Exit(0);
+                //server.ShutdownAsync().Wait();
+                //Environment.Exit(0);
             }
 
             Console.WriteLine("--NEW SLOT: {0}--", _currentSlot);
@@ -175,11 +194,67 @@ internal class Bank
 
         bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
 
+        //=============================Start Processing Commands===============================
+
+        CommandProcessing(
+            id,
+            isPrimary,
+            toCommitCommands,
+            committedCommands,
+            bankToBankFrontends);
+
         Console.WriteLine("Press any key to stop the server...");
         Console.ReadKey();
 
         server.ShutdownAsync().Wait();
     }
+
+    public static void CleanUp2PC()
+    {
+
+        //listPendingRequests(lastKnownSequenceNumber) to all
+
+        //wait for majority
+
+    }
+
+    public static void CommandProcessing(
+        int id,
+        ConcurrentDictionary<int, int> isPrimary,
+        ConcurrentDictionary<int, ClientCommand> toCommitCommands,
+        ConcurrentDictionary<int, ClientCommand> committedCommands,
+        List<BankToBankFrontend> frontends )
+    {
+        
+        while (true)
+        {
+            //Do Clean Up if leader changed
+            if (isPrimary[_currentSlot] == id && isPrimary[_currentSlot] != isPrimary[_currentSlot - 1])
+            {
+                CleanUp2PC();
+            }
+
+            //check if is primary 
+
+            //check if there is commands -> select first
+
+            //if both:
+
+            //send tentative with last seq for command
+            frontends.ForEach(server =>
+            {
+                var response = server.SendTwoPCTentative(_currentSlot, command, tentativeSeqNumber);
+
+            });
+
+            //wait for acknowledgement of majority
+
+            //send commit to all replicas
+
+        }
+    }
+
+
 
 
 
