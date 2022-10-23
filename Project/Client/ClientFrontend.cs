@@ -1,60 +1,59 @@
 ﻿using System.Globalization;
-using Grpc.Core;
-using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 
 namespace DADProject;
 
 public class ClientFrontend
 {
-    private readonly List<GrpcChannel> bankServers = new();
-    public ClientFrontend(List<string> bankServers)
-    {
-        foreach (string s in bankServers)
-            AddServer(s);
-    }
+    private readonly List<GrpcChannel> _bankServers = new();
+    private readonly List<PerfectChannel> bankServers = new();
+    private readonly int clientId = 0;
 
-    public void AddServer(string server)
+    public ClientFrontend(List<string> servers)
     {
-        var channel = GrpcChannel.ForAddress(server);
-        bankServers.Add(channel);
-    }
-
-    public void DeleteServers()
-    {
-        foreach (var server in bankServers)
+        servers.ForEach(server => bankServers.Add(new PerfectChannel
         {
-            server.ShutdownAsync().Wait();
-            bankServers.Remove(server);
-        }
+            Channel = GrpcChannel.ForAddress(server)
+        }));
+    }
+
+    public void CloseChannels()
+    {
+        var taskList = new List<Task?>();
+        bankServers.ForEach(channel => taskList.Add(channel.Close()));
+        taskList.ForEach(t => t?.Wait());
     }
 
     public void ReadBalance()
     {
-        foreach (var channel in bankServers)
+        // TODO fazer alguma coisa com isto?
+        var taskList = new List<Task>();
+
+        bankServers.ForEach(channel =>
         {
-            var client = new ProjectBankServerService.ProjectBankServerServiceClient(channel);
-            Thread thread = new(() =>
-            {
-                try
+            taskList.Add(
+                Task.Run(() =>
                 {
-                    ReadBalanceRequest request = new();
-                    var reply = client.ReadBalance(request);
-                    Console.WriteLine("Balance: " + reply.Balance.ToString("C", CultureInfo.CurrentCulture));
-                    return;
-                }
-                catch (Exception)
-                {
-                    Console.WriteLine("Oops"); // TODO
-                }
-            });
-            thread.Start();
-        }
+                    //seq is set inside SafeSend, the others should probably be too (for code consistency)
+                    channel.SafeSend(new ReadBalanceRequest
+                    {
+                        SenderId = clientId,
+                        Ack = 0
+                    }, reply =>
+                    {
+                        if (reply is not null)
+                            Console.WriteLine("Balance: " + reply.Balance.ToString("C", CultureInfo.CurrentCulture));
+                        else
+                            Console.WriteLine("Oops"); // TODO
+                    });
+                })
+            );
+        });
     }
 
     public void Deposit(double amount)
     {
-        foreach (var channel in bankServers)
+        foreach (var channel in _bankServers)
         {
             var client = new ProjectBankServerService.ProjectBankServerServiceClient(channel);
             Thread thread = new(() =>
@@ -64,7 +63,6 @@ public class ClientFrontend
                     DepositRequest request = new() { Amount = amount };
                     var reply = client.Deposit(request);
                     Console.WriteLine("Deposit of " + amount.ToString("C", CultureInfo.CurrentCulture));
-                    return;
                 }
                 catch (Exception)
                 {
@@ -77,7 +75,7 @@ public class ClientFrontend
 
     public void Withdraw(double amount)
     {
-        foreach (var channel in bankServers)
+        foreach (var channel in _bankServers)
         {
             var client = new ProjectBankServerService.ProjectBankServerServiceClient(channel);
             Thread thread = new(() =>
@@ -87,7 +85,6 @@ public class ClientFrontend
                     WithdrawRequest request = new() { Amount = amount };
                     var reply = client.Withdraw(request);
                     Console.WriteLine("Withdrawal of " + amount.ToString("C", CultureInfo.CurrentCulture));
-                    return;
                 }
                 catch (Exception)
                 {
