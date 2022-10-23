@@ -22,7 +22,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-		<Protobuf Include="..\Bank\protos\Bank.proto" GrpcServices="Bank" />
+		<Protobuf Include="..\Bank\protos\BankServer.proto" GrpcServices="BankServer" />
 		<Protobuf Include="protos\BoneyProposer.proto" GrpcServices="BoneyProposer" />
         <Protobuf Include="protos\BoneyAcceptor.proto" GrpcServices="BoneyAcceptor" />
         <Protobuf Include="protos\BoneyLearner.proto" GrpcServices="BoneyLearner" />

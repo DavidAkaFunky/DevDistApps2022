@@ -7,38 +7,56 @@ public class BankToBankFrontend
 {
     private readonly int id;
     private int seq;
-    private readonly GrpcChannel channel;
+    private readonly ProjectBankTwoPCService.ProjectBankTwoPCServiceClient client;
 
     public BankToBankFrontend(int id, string serverAddress)
     {
         this.id = id;
         seq = 0;
-        channel = GrpcChannel.ForAddress(serverAddress);
+        client = new(GrpcChannel.ForAddress(serverAddress));
+    }
+
+    public void ListPendingTwoPCRequests(int slot, int lastKnownSequenceNumber)
+    {
+        var request = new ListPendingRequestsRequest
+        {
+            Slot = slot,
+            SenderId = id,
+            GlobalSeqNumber = lastKnownSequenceNumber
+        };
+        client.ListPendingRequests(request);
     }
 
     public void SendTwoPCTentative(int slot, ClientCommand command, int tentativeSeqNumber)
     {
-        var client = new ProjectBankTwoPCService.ProjectBankTwoPCServiceClient(channel);
         var request = new TwoPCTentativeRequest
         {
             Slot = slot,
-            ClientId = command.ClientID,
-            ClientSeqNumber = command.ClientSeqNumber,
-            GlobalSeqNumber = tentativeSeqNumber
+            SenderId = id,
+            Command = new() 
+            {
+                ClientId = command.ClientID,
+                ClientSeqNumber = command.ClientSeqNumber,
+                Message = command.Message,
+                GlobalSeqNumber = tentativeSeqNumber
+            }
         };
         client.TwoPCTentative(request);
     }
 
     public void SendTwoPCCommit(int slot, ClientCommand command, int committedSeqNumber)
     {
-        var client = new ProjectBankTwoPCService.ProjectBankTwoPCServiceClient(channel);
         var request = new TwoPCCommitRequest
         {
             Slot = slot,
-            ClientId = command.ClientID,
-            ClientSeqNumber = command.ClientSeqNumber,
-            Message = command.Message,
-            GlobalSeqNumber = committedSeqNumber
+            SenderId = id,
+            Command = new()
+            {
+                ClientId = command.ClientID,
+                ClientSeqNumber = command.ClientSeqNumber,
+                Message = command.Message,
+                GlobalSeqNumber = committedSeqNumber
+            }
         };
         client.TwoPCCommit(request);
     }

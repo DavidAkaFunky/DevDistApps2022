@@ -23,8 +23,8 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
 		<Protobuf Include="..\Boney\protos\BoneyProposer.proto" GrpcServices="BoneyProposer" />
-		<Protobuf Include="protos\BankTwoPC.proto" GrpcServices="Bank" />
-		<Protobuf Include="protos\BankServer.proto" GrpcServices="Bank" />
+		<Protobuf Include="protos\BankTwoPC.proto" GrpcServices="BankTwoPC" />
+		<Protobuf Include="protos\BankServer.proto" GrpcServices="BankServer" />
     </ItemGroup>
 
 </Project>

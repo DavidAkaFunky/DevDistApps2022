@@ -6,30 +6,35 @@ namespace DADProject;
 
 public class BankToBoneyFrontend
 {
-    private readonly int clientID;
+    private readonly int id;
     private int seq;
-    private readonly GrpcChannel channel;
+    private readonly ProjectBoneyProposerService.ProjectBoneyProposerServiceClient client;
     private ConcurrentDictionary<int, int> isPrimary; //  primary/backup
 
-    public BankToBoneyFrontend(int clientID, string serverAddress, ConcurrentDictionary<int, int> isPrimary)
+    public BankToBoneyFrontend(int id, string serverAddress, ConcurrentDictionary<int, int> isPrimary)
     {
-        this.clientID = clientID;
+        this.id = id;
         this.seq = 0;
-        this.channel = GrpcChannel.ForAddress(serverAddress);
+        this.client = new(GrpcChannel.ForAddress(serverAddress));
         this.isPrimary = isPrimary;
     }
 
     public void RequestCompareAndSwap(int slot)
     {
-        var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(channel);
         Console.WriteLine("SENDING CS FOR SLOT " + slot);
-        CompareAndSwapRequest request = new() { Slot = slot, InValue = clientID };
+        CompareAndSwapRequest request = new() { Slot = slot, InValue = id };
         var reply = client.CompareAndSwap(request);
         Console.WriteLine("GOT INITIAL COMPARE AND SWAP VALUE FOR SLOT " + slot + " AND THE VALUE IS " + reply.OutValue);
         if (reply.OutValue > 0)
         {
             //Console.WriteLine("I AM THE LEADER FOR THE SLOT " + slot);
             isPrimary[slot] = reply.OutValue;
+
+            //Do Clean Up if leader changed
+            if (isPrimary[slot] == id && isPrimary[slot] != isPrimary[slot - 1])
+            {
+                CleanUp2PC();
+            }
         }
     }
 }

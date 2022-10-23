@@ -1,4 +1,5 @@
-﻿using Grpc.Core;
+﻿using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 using System.Collections.Concurrent;
 
 namespace DADProject;
@@ -9,26 +10,16 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
 {
     private int id;
     private ConcurrentDictionary<int, int> isPrimary; //  primary/backup
-    private ConcurrentDictionary<ClientInfo, int> tentativeCommands = new();
-    private ConcurrentDictionary<int, ClientCommand> committedCommands = new();
+    private ConcurrentDictionary<int, ClientCommand> tentativeCommands;
+    private ConcurrentDictionary<int, ClientCommand> committedCommands;
     private int currentSlot = 1;
 
-    internal struct ClientInfo
-    {
-        private int clientID;
-        private int clientSeqNumber;
-
-        internal ClientInfo(int clientID, int clientSeqNumber)
-        {
-            this.clientID = clientID;
-            this.clientSeqNumber = clientSeqNumber;
-        }
-    }
-
-    public BankTwoPCService(int id, ConcurrentDictionary<int, int> isPrimary)
+    public BankTwoPCService(int id, ConcurrentDictionary<int, int> isPrimary, ConcurrentDictionary<int, ClientCommand> tentativeCommands, ConcurrentDictionary<int, ClientCommand> committedCommands)
     {
         this.id = id;
         this.isPrimary = isPrimary;
+        this.tentativeCommands = tentativeCommands;
+        this.committedCommands = committedCommands;
     }
 
     public int CurrentSlot
@@ -51,6 +42,22 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
         return true;
     }
 
+    public override Task<ListPendingRequestsReply> ListPendingRequests(ListPendingRequestsRequest request, ServerCallContext context)
+    {
+        var reply = new ListPendingRequestsReply();
+
+        foreach(var kvp in tentativeCommands)
+        {
+            if (kvp.Key > request.GlobalSeqNumber)
+            {
+                tentativeCommands.TryRemove(kvp.Key, out var value);
+                reply.Commands.Add(value.CreateCommandGRPC(kvp.Key));
+            }
+        }
+
+        return Task.FromResult(reply);
+    }
+
     public override Task<TwoPCTentativeReply> TwoPCTentative(TwoPCTentativeRequest request, ServerCallContext context)
     {
         // Should we assume the commands will never be in the dictionary more than once?
@@ -62,7 +69,9 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
         if (CheckLeadership(request.Slot, request.SenderId))
         {
             reply.Status = true;
-            tentativeCommands[new(request.ClientId, request.ClientSeqNumber)] = request.GlobalSeqNumber;
+            
+            lock(tentativeCommands)
+                tentativeCommands[request.Command.GlobalSeqNumber] = new(request.Command.ClientId, request.Command.ClientSeqNumber, request.Command.Message);
         }
 
         return Task.FromResult(reply);
@@ -75,8 +84,15 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
         if (CheckLeadership(request.Slot, request.SenderId))
         {
             reply.Status = true;
-            tentativeCommands.TryRemove(new(request.ClientId, request.ClientSeqNumber), out _);
-            committedCommands[request.GlobalSeqNumber] = new(request.ClientId, request.ClientSeqNumber, request.Message);
+
+            lock (tentativeCommands) lock (committedCommands)
+            {
+                // Remove message from tentative commands
+                var item = tentativeCommands.First(kvp => kvp.Value.ClientID == request.Command.ClientId && kvp.Value.ClientSeqNumber == request.Command.ClientSeqNumber);
+                tentativeCommands.TryRemove(item.Key, out var _);
+
+                committedCommands[request.Command.GlobalSeqNumber] = new(request.Command.ClientId, request.Command.ClientSeqNumber, request.Command.Message);
+            }
         }
 
         return Task.FromResult(reply);

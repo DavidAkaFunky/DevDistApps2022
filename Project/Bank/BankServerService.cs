@@ -53,7 +53,11 @@ public class BankServerService : ProjectBankServerService.ProjectBankServerServi
     {
         Console.WriteLine("Received result for slot {0}: {1}", request.Slot, request.Value);
         isPrimary[request.Slot] = request.Value;
-
+        //Do Clean Up if leader changed
+        if (isPrimary[request.Slot] == id && isPrimary[request.Slot] != isPrimary[request.Slot - 1])
+        {
+            CleanUp2PC();
+        }
         return Task.FromResult(new CompareSwapReply());
     }
 }

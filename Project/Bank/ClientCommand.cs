@@ -36,5 +36,10 @@ namespace DADProject
             get { return message; }
             set { message = value; }
         }
+
+        public ClientCommandGRPC CreateCommandGRPC(int globalSeqNumber)
+        {
+            return new() { ClientId = clientID, ClientSeqNumber = clientSeqNumber, Message = message, GlobalSeqNumber = globalSeqNumber };
+        }
     }
 }

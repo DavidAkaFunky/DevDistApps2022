@@ -131,7 +131,7 @@ internal class Bank
         //==================================Service Info======================================
 
         var isPrimary = new ConcurrentDictionary<int, int>();
-        var toCommitCommands = new ConcurrentDictionary<int, ClientCommand> ();
+        var tentativeCommands = new ConcurrentDictionary<int, ClientCommand> ();
         var committedCommands = new ConcurrentDictionary<int, ClientCommand> ();
 
         //===================================Server Initialization============================
@@ -149,7 +149,7 @@ internal class Bank
             bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr, isPrimary)));
 
         var bankServerService = new BankServerService(id, isPrimary);
-        var bank2PCService = new BankTwoPCService(id, isPrimary);
+        var bank2PCService = new BankTwoPCService(id, isPrimary, tentativeCommands, committedCommands);
 
 
         Server server = new()
@@ -186,6 +186,8 @@ internal class Bank
 
             Console.WriteLine("--NEW SLOT: {0}--", _currentSlot);
             bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
+
+            
         }
 
         Timer timer = new(_slotDuration);
@@ -228,11 +230,6 @@ internal class Bank
         
         while (true)
         {
-            //Do Clean Up if leader changed
-            if (isPrimary[_currentSlot] == id && isPrimary[_currentSlot] != isPrimary[_currentSlot - 1])
-            {
-                CleanUp2PC();
-            }
 
             //check if is primary 
 

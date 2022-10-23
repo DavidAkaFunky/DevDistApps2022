@@ -7,13 +7,13 @@ public class BoneyToBankFrontend
 {
     private readonly int clientID;
     private int seq;
-    private readonly GrpcChannel channel;
+    private readonly ProjectBankServerService.ProjectBankServerServiceClient client;
 
     public BoneyToBankFrontend(int clientID, string serverAddress)
     {
         this.clientID = clientID;
         seq = 0;
-        channel = GrpcChannel.ForAddress(serverAddress);
+        client = new(GrpcChannel.ForAddress(serverAddress));
     }
 
     public void SendCompareSwapResult(int slot, int value)
@@ -23,7 +23,6 @@ public class BoneyToBankFrontend
         //metadata.Seq = _seq++;
         //metadata.Ack = -1;
 
-        var client = new ProjectBankService.ProjectBankServiceClient(channel);
         CompareSwapResult request = new()
         {
             Slot = slot,

@@ -4,7 +4,9 @@ namespace DADProject;
 
 public class BoneyToBoneyFrontend
 {
-    private readonly GrpcChannel channel;
+    private readonly ProjectBoneyProposerService.ProjectBoneyProposerServiceClient proposerClient;
+    private readonly ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient acceptorClient;
+    private readonly ProjectBoneyLearnerService.ProjectBoneyLearnerServiceClient learnerClient;
     private int seq;
 
     public BoneyToBoneyFrontend(int clientID, string serverAddress)
@@ -12,7 +14,10 @@ public class BoneyToBoneyFrontend
         ServerAddress = serverAddress;
         ClientId = clientID;
         seq = 0;
-        channel = GrpcChannel.ForAddress(serverAddress);
+        var channel = GrpcChannel.ForAddress(serverAddress);
+        proposerClient = new(channel);
+        acceptorClient = new(channel);
+        learnerClient = new(channel);
     }
 
     public int ClientId { get; }
@@ -24,64 +29,45 @@ public class BoneyToBoneyFrontend
     // Proposer
     public PromiseReply Prepare(int slot, int id)
     {
-        var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(channel);
         var request = new PrepareRequest
         {
             Slot = slot,
             TimestampId = id
         };
-        return client.Prepare(request);
+        return acceptorClient.Prepare(request);
     }
 
     public void Accept(int slot, int id, int value)
     {
-        var client = new ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceClient(channel);
         var request = new AcceptRequest
         {
             TimestampId = id,
             Slot = slot,
             Value = value
         };
-        client.Accept(request);
+        acceptorClient.Accept(request);
     }
-
-    // Bank
-    //public void RequestCompareAndSwap(int slot, int value) 
-    //{
-    //    var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(channel);
-    //    CompareAndSwapRequest request = new() 
-    //    { 
-    //        Slot = slot, 
-    //        InValue = value 
-    //    };
-    //    var reply = client.CompareAndSwap(request);
-    //    Console.WriteLine("Request Delivered! Answered: {0}", reply.OutValue);
-    //}
 
     // Acceptor 
     public void AcceptedToLearner(int slot, int id, int value)
     {
-        var client = new ProjectBoneyLearnerService.ProjectBoneyLearnerServiceClient(channel);
         var request = new AcceptedToLearnerRequest
         {
             Slot = slot,
             TimestampId = id,
             Value = value
         };
-
-        client.AcceptedToLearner(request);
+        learnerClient.AcceptedToLearner(request);
     }
 
     // Learner
     public void ResultToProposer(int slot, int value)
     {
-        var client = new ProjectBoneyProposerService.ProjectBoneyProposerServiceClient(channel);
         var request = new ResultToProposerRequest
         {
             Slot = slot,
             Value = value
         };
-
-        client.ResultToProposer(request);
+        proposerClient.ResultToProposer(request);
     }
 }
