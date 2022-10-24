@@ -5,15 +5,15 @@ namespace DADProject;
 
 public class ClientFrontend
 {
-    private readonly List<GrpcChannel> _bankServers = new();
+    private readonly int _clientId = 0;
     private readonly List<PerfectChannel> bankServers = new();
-    private readonly int clientId = 0;
 
     public ClientFrontend(List<string> servers)
     {
         servers.ForEach(server => bankServers.Add(new PerfectChannel
         {
-            Channel = GrpcChannel.ForAddress(server)
+            Channel = GrpcChannel.ForAddress(server),
+            ClientId = _clientId
         }));
     }
 
@@ -24,6 +24,8 @@ public class ClientFrontend
         taskList.ForEach(t => t?.Wait());
     }
 
+    //TODO these methods should be changed to be async and return the first value (just the value) and the output string ...
+    //TODO ... should be formatted on the Client.cs
     public void ReadBalance()
     {
         // TODO fazer alguma coisa com isto?
@@ -34,12 +36,7 @@ public class ClientFrontend
             taskList.Add(
                 Task.Run(() =>
                 {
-                    //seq is set inside SafeSend, the others should probably be too (for code consistency)
-                    channel.SafeSend(new ReadBalanceRequest
-                    {
-                        SenderId = clientId,
-                        Ack = 0
-                    }, reply =>
+                    channel.SafeSend(new ReadBalanceRequest(), reply =>
                     {
                         if (reply is not null)
                             Console.WriteLine("Balance: " + reply.Balance.ToString("C", CultureInfo.CurrentCulture));
@@ -53,45 +50,45 @@ public class ClientFrontend
 
     public void Deposit(double amount)
     {
-        foreach (var channel in _bankServers)
+        // TODO fazer alguma coisa com isto?
+        var taskList = new List<Task>();
+
+        bankServers.ForEach(channel =>
         {
-            var client = new ProjectBankServerService.ProjectBankServerServiceClient(channel);
-            Thread thread = new(() =>
-            {
-                try
+            taskList.Add(
+                Task.Run(() =>
                 {
-                    DepositRequest request = new() { Amount = amount };
-                    var reply = client.Deposit(request);
-                    Console.WriteLine("Deposit of " + amount.ToString("C", CultureInfo.CurrentCulture));
-                }
-                catch (Exception)
-                {
-                    Console.WriteLine("Oops"); // TODO
-                }
-            });
-            thread.Start();
-        }
+                    channel.SafeSend(new DepositRequest { Amount = amount }, reply =>
+                    {
+                        if (reply is not null)
+                            Console.WriteLine("Deposit of " + amount.ToString("C", CultureInfo.CurrentCulture));
+                        else
+                            Console.WriteLine("Oops"); // TODO
+                    });
+                })
+            );
+        });
     }
 
     public void Withdraw(double amount)
     {
-        foreach (var channel in _bankServers)
+        // TODO fazer alguma coisa com isto?
+        var taskList = new List<Task>();
+
+        bankServers.ForEach(channel =>
         {
-            var client = new ProjectBankServerService.ProjectBankServerServiceClient(channel);
-            Thread thread = new(() =>
-            {
-                try
+            taskList.Add(
+                Task.Run(() =>
                 {
-                    WithdrawRequest request = new() { Amount = amount };
-                    var reply = client.Withdraw(request);
-                    Console.WriteLine("Withdrawal of " + amount.ToString("C", CultureInfo.CurrentCulture));
-                }
-                catch (Exception)
-                {
-                    Console.WriteLine("Oops"); // TODO
-                }
-            });
-            thread.Start();
-        }
+                    channel.SafeSend(new WithdrawRequest { Amount = amount }, reply =>
+                    {
+                        if (reply is not null)
+                            Console.WriteLine("Withdrawal of " + amount.ToString("C", CultureInfo.CurrentCulture));
+                        else
+                            Console.WriteLine("Oops"); // TODO
+                    });
+                })
+            );
+        });
     }
 }

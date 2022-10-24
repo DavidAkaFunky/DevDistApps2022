@@ -34,7 +34,8 @@ public class PerfectChannel
     private readonly Dictionary<int, ReadBalanceRequest> _readBalanceRequests = new();
     private readonly Dictionary<int, WithdrawRequest> _withdrawRequests = new();
     private int _lastSeqNum;
-    public GrpcChannel Channel { get; set; }
+    public GrpcChannel Channel { get; init; }
+    public int ClientId { get; init; }
 
     private void UpdateLastSeq(int seq)
     {
@@ -54,6 +55,8 @@ public class PerfectChannel
         var stub = new ProjectBankServerService.ProjectBankServerServiceClient(Channel);
 
         request.Seq = _lastSeqNum + 1;
+        request.SenderId = ClientId;
+        request.Ack = 0;
         AddSent(request);
         handler.Invoke(stub.ReadBalance(request));
     }
@@ -66,6 +69,8 @@ public class PerfectChannel
         var stub = new ProjectBankServerService.ProjectBankServerServiceClient(Channel);
 
         request.Seq = _lastSeqNum + 1;
+        request.SenderId = ClientId;
+        request.Ack = 0;
         AddSent(request);
         handler.Invoke(stub.Deposit(request));
     }
@@ -78,6 +83,8 @@ public class PerfectChannel
         var stub = new ProjectBankServerService.ProjectBankServerServiceClient(Channel);
 
         request.Seq = _lastSeqNum + 1;
+        request.SenderId = ClientId;
+        request.Ack = 0;
         AddSent(request);
         handler.Invoke(stub.Withdraw(request));
     }
@@ -90,6 +97,8 @@ public class PerfectChannel
         var stub = new ProjectBankServerService.ProjectBankServerServiceClient(Channel);
 
         request.Seq = _lastSeqNum + 1;
+        request.SenderId = ClientId;
+        request.Ack = 0;
         AddSent(request);
         handler.Invoke(stub.AcceptCompareSwapResult(request));
     }
