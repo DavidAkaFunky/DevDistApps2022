@@ -1,6 +1,6 @@
 using Grpc.Net.Client;
 
-namespace DADProject;
+namespace DADProject.Client.PerfectChannel;
 
 /*
  * 
@@ -12,11 +12,11 @@ namespace DADProject;
 
 internal struct Message
 {
-    public int Seq { get; set; }
-    public MessageType Type { get; set; }
+    public int Seq { get; init; }
+    public MessageType Type { get; init; }
 }
 
-public enum MessageType
+internal enum MessageType
 {
     ReadBalance,
     Deposit,
@@ -24,42 +24,81 @@ public enum MessageType
     CompareSwapResult
 }
 
-//TODO se houver tempo fazer isto de uma forma qualquer bonitinha com genéricos
-public class PerfectChannelClient
+internal class Lock
 {
+}
+
+//TODO se houver tempo fazer isto de uma forma qualquer bonitinha com genéricos
+public class Client
+{
+    private const int Timeout = 10; // in ms
+
     // provavelmente há formas mais elegantes mas esta funciona
     private readonly Dictionary<int, CompareSwapResult> _compareSwapResults = new();
     private readonly Dictionary<int, DepositRequest> _depositRequests = new();
     private readonly List<Message> _messages = new();
     private readonly Dictionary<int, ReadBalanceRequest> _readBalanceRequests = new();
+    private readonly Lock _seqLock = new();
     private readonly Dictionary<int, WithdrawRequest> _withdrawRequests = new();
-    private int _lastSeqNum;
-    public GrpcChannel Channel { get; init; }
+    private int _lastSeqNum = 1;
+    public GrpcChannel Channel { get; init; } = null!;
     public int ClientId { get; init; }
-
-    private void UpdateLastSeq(int seq)
-    {
-        _lastSeqNum = seq > _lastSeqNum ? seq : _lastSeqNum;
-    }
 
     public Task? Close()
     {
-        return Channel?.ShutdownAsync();
+        return Channel.ShutdownAsync();
     }
 
-    public void SafeSend(ReadBalanceRequest request, Action<ReadBalanceReply> handler)
+    private int GetNewSeq()
+    {
+        var seq = 0;
+        lock (_seqLock)
+        {
+            seq = _lastSeqNum++;
+        }
+
+        return seq;
+    }
+
+    private Task<ReadBalanceReply> ReliableSend(ReadBalanceRequest request)
     {
         if (Channel is null) throw new Exception("Channel está a null");
         if (request is null) throw new Exception("request está a null");
 
-        var stub = new ProjectBankServerService.ProjectBankServerServiceClient(Channel);
-
-        request.Seq = _lastSeqNum + 1;
+        request.Seq = GetNewSeq();
         request.SenderId = ClientId;
         request.Ack = 0;
         AddSent(request);
-        handler.Invoke(stub.ReadBalance(request));
+
+        return new Task<ReadBalanceReply>(() =>
+        {
+            ReadBalanceReply reply = null!;
+            var stub = new ProjectBankServerService.ProjectBankServerServiceClient(Channel);
+            do
+            {
+                reply = stub.ReadBalance(request, null,
+                    DateTime.Now.AddMilliseconds(Timeout + new Random().Next(0, Timeout)));
+            } while (reply is null);
+
+            return reply;
+        });
     }
+
+    public async void Send(ReadBalanceRequest request)
+    {
+        var reply = await ReliableSend(request);
+
+        // TODO para amanha
+        // a reply é uma reply qualquer, nao implica que seja a reply a esta mensagem
+        // ou seja, tem de se verificar ack para ver o que se faz
+        // podemos forcar ou ter uma especie de timer que é reiniciado sempre que um ack é feito
+        // (e que não corre se ack == ultimo seq enviado)
+        // se timer expirar mandamos tudo desde (ACK -> SEQ) para lá
+        // diria para nestes reenvios mandar tudo com o Reliable Send (se calhar mandar sequencial, facilita
+        // mas com ciclo infinito, mensagens futuras podem estar em cache no servidor mas ele não avanca sem receber as
+        // que faltam, penso que o ciclo infinito nao fara mal
+    }
+
 
     public void SafeSend(DepositRequest request, Action<DepositReply> handler)
     {
@@ -103,7 +142,7 @@ public class PerfectChannelClient
         handler.Invoke(stub.AcceptCompareSwapResult(request));
     }
 
-    public void AddSent(ReadBalanceRequest request)
+    private void AddSent(ReadBalanceRequest request)
     {
         if (_messages.Count == 0 || request.Seq == _messages.Last().Seq - 1)
         {
@@ -121,7 +160,7 @@ public class PerfectChannelClient
         }
     }
 
-    public void AddSent(WithdrawRequest request)
+    private void AddSent(WithdrawRequest request)
     {
         if (_messages.Count == 0 || request.Seq == _messages.Last().Seq - 1)
         {
@@ -139,7 +178,7 @@ public class PerfectChannelClient
         }
     }
 
-    public void AddSent(CompareSwapResult request)
+    private void AddSent(CompareSwapResult request)
     {
         if (_messages.Count == 0 || request.Seq == _messages.Last().Seq - 1)
         {
@@ -157,7 +196,7 @@ public class PerfectChannelClient
         }
     }
 
-    public void AddSent(DepositRequest request)
+    private void AddSent(DepositRequest request)
     {
         if (_messages.Count == 0 || request.Seq == _messages.Last().Seq - 1)
         {
@@ -175,9 +214,11 @@ public class PerfectChannelClient
         }
     }
 
-    public void Retransmit(int lastReceivedAck, ProjectBankServerService.ProjectBankServerServiceClient stub)
+    public void Retransmit(int lastReceivedAck)
     {
         if (lastReceivedAck == _lastSeqNum) return;
+
+        var stub = new ProjectBankServerService.ProjectBankServerServiceClient(Channel);
 
         var taskList = new List<Task>();
         _messages.ForEach(msg =>
@@ -223,7 +264,7 @@ public class PerfectChannelClient
         //TODO fazer qualquer coisa com a lista de tarefas?
     }
 
-    public void ClearAcknowledgements(int ack)
+    private void ClearAcknowledgements(int ack)
     {
         // should only remove from the beginning of the list
         // podem se fazer umas pequenas otimizacoes a brincar com indices (assumindo tambem que a lista e sempre contigua)

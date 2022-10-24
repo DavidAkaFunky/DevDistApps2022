@@ -1,16 +1,16 @@
 ﻿using System.Globalization;
 using Grpc.Net.Client;
 
-namespace DADProject;
+namespace DADProject.Client;
 
-public class ClientFrontend
+public class Frontend
 {
+    private readonly List<PerfectChannel.Client> _bankServers = new();
     private readonly int _clientId = 0;
-    private readonly List<PerfectChannelClient> bankServers = new();
 
-    public ClientFrontend(List<string> servers)
+    public Frontend(List<string> servers)
     {
-        servers.ForEach(server => bankServers.Add(new PerfectChannelClient
+        servers.ForEach(server => _bankServers.Add(new PerfectChannel.Client
         {
             Channel = GrpcChannel.ForAddress(server),
             ClientId = _clientId
@@ -20,7 +20,7 @@ public class ClientFrontend
     public void CloseChannels()
     {
         var taskList = new List<Task?>();
-        bankServers.ForEach(channel => taskList.Add(channel.Close()));
+        _bankServers.ForEach(channel => taskList.Add(channel.Close()));
         taskList.ForEach(t => t?.Wait());
     }
 
@@ -31,7 +31,7 @@ public class ClientFrontend
         // TODO fazer alguma coisa com isto?
         var taskList = new List<Task>();
 
-        bankServers.ForEach(channel =>
+        _bankServers.ForEach(channel =>
         {
             taskList.Add(
                 Task.Run(() =>
@@ -53,7 +53,7 @@ public class ClientFrontend
         // TODO fazer alguma coisa com isto?
         var taskList = new List<Task>();
 
-        bankServers.ForEach(channel =>
+        _bankServers.ForEach(channel =>
         {
             taskList.Add(
                 Task.Run(() =>
@@ -75,7 +75,7 @@ public class ClientFrontend
         // TODO fazer alguma coisa com isto?
         var taskList = new List<Task>();
 
-        bankServers.ForEach(channel =>
+        _bankServers.ForEach(channel =>
         {
             taskList.Add(
                 Task.Run(() =>

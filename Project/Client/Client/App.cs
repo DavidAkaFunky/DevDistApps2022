@@ -1,16 +1,9 @@
-﻿namespace DADProject;
+﻿namespace DADProject.Client;
 
-public class Client
+public class App
 {
+    private static int Id { set; get; }
 
-    private static int _id;
-
-    private static int Id
-    {
-        set => _id = value;
-        get => _id;
-    }
-    
     public static void Main(string[] args)
     {
         const string DEPOSIT_CMD = "D";
@@ -35,8 +28,8 @@ public class Client
         }
 
         List<string> bankServers = new();
-        
-        foreach (string line in File.ReadAllLines(args[1]))
+
+        foreach (var line in File.ReadAllLines(args[1]))
         {
             var tokens = line.Split(' ');
             if (tokens[0] == "P")
@@ -45,7 +38,7 @@ public class Client
         }
 
         AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-        ClientFrontend frontend = new(bankServers);
+        Frontend frontend = new(bankServers);
 
         PrintHeader();
 
@@ -66,7 +59,7 @@ public class Client
                         Console.Error.WriteLine("ERROR: Invalid command");
                         break;
                     }
-                    
+
                     try
                     {
                         amount = int.Parse(tokens[1]);
@@ -75,6 +68,7 @@ public class Client
                             Console.Error.WriteLine("ERROR: Invalid amount");
                             break;
                         }
+
                         frontend.Deposit(amount);
                     }
                     catch (FormatException)
@@ -89,6 +83,7 @@ public class Client
                         Console.Error.WriteLine("ERROR: Invalid command");
                         break;
                     }
+
                     try
                     {
                         amount = int.Parse(tokens[1]);
@@ -104,7 +99,7 @@ public class Client
                     {
                         Console.Error.WriteLine("ERROR: Invalid timespan");
                     }
-                    
+
                     break;
                 case READ_BALANCE_CMD: // Read balance: R
                     if (tokens.Length != 1)
@@ -148,7 +143,7 @@ public class Client
         }
     }
 
-    public static void PrintHeader() 
+    public static void PrintHeader()
     {
         Console.WriteLine("==========================================================");
         Console.WriteLine(" $$$$$$\\  $$\\       $$$$$$\\ $$$$$$$$\\ $$\\   $$\\ $$$$$$$$\\ ");
