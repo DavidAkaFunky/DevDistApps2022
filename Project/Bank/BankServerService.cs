@@ -1,5 +1,5 @@
-﻿using Grpc.Core;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
+using Grpc.Core;
 
 namespace DADProject;
 
@@ -7,57 +7,60 @@ namespace DADProject;
 // ChatServerServiceBase is the generated base implementation of the service
 public class BankServerService : ProjectBankServerService.ProjectBankServerServiceBase
 {
-    private int id;
-    private readonly BankAccount account = new();
-    private ConcurrentDictionary<int, int> isPrimary; //  primary/backup
-    private int currentSlot = 1;
+    private readonly BankAccount _account = new();
+    private readonly PerfectChannelBankServer _channel = new();
+    private readonly int _id;
+    private readonly ConcurrentDictionary<int, int> _isPrimary; //  primary/backup
 
-    public BankServerService(int id, ConcurrentDictionary<int, int> isPrimary) 
+    public BankServerService(int id, ConcurrentDictionary<int, int> isPrimary)
     {
-        this.id = id;
-        this.isPrimary = isPrimary;
+        _id = id;
+        _isPrimary = isPrimary;
     }
 
-    public int CurrentSlot
-    {
-        get { return currentSlot; }
-        set { currentSlot = value; }
-    }
+    public int CurrentSlot { get; set; } = 1;
 
     public override Task<ReadBalanceReply> ReadBalance(ReadBalanceRequest request, ServerCallContext context)
     {
-        ReadBalanceReply reply = new() { Balance = account.Balance };
-        return Task.FromResult(reply);
+        ReadBalanceReply reply = new();
+
+        lock (_account)
+        {
+            reply.Balance = _account.Balance;
+        }
+
+        return Task.FromResult(_channel.SetAck(request, reply));
     }
 
     public override Task<DepositReply> Deposit(DepositRequest request, ServerCallContext context)
     {
-        lock (account)
+        lock (_account)
         {
-            account.Deposit(request.Amount);
-            DepositReply reply = new();
-            return Task.FromResult(reply);
+            _account.Deposit(request.Amount);
         }
+
+        DepositReply reply = new();
+        return Task.FromResult(_channel.SetAck(request, reply));
     }
 
     public override Task<WithdrawReply> Withdraw(WithdrawRequest request, ServerCallContext context)
     {
-        lock (account)
+        WithdrawReply reply = new();
+
+        lock (_account)
         {
-            WithdrawReply reply = new() { Status = account.Withdraw(request.Amount) };
-            return Task.FromResult(reply);
+            reply.Status = _account.Withdraw(request.Amount);
         }
+
+        return Task.FromResult(_channel.SetAck(request, reply));
     }
 
     public override Task<CompareSwapReply> AcceptCompareSwapResult(CompareSwapResult request, ServerCallContext context)
     {
         Console.WriteLine("Received result for slot {0}: {1}", request.Slot, request.Value);
-        isPrimary[request.Slot] = request.Value;
+        _isPrimary[request.Slot] = request.Value;
         //Do Clean Up if leader changed
-        if (isPrimary[request.Slot] == id && isPrimary[request.Slot] != isPrimary[request.Slot - 1])
-        {
-            CleanUp2PC();
-        }
-        return Task.FromResult(new CompareSwapReply());
+        if (_isPrimary[request.Slot] == _id && _isPrimary[request.Slot] != _isPrimary[request.Slot - 1]) CleanUp2PC();
+        return Task.FromResult(_channel.SetAck(request, new CompareSwapReply())));
     }
 }

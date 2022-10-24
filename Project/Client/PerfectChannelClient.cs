@@ -25,7 +25,7 @@ public enum MessageType
 }
 
 //TODO se houver tempo fazer isto de uma forma qualquer bonitinha com genéricos
-public class PerfectChannel
+public class PerfectChannelClient
 {
     // provavelmente há formas mais elegantes mas esta funciona
     private readonly Dictionary<int, CompareSwapResult> _compareSwapResults = new();

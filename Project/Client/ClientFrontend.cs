@@ -6,11 +6,11 @@ namespace DADProject;
 public class ClientFrontend
 {
     private readonly int _clientId = 0;
-    private readonly List<PerfectChannel> bankServers = new();
+    private readonly List<PerfectChannelClient> bankServers = new();
 
     public ClientFrontend(List<string> servers)
     {
-        servers.ForEach(server => bankServers.Add(new PerfectChannel
+        servers.ForEach(server => bankServers.Add(new PerfectChannelClient
         {
             Channel = GrpcChannel.ForAddress(server),
             ClientId = _clientId
@@ -24,7 +24,7 @@ public class ClientFrontend
         taskList.ForEach(t => t?.Wait());
     }
 
-    //TODO these methods should be changed to be async and return the first value (just the value) and the output string ...
+    //TODO these methods should be changed to be async and return the first value (just the value), the output string ...
     //TODO ... should be formatted on the Client.cs
     public void ReadBalance()
     {
