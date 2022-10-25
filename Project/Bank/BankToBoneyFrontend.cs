@@ -10,13 +10,15 @@ public class BankToBoneyFrontend
     private int seq;
     private readonly ProjectBoneyProposerService.ProjectBoneyProposerServiceClient client;
     private ConcurrentDictionary<int, int> isPrimary; //  primary/backup
+    private Bank bank;
 
-    public BankToBoneyFrontend(int id, string serverAddress, ConcurrentDictionary<int, int> isPrimary)
+    public BankToBoneyFrontend(int id, string serverAddress, ConcurrentDictionary<int, int> isPrimary, Bank bank)
     {
         this.id = id;
         this.seq = 0;
         this.client = new(GrpcChannel.ForAddress(serverAddress));
         this.isPrimary = isPrimary;
+        this.bank = bank;
     }
 
     public void RequestCompareAndSwap(int slot)
@@ -33,7 +35,7 @@ public class BankToBoneyFrontend
             //Do Clean Up if leader changed
             if (isPrimary[slot] == id && isPrimary[slot] != isPrimary[slot - 1])
             {
-                CleanUp2PC();
+                bank.CleanUpTwoPC();
             }
         }
     }

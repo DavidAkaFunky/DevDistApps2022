@@ -33,13 +33,7 @@ public class BankToBankFrontend
         {
             Slot = slot,
             SenderId = id,
-            Command = new() 
-            {
-                ClientId = command.ClientID,
-                ClientSeqNumber = command.ClientSeqNumber,
-                Message = command.Message,
-                GlobalSeqNumber = tentativeSeqNumber
-            }
+            Command = command.CreateCommandGRPC(tentativeSeqNumber)
         };
         client.TwoPCTentative(request);
     }
@@ -50,13 +44,7 @@ public class BankToBankFrontend
         {
             Slot = slot,
             SenderId = id,
-            Command = new()
-            {
-                ClientId = command.ClientID,
-                ClientSeqNumber = command.ClientSeqNumber,
-                Message = command.Message,
-                GlobalSeqNumber = committedSeqNumber
-            }
+            Command = command.CreateCommandGRPC(committedSeqNumber)
         };
         client.TwoPCCommit(request);
     }

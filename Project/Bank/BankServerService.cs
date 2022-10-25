@@ -5,17 +5,19 @@ namespace DADProject;
 
 // ChatServerService is the namespace defined in the protobuf
 // ChatServerServiceBase is the generated base implementation of the service
-public class BankServerService : ProjectBankServerService.ProjectBankServerServiceBase
+internal class BankServerService : ProjectBankServerService.ProjectBankServerServiceBase
 {
     private int id;
     private readonly BankAccount account = new();
     private ConcurrentDictionary<int, int> isPrimary; //  primary/backup
     private int currentSlot = 1;
+    private Bank bank;
 
-    public BankServerService(int id, ConcurrentDictionary<int, int> isPrimary) 
+    public BankServerService(int id, ConcurrentDictionary<int, int> isPrimary, Bank bank) 
     {
         this.id = id;
         this.isPrimary = isPrimary;
+        this.bank = bank;
     }
 
     public int CurrentSlot
@@ -56,7 +58,7 @@ public class BankServerService : ProjectBankServerService.ProjectBankServerServi
         //Do Clean Up if leader changed
         if (isPrimary[request.Slot] == id && isPrimary[request.Slot] != isPrimary[request.Slot - 1])
         {
-            CleanUp2PC();
+            bank.CleanUpTwoPC(request.Slot);
         }
         return Task.FromResult(new CompareSwapReply());
     }
