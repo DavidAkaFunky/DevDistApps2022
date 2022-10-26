@@ -50,8 +50,8 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
         {
             if (kvp.Key > request.GlobalSeqNumber)
             {
-                tentativeCommands.TryRemove(kvp.Key, out var value);
-                reply.Commands.Add(value.CreateCommandGRPC(kvp.Key));
+                tentativeCommands.TryRemove(kvp.Key, out var value);//cant remove things
+                reply.Commands.Add(value.CreateCommandGRPC(kvp.Key));//is this right
             }
         }
 
