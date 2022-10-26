@@ -8,15 +8,23 @@ namespace DADProject
 {
     public class ClientCommand
     {
+        private int slot;
         private int clientID;
         private int clientSeqNumber;
         private string message;
 
-        public ClientCommand(int clientID, int clientSeqNumber, string message)
+        public ClientCommand(int slot, int clientID, int clientSeqNumber, string message)
         {
+            this.slot = slot;
             this.clientID = clientID;
             this.clientSeqNumber = clientSeqNumber;
             this.message = message;
+        }
+
+        public int Slot
+        {
+            get { return slot; }
+            set { slot = value; }
         }
 
         public int ClientID
@@ -39,7 +47,12 @@ namespace DADProject
 
         public ClientCommandGRPC CreateCommandGRPC(int globalSeqNumber)
         {
-            return new() { ClientId = clientID, ClientSeqNumber = clientSeqNumber, Message = message, GlobalSeqNumber = globalSeqNumber };
+            return new() { Slot = slot, ClientId = clientID, ClientSeqNumber = clientSeqNumber, Message = message, GlobalSeqNumber = globalSeqNumber };
+        }
+
+        public static ClientCommand CreateCommandFromGRPC(ClientCommandGRPC command)
+        {
+            return new(command.Slot, command.ClientId, command.ClientSeqNumber, command.Message);
         }
     }
 }

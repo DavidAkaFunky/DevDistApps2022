@@ -19,7 +19,6 @@ message ListPendingRequestsReply{
 	int32 senderId = 1;
 	int32 seq = 2;
 	int32 ack = 3;
-	int32 slot = 4;
 	repeated ClientCommandGRPC commands = 5;
 }
 
@@ -52,8 +51,9 @@ message TwoPCCommitReply {
 }
 
 message ClientCommandGRPC {
-	int32 clientId = 1;
-	int32 clientSeqNumber = 2;
-	string message = 3;
-	int32 globalSeqNumber = 4; 
+	int32 slot = 1;
+	int32 clientId = 2;
+	int32 clientSeqNumber = 3;
+	string message = 4;
+	int32 globalSeqNumber = 5; 
 }

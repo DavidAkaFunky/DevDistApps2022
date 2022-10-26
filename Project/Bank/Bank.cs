@@ -34,6 +34,10 @@ internal class Bank
     private static readonly List<int> _wallTimes = new();
     private static int _slotDuration;
     private static readonly List<Dictionary<int, ServerState>> _serverStates = new();
+    private static readonly List<BankToBankFrontend> bankToBankFrontends = new();
+    private static readonly List<BankToBoneyFrontend> bankToBoneyFrontends = new();
+    private static readonly ConcurrentDictionary<int, ClientCommand> tentativeCommands = new();
+    private static readonly ConcurrentDictionary<int, ClientCommand> committedCommands = new();
 
     private static Command GetType(string line, out string[] tokens)
     {
@@ -60,7 +64,7 @@ internal class Bank
         };
     }
 
-    public static void Main(string[] args)
+    public void Main(string[] args)
     {
         if (args.Length != 2)
         {
@@ -131,16 +135,11 @@ internal class Bank
         //==================================Service Info======================================
 
         var isPrimary = new ConcurrentDictionary<int, int>();
-        var tentativeCommands = new ConcurrentDictionary<int, ClientCommand> ();
-        var committedCommands = new ConcurrentDictionary<int, ClientCommand> ();
 
         //===================================Server Initialization============================
 
         _address = _bankAddresses[id - _boneyAddresses.Count - 1];
         Uri ownUri = new(_address);
-
-        var bankToBankFrontends = new List<BankToBankFrontend>();
-        var bankToBoneyFrontends = new List<BankToBoneyFrontend>();
 
         _bankAddresses.ForEach(serverAddr => 
             bankToBankFrontends.Add(new BankToBankFrontend(id, serverAddr)));
@@ -186,8 +185,6 @@ internal class Bank
 
             Console.WriteLine("--NEW SLOT: {0}--", _currentSlot);
             bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
-
-            
         }
 
         Timer timer = new(_slotDuration);
@@ -200,10 +197,7 @@ internal class Bank
 
         CommandProcessing(
             id,
-            isPrimary,
-            toCommitCommands,
-            committedCommands,
-            bankToBankFrontends);
+            isPrimary);
 
         Console.WriteLine("Press any key to stop the server...");
         Console.ReadKey();
@@ -211,42 +205,88 @@ internal class Bank
         server.ShutdownAsync().Wait();
     }
 
-    public static void CleanUp2PC()
+    public void CleanUp2PC(int slot)
     {
+        Dictionary<int, ClientCommand> commandsToCommit = new();
 
+        //slot is not needed, remove??
         //listPendingRequests(lastKnownSequenceNumber) to all
+        bankToBankFrontends.ForEach(frontend =>
+        {
+            var reply = frontend.ListPendingTwoPCRequests(slot, committedCommands.Keys.Max());
 
-        //wait for majority
+            foreach(var cmd in reply.Commands)
+            {
+                //Remove duplicates and prefer the most recent tentative version 
+                if (!commandsToCommit.ContainsKey(cmd.GlobalSeqNumber))
+                {
+                    commandsToCommit.Add(
+                        cmd.GlobalSeqNumber, 
+                        new(cmd.Slot, cmd.ClientId, cmd.ClientSeqNumber, cmd.Message));
+                }
+                else 
+                {
+                    if (commandsToCommit[cmd.GlobalSeqNumber].Slot < cmd.Slot)
+                    {
+                        commandsToCommit[cmd.GlobalSeqNumber] = new(cmd.Slot, cmd.ClientId, cmd.ClientSeqNumber, cmd.Message);
+                    }
 
+                }
+            }
+
+            foreach(int seq in commandsToCommit.Keys)
+            {
+                TwoPC(seq, commandsToCommit[seq]);
+            }
+            
+        });
+
+        //TODO: wait for majority
     }
 
-    public static void CommandProcessing(
-        int id,
-        ConcurrentDictionary<int, int> isPrimary,
-        ConcurrentDictionary<int, ClientCommand> toCommitCommands,
-        ConcurrentDictionary<int, ClientCommand> committedCommands,
-        List<BankToBankFrontend> frontends )
+    public void TwoPC(int seq, ClientCommand cmd)
     {
-        
+        //send tentative with seq for command(cmd)
+        bankToBankFrontends.ForEach(server =>
+        {
+            server.SendTwoPCTentative(_currentSlot, cmd, seq);
+
+        });
+
+        //TODO: wait for acknowledgement of majority
+
+        //send commit to all replicas
+        bankToBankFrontends.ForEach(server =>
+        {
+            server.SendTwoPCCommit(_currentSlot, cmd, seq);
+
+        });
+
+        //TODO: wait for acknowledgement of majority ???????????
+    }
+
+    public void CommandProcessing(
+        int id,
+        ConcurrentDictionary<int, int> isPrimary)
+    {
+
         while (true)
         {
 
             //check if is primary 
 
+            //check if leader changed
+            if (leaderChanged)
+            {
+                leaderChanged = false;
+                CleanUp2PC(_currentSlot);
+            }
+
             //check if there is commands -> select first
 
             //if both:
 
-            //send tentative with last seq for command
-            frontends.ForEach(server =>
-            {
-                var response = server.SendTwoPCTentative(_currentSlot, command, tentativeSeqNumber);
-
-            });
-
-            //wait for acknowledgement of majority
-
-            //send commit to all replicas
+            TwoPC(seq, cmd);
 
         }
     }

@@ -50,8 +50,8 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
         {
             if (kvp.Key > request.GlobalSeqNumber)
             {
-                tentativeCommands.TryRemove(kvp.Key, out var value);
-                reply.Commands.Add(value.CreateCommandGRPC(kvp.Key));
+                tentativeCommands.TryRemove(kvp.Key, out var value);//cant remove things
+                reply.Commands.Add(value.CreateCommandGRPC(kvp.Key));//is this right
             }
         }
 
@@ -71,7 +71,7 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
             reply.Status = true;
             
             lock(tentativeCommands)
-                tentativeCommands[request.Command.GlobalSeqNumber] = new(request.Command.ClientId, request.Command.ClientSeqNumber, request.Command.Message);
+                tentativeCommands[request.Command.GlobalSeqNumber] = new(request.Slot, request.Command.ClientId, request.Command.ClientSeqNumber, request.Command.Message);
         }
 
         return Task.FromResult(reply);
@@ -91,7 +91,7 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
                 var item = tentativeCommands.First(kvp => kvp.Value.ClientID == request.Command.ClientId && kvp.Value.ClientSeqNumber == request.Command.ClientSeqNumber);
                 tentativeCommands.TryRemove(item.Key, out var _);
 
-                committedCommands[request.Command.GlobalSeqNumber] = new(request.Command.ClientId, request.Command.ClientSeqNumber, request.Command.Message);
+                committedCommands[request.Command.GlobalSeqNumber] = new(request.Slot, request.Command.ClientId, request.Command.ClientSeqNumber, request.Command.Message);
             }
         }
 

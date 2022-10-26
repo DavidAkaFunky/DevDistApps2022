@@ -29,12 +29,6 @@ public class BankToBoneyFrontend
         {
             //Console.WriteLine("I AM THE LEADER FOR THE SLOT " + slot);
             isPrimary[slot] = reply.OutValue;
-
-            //Do Clean Up if leader changed
-            if (isPrimary[slot] == id && isPrimary[slot] != isPrimary[slot - 1])
-            {
-                CleanUp2PC();
-            }
         }
     }
 }
