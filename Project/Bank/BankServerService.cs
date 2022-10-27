@@ -9,15 +9,17 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 {
     private int id;
     private readonly BankAccount account = new();
-    private ConcurrentDictionary<int, int> isPrimary; //  primary/backup
-    private int currentSlot = 1;
-    private Bank bank;
 
-    public BankServerService(int id, ConcurrentDictionary<int, int> isPrimary, Bank bank) 
+    private Queue<ClientCommand> receivedCommands;
+
+    private int currentSlot = 1;
+    private ConcurrentDictionary<int, int> primary; //  primary/backup
+
+    public BankServerService(int id, ConcurrentDictionary<int, int> primary, Queue<ClientCommand> received) 
     {
         this.id = id;
-        this.isPrimary = isPrimary;
-        this.bank = bank;
+        this.primary = primary;
+        this.receivedCommands = received;
     }
 
     public int CurrentSlot
@@ -28,38 +30,86 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
     public override Task<ReadBalanceReply> ReadBalance(ReadBalanceRequest request, ServerCallContext context)
     {
-        ReadBalanceReply reply = new() { Balance = account.Balance };
+        ReadBalanceReply reply = new() { };
+
+        //=============Check If Leader===================
+        
+        //temporary 
+        if (id != 4) return Task.FromResult(reply);
+
+        //=====================ADD To Queue==============
+        Monitor.Enter(receivedCommands);
+
+        //The command might not be right
+        receivedCommands.Enqueue(new(0, request.SenderId, request.Seq, "Read"));
+
+        Monitor.PulseAll(receivedCommands);
+
+        Monitor.Exit(receivedCommands);
+        
+        //================Execute and Reply==============
+
+        //reply.Balance = account.Balance;
+        
         return Task.FromResult(reply);
     }
 
     public override Task<DepositReply> Deposit(DepositRequest request, ServerCallContext context)
     {
-        lock (account)
-        {
-            account.Deposit(request.Amount);
-            DepositReply reply = new();
-            return Task.FromResult(reply);
-        }
+        DepositReply reply = new();
+
+        //=============Check If Leader===================
+
+
+
+        //=====================ADD To Queue==============
+        Monitor.Enter(receivedCommands);
+
+        //The command might not be right
+        receivedCommands.Enqueue(new(0, request.SenderId, request.Seq, "Read"));
+
+        Monitor.PulseAll(receivedCommands);
+
+        Monitor.Exit(receivedCommands);
+
+        //================Execute and Reply==============
+
+        //account.Deposit(request.Amount);
+
+        return Task.FromResult(reply);
     }
 
     public override Task<WithdrawReply> Withdraw(WithdrawRequest request, ServerCallContext context)
     {
-        lock (account)
-        {
-            WithdrawReply reply = new() { Status = account.Withdraw(request.Amount) };
-            return Task.FromResult(reply);
-        }
+        WithdrawReply reply = new();
+
+        //=============Check If Leader===================
+
+
+
+        //=====================ADD To Queue==============
+        Monitor.Enter(receivedCommands);
+
+        //The command might not be right
+        receivedCommands.Enqueue(new(0, request.SenderId, request.Seq, "Read"));
+
+        Monitor.PulseAll(receivedCommands);
+
+        Monitor.Exit(receivedCommands);
+
+        //================Execute and Reply==============
+
+        //reply.Status = account.Withdraw(request.Amount);
+
+        return Task.FromResult(reply);
     }
 
     public override Task<CompareSwapReply> AcceptCompareSwapResult(CompareSwapResult request, ServerCallContext context)
     {
-        Console.WriteLine("Received result for slot {0}: {1}", request.Slot, request.Value);
-        isPrimary[request.Slot] = request.Value;
-        //Do Clean Up if leader changed
-        if (isPrimary[request.Slot] == id && isPrimary[request.Slot] != isPrimary[request.Slot - 1])
-        {
-            bank.CleanUpTwoPC(request.Slot);
-        }
+        //Console.WriteLine("Received result for slot {0}: {1}", request.Slot, request.Value);
+
+        primary[request.Slot] = request.Value;
+
         return Task.FromResult(new CompareSwapReply());
     }
 }

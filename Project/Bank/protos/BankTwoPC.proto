@@ -12,8 +12,7 @@ message ListPendingRequestsRequest{
 	int32 senderId = 1;
 	int32 seq = 2;
 	int32 ack = 3;
-	int32 slot = 4;
-	int32 globalSeqNumber = 5;
+	int32 globalSeqNumber = 4;
 }
 message ListPendingRequestsReply{
 	int32 senderId = 1;

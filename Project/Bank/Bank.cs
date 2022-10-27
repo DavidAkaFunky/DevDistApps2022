@@ -64,7 +64,7 @@ internal class Bank
         };
     }
 
-    public void Main(string[] args)
+    public static void Main(string[] args)
     {
         if (args.Length != 2)
         {
@@ -134,7 +134,8 @@ internal class Bank
 
         //==================================Service Info======================================
 
-        var isPrimary = new ConcurrentDictionary<int, int>();
+        var primaries = new ConcurrentDictionary<int, int>();
+        var receivedCommands = new Queue<ClientCommand>();
 
         //===================================Server Initialization============================
 
@@ -145,10 +146,10 @@ internal class Bank
             bankToBankFrontends.Add(new BankToBankFrontend(id, serverAddr)));
 
         _boneyAddresses.ForEach(serverAddr =>
-            bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr, isPrimary)));
+            bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr, primaries)));
 
-        var bankServerService = new BankServerService(id, isPrimary);
-        var bank2PCService = new BankTwoPCService(id, isPrimary, tentativeCommands, committedCommands);
+        var bankServerService = new BankServerService(id, primaries, receivedCommands);
+        var bank2PCService = new BankTwoPCService(id, primaries, tentativeCommands, committedCommands);
 
 
         Server server = new()
@@ -171,7 +172,7 @@ internal class Bank
         void HandleTimer()
         {
             _currentSlot++;
-            isPrimary[_currentSlot] = -1;
+            primaries[_currentSlot] = -1;
 
             bankServerService.CurrentSlot = _currentSlot;
             bank2PCService.CurrentSlot = _currentSlot;
@@ -195,9 +196,7 @@ internal class Bank
 
         //=============================Start Processing Commands===============================
 
-        CommandProcessing(
-            id,
-            isPrimary);
+        CommandProcessing(id, receivedCommands);
 
         Console.WriteLine("Press any key to stop the server...");
         Console.ReadKey();
@@ -205,15 +204,14 @@ internal class Bank
         server.ShutdownAsync().Wait();
     }
 
-    public void CleanUp2PC(int slot)
+    public void CleanUp2PC()
     {
         Dictionary<int, ClientCommand> commandsToCommit = new();
 
-        //slot is not needed, remove??
         //listPendingRequests(lastKnownSequenceNumber) to all
         bankToBankFrontends.ForEach(frontend =>
         {
-            var reply = frontend.ListPendingTwoPCRequests(slot, committedCommands.Keys.Max());
+            var reply = frontend.ListPendingTwoPCRequests(committedCommands.Keys.Max());
 
             foreach(var cmd in reply.Commands)
             {
@@ -233,13 +231,12 @@ internal class Bank
 
                 }
             }
-
-            foreach(int seq in commandsToCommit.Keys)
-            {
-                TwoPC(seq, commandsToCommit[seq]);
-            }
-            
         });
+
+        foreach (int seq in commandsToCommit.Keys)
+        {
+            TwoPC(seq, commandsToCommit[seq]);
+        }
 
         //TODO: wait for majority
     }
@@ -265,30 +262,30 @@ internal class Bank
         //TODO: wait for acknowledgement of majority ???????????
     }
 
-    public void CommandProcessing(
-        int id,
-        ConcurrentDictionary<int, int> isPrimary)
+    public static void CommandProcessing( int id, Queue<ClientCommand> receivedCommands)
     {
-
+        //Waiting for commands to be received, commands only added to the queue if is primary
+        Monitor.Enter(receivedCommands);
+        
         while (true)
         {
-
-            //check if is primary 
-
-            //check if leader changed
-            if (leaderChanged)
+            if (receivedCommands.Count == 0)
             {
-                leaderChanged = false;
-                CleanUp2PC(_currentSlot);
+                Monitor.Wait(receivedCommands);
+            } 
+            else
+            {
+                ClientCommand cc = receivedCommands.Dequeue();
+                Console.WriteLine($"Bank {_currentSlot}: EXECUTING CMD ({cc.ClientID}, {cc.ClientSeqNumber})");
+                
+                cc.Slot = _currentSlot;
+
+                //FIXME: change seq
+                //TwoPC(1, cc);
             }
-
-            //check if there is commands -> select first
-
-            //if both:
-
-            TwoPC(seq, cmd);
-
         }
+
+        Monitor.Exit(receivedCommands);
     }
 
 

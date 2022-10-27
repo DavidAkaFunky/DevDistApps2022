@@ -16,11 +16,10 @@ public class BankToBankFrontend
         client = new(GrpcChannel.ForAddress(serverAddress));
     }
 
-    public ListPendingRequestsReply ListPendingTwoPCRequests(int slot, int lastKnownSequenceNumber)
+    public ListPendingRequestsReply ListPendingTwoPCRequests(int lastKnownSequenceNumber)
     {
         var request = new ListPendingRequestsRequest
         {
-            Slot = slot,
             SenderId = id,
             GlobalSeqNumber = lastKnownSequenceNumber
         };

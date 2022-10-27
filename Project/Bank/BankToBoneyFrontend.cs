@@ -21,13 +21,14 @@ public class BankToBoneyFrontend
 
     public void RequestCompareAndSwap(int slot)
     {
-        Console.WriteLine("SENDING CS FOR SLOT " + slot);
+        //Console.WriteLine("SENDING CS FOR SLOT " + slot);
+        
         CompareAndSwapRequest request = new() { Slot = slot, InValue = id };
         var reply = client.CompareAndSwap(request);
-        Console.WriteLine("GOT INITIAL COMPARE AND SWAP VALUE FOR SLOT " + slot + " AND THE VALUE IS " + reply.OutValue);
+        
+        //Console.WriteLine("GOT INITIAL COMPARE AND SWAP VALUE FOR SLOT " + slot + " AND THE VALUE IS " + reply.OutValue);
         if (reply.OutValue > 0)
         {
-            //Console.WriteLine("I AM THE LEADER FOR THE SLOT " + slot);
             isPrimary[slot] = reply.OutValue;
         }
     }
