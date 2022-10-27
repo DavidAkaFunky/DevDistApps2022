@@ -9,17 +9,17 @@ namespace DADProject;
 public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceBase
 {
     private int id;
-    private ConcurrentDictionary<int, int> isPrimary; //  primary/backup
-    private ConcurrentDictionary<int, ClientCommand> tentativeCommands;
-    private ConcurrentDictionary<int, ClientCommand> committedCommands;
     private int currentSlot = 1;
 
-    public BankTwoPCService(int id, ConcurrentDictionary<int, int> isPrimary, ConcurrentDictionary<int, ClientCommand> tentativeCommands, ConcurrentDictionary<int, ClientCommand> committedCommands)
+    private ConcurrentDictionary<int, int> isPrimary; //  primary/backup
+
+    private TwoPhaseCommit TwoPC;
+
+    public BankTwoPCService(int id, ConcurrentDictionary<int, int> isPrimary, TwoPhaseCommit TwoPC)
     {
         this.id = id;
         this.isPrimary = isPrimary;
-        this.tentativeCommands = tentativeCommands;
-        this.committedCommands = committedCommands;
+        this.TwoPC = TwoPC;
     }
 
     public int CurrentSlot
@@ -44,18 +44,7 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
 
     public override Task<ListPendingRequestsReply> ListPendingRequests(ListPendingRequestsRequest request, ServerCallContext context)
     {
-        var reply = new ListPendingRequestsReply();
-
-        foreach(var kvp in tentativeCommands)
-        {
-            if (kvp.Key > request.GlobalSeqNumber)
-            {
-                tentativeCommands.TryRemove(kvp.Key, out var value);//cant remove things
-                reply.Commands.Add(value.CreateCommandGRPC(kvp.Key));//is this right
-            }
-        }
-
-        return Task.FromResult(reply);
+        return Task.FromResult(TwoPC.ListPendingRequest(request.GlobalSeqNumber));
     }
 
     public override Task<TwoPCTentativeReply> TwoPCTentative(TwoPCTentativeRequest request, ServerCallContext context)
@@ -66,12 +55,16 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
 
         var reply = new TwoPCTentativeReply() { Status = false };
 
-        if (CheckLeadership(request.Slot, request.SenderId))
+        if (CheckLeadership(request.Command.Slot, request.SenderId))
         {
-            reply.Status = true;
+            reply.Status = TwoPC.AddTentative(
+                request.Command.GlobalSeqNumber, 
+                new(request.Command.Slot, 
+                    request.Command.ClientId, 
+                    request.Command.ClientSeqNumber, 
+                    request.Command.Type, 
+                    request.Command.Amount));
             
-            lock(tentativeCommands)
-                tentativeCommands[request.Command.GlobalSeqNumber] = new(request.Slot, request.Command.ClientId, request.Command.ClientSeqNumber, request.Command.Message);
         }
 
         return Task.FromResult(reply);
@@ -81,19 +74,26 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
     {
         var reply = new TwoPCCommitReply() { Status = false };
 
-        if (CheckLeadership(request.Slot, request.SenderId))
-        {
-            reply.Status = true;
+        TwoPC.AddCommitted(
+                request.Command.GlobalSeqNumber,
+                new(request.Command.Slot,
+                    request.Command.ClientId,
+                    request.Command.ClientSeqNumber,
+                    request.Command.Type,
+                    request.Command.Amount));
 
-            lock (tentativeCommands) lock (committedCommands)
-            {
-                // Remove message from tentative commands
-                var item = tentativeCommands.First(kvp => kvp.Value.ClientID == request.Command.ClientId && kvp.Value.ClientSeqNumber == request.Command.ClientSeqNumber);
-                tentativeCommands.TryRemove(item.Key, out var _);
-
-                committedCommands[request.Command.GlobalSeqNumber] = new(request.Slot, request.Command.ClientId, request.Command.ClientSeqNumber, request.Command.Message);
-            }
-        }
+        //if (CheckLeadership(request.Command.Slot, request.SenderId))
+        //{
+        //    reply.Status = true;
+        //        
+        //    TwoPC.AddCommitted(
+        //        request.Command.GlobalSeqNumber,
+        //        new(request.Command.Slot,
+        //            request.Command.ClientId,
+        //            request.Command.ClientSeqNumber,
+        //            request.Command.Type,
+        //            request.Command.Amount));
+        //}
 
         return Task.FromResult(reply);
     }

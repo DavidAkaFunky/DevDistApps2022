@@ -10,16 +10,16 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
     private int id;
     private readonly BankAccount account = new();
 
-    private Queue<ClientCommand> receivedCommands;
-
     private int currentSlot = 1;
     private ConcurrentDictionary<int, int> primary; //  primary/backup
 
-    public BankServerService(int id, ConcurrentDictionary<int, int> primary, Queue<ClientCommand> received) 
+    private TwoPhaseCommit TwoPC;
+
+    public BankServerService(int id, ConcurrentDictionary<int, int> primary, TwoPhaseCommit TwoPC) 
     {
         this.id = id;
         this.primary = primary;
-        this.receivedCommands = received;
+        this.TwoPC = TwoPC;
     }
 
     public int CurrentSlot
@@ -30,47 +30,40 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
     public override Task<ReadBalanceReply> ReadBalance(ReadBalanceRequest request, ServerCallContext context)
     {
-        ReadBalanceReply reply = new() { };
+        ReadBalanceReply reply = new() { Balance = -1 };
 
         //=============Check If Leader===================
         
         //temporary 
         if (id != 4) return Task.FromResult(reply);
 
-        //=====================ADD To Queue==============
-        Monitor.Enter(receivedCommands);
+        //if (primary[currentSlot] != id) return Task.FromResult(reply);
 
-        //The command might not be right
-        receivedCommands.Enqueue(new(0, request.SenderId, request.Seq, "Read"));
+        //=====================2PC=======================
 
-        Monitor.PulseAll(receivedCommands);
-
-        Monitor.Exit(receivedCommands);
+        TwoPC.Run(new(currentSlot, request.SenderId, request.Seq, "R", 0));
         
         //================Execute and Reply==============
 
         //reply.Balance = account.Balance;
-        
+
         return Task.FromResult(reply);
     }
 
     public override Task<DepositReply> Deposit(DepositRequest request, ServerCallContext context)
     {
-        DepositReply reply = new();
+        DepositReply reply = new() { Status = -1 };
 
         //=============Check If Leader===================
 
+        //temporary 
+        if (id != 4) return Task.FromResult(reply);
 
+        //if (primary[currentSlot] != id) return Task.FromResult(reply);
 
-        //=====================ADD To Queue==============
-        Monitor.Enter(receivedCommands);
+        //=====================2PC=======================
 
-        //The command might not be right
-        receivedCommands.Enqueue(new(0, request.SenderId, request.Seq, "Read"));
-
-        Monitor.PulseAll(receivedCommands);
-
-        Monitor.Exit(receivedCommands);
+        TwoPC.Run(new(currentSlot, request.SenderId, request.Seq, "D", request.Amount));
 
         //================Execute and Reply==============
 
@@ -81,21 +74,18 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
     public override Task<WithdrawReply> Withdraw(WithdrawRequest request, ServerCallContext context)
     {
-        WithdrawReply reply = new();
+        WithdrawReply reply = new() { Status = -1 };
 
         //=============Check If Leader===================
 
+        //temporary 
+        if (id != 4) return Task.FromResult(reply);
 
+        //if (primary[currentSlot] != id) return Task.FromResult(reply);
 
-        //=====================ADD To Queue==============
-        Monitor.Enter(receivedCommands);
+        //=====================2PC=======================
 
-        //The command might not be right
-        receivedCommands.Enqueue(new(0, request.SenderId, request.Seq, "Read"));
-
-        Monitor.PulseAll(receivedCommands);
-
-        Monitor.Exit(receivedCommands);
+        TwoPC.Run(new(currentSlot, request.SenderId, request.Seq, "W", request.Amount));
 
         //================Execute and Reply==============
 

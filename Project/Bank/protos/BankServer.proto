@@ -45,7 +45,7 @@ message WithdrawReply {
 	int32 senderId = 1;
 	int32 seq = 2;
 	int32 ack = 3;
-	bool status = 4;
+	int32 status = 4;
 }
 
 message CompareSwapResult {

@@ -191,7 +191,7 @@ public class PuppetMaster
 
         processes.AddRange(boneys.Select(id => runner.Run("../Boney", "dotnet", $"run {id} {args[0]}")));
         processes.AddRange(banks.Select(id => runner.Run("../Bank", "dotnet", $"run {id} {args[0]}")));
-        //processes.AddRange(clients.Select(id => runner.Run("../Client", "dotnet", $"run {id} {args[0]}")));
+        processes.AddRange(clients.Select(id => runner.Run("../Client", "dotnet", $"run {id} {args[0]}")));
 
         Console.WriteLine("Type anything to kill all processes");
         Console.ReadLine();

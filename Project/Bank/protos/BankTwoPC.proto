@@ -25,8 +25,7 @@ message TwoPCTentativeRequest {
 	int32 senderId = 1;
 	int32 seq = 2;
 	int32 ack = 3;
-	int32 slot = 4;
-	ClientCommandGRPC command = 5;
+	ClientCommandGRPC command = 4;
 }
 message TwoPCTentativeReply {
 	int32 senderId = 1;
@@ -39,8 +38,7 @@ message TwoPCCommitRequest {
 	int32 senderId = 1;
 	int32 seq = 2;
 	int32 ack = 3;
-	int32 slot = 4;
-	ClientCommandGRPC command = 5;
+	ClientCommandGRPC command = 4;
 }
 message TwoPCCommitReply {
 	int32 senderId = 1;
@@ -53,6 +51,7 @@ message ClientCommandGRPC {
 	int32 slot = 1;
 	int32 clientId = 2;
 	int32 clientSeqNumber = 3;
-	string message = 4;
-	int32 globalSeqNumber = 5; 
+	string type = 4;
+	double amount = 5;
+	int32 globalSeqNumber = 6; 
 }

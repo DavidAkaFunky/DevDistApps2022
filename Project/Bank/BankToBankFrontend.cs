@@ -16,6 +16,11 @@ public class BankToBankFrontend
         client = new(GrpcChannel.ForAddress(serverAddress));
     }
 
+    public int Id
+    {
+        get { return id; }
+    }
+
     public ListPendingRequestsReply ListPendingTwoPCRequests(int lastKnownSequenceNumber)
     {
         var request = new ListPendingRequestsRequest
@@ -26,22 +31,20 @@ public class BankToBankFrontend
         return client.ListPendingRequests(request);
     }
 
-    public void SendTwoPCTentative(int slot, ClientCommand command, int tentativeSeqNumber)
+    public void SendTwoPCTentative(ClientCommand command, int tentativeSeqNumber)
     {
         var request = new TwoPCTentativeRequest
         {
-            Slot = slot,
             SenderId = id,
             Command = command.CreateCommandGRPC(tentativeSeqNumber)
         };
         client.TwoPCTentative(request);
     }
 
-    public void SendTwoPCCommit(int slot, ClientCommand command, int committedSeqNumber)
+    public void SendTwoPCCommit(ClientCommand command, int committedSeqNumber)
     {
         var request = new TwoPCCommitRequest
         {
-            Slot = slot,
             SenderId = id,
             Command = command.CreateCommandGRPC(committedSeqNumber)
         };

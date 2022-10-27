@@ -26,18 +26,19 @@ internal struct ServerState
 internal class Bank
 {
     private static int _currentSlot = 1;
+    private static int _slotCount;
+    private static int _slotDuration;
+    private static readonly List<int> _wallTimes = new();
+
     private static string _address = "";
     private static readonly List<string> _boneyAddresses = new();
     private static readonly List<string> _bankAddresses = new();
     private static readonly List<int> _bankIDs = new();
-    private static int _slotCount;
-    private static readonly List<int> _wallTimes = new();
-    private static int _slotDuration;
+
     private static readonly List<Dictionary<int, ServerState>> _serverStates = new();
+
     private static readonly List<BankToBankFrontend> bankToBankFrontends = new();
     private static readonly List<BankToBoneyFrontend> bankToBoneyFrontends = new();
-    private static readonly ConcurrentDictionary<int, ClientCommand> tentativeCommands = new();
-    private static readonly ConcurrentDictionary<int, ClientCommand> committedCommands = new();
 
     private static Command GetType(string line, out string[] tokens)
     {
@@ -135,7 +136,7 @@ internal class Bank
         //==================================Service Info======================================
 
         var primaries = new ConcurrentDictionary<int, int>();
-        var receivedCommands = new Queue<ClientCommand>();
+        var TwoPC = new TwoPhaseCommit(id, bankToBankFrontends);
 
         //===================================Server Initialization============================
 
@@ -148,8 +149,8 @@ internal class Bank
         _boneyAddresses.ForEach(serverAddr =>
             bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr, primaries)));
 
-        var bankServerService = new BankServerService(id, primaries, receivedCommands);
-        var bank2PCService = new BankTwoPCService(id, primaries, tentativeCommands, committedCommands);
+        var bankServerService = new BankServerService(id, primaries, TwoPC);
+        var bank2PCService = new BankTwoPCService(id, primaries, TwoPC);
 
 
         Server server = new()
@@ -169,6 +170,7 @@ internal class Bank
         Console.WriteLine("Listening on port " + ownUri.Port);
 
         //============================Set Timer==========================
+
         void HandleTimer()
         {
             _currentSlot++;
@@ -185,111 +187,32 @@ internal class Bank
             }
 
             Console.WriteLine("--NEW SLOT: {0}--", _currentSlot);
+
+            //----------Find way to block this shit-------------
+
             bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
+
+            while (primaries[_currentSlot] == -1) { }
+
+            if(primaries[_currentSlot] == id && primaries[_currentSlot] != primaries[_currentSlot - 1])
+            {
+                TwoPC.CleanUp2PC(_currentSlot);
+            }
         }
 
         Timer timer = new(_slotDuration);
         timer.Elapsed += (sender, e) => HandleTimer();
         timer.Start();
 
-        bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
-
         //=============================Start Processing Commands===============================
 
-        CommandProcessing(id, receivedCommands);
+        bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
 
         Console.WriteLine("Press any key to stop the server...");
         Console.ReadKey();
 
         server.ShutdownAsync().Wait();
     }
-
-    public void CleanUp2PC()
-    {
-        Dictionary<int, ClientCommand> commandsToCommit = new();
-
-        //listPendingRequests(lastKnownSequenceNumber) to all
-        bankToBankFrontends.ForEach(frontend =>
-        {
-            var reply = frontend.ListPendingTwoPCRequests(committedCommands.Keys.Max());
-
-            foreach(var cmd in reply.Commands)
-            {
-                //Remove duplicates and prefer the most recent tentative version 
-                if (!commandsToCommit.ContainsKey(cmd.GlobalSeqNumber))
-                {
-                    commandsToCommit.Add(
-                        cmd.GlobalSeqNumber, 
-                        new(cmd.Slot, cmd.ClientId, cmd.ClientSeqNumber, cmd.Message));
-                }
-                else 
-                {
-                    if (commandsToCommit[cmd.GlobalSeqNumber].Slot < cmd.Slot)
-                    {
-                        commandsToCommit[cmd.GlobalSeqNumber] = new(cmd.Slot, cmd.ClientId, cmd.ClientSeqNumber, cmd.Message);
-                    }
-
-                }
-            }
-        });
-
-        foreach (int seq in commandsToCommit.Keys)
-        {
-            TwoPC(seq, commandsToCommit[seq]);
-        }
-
-        //TODO: wait for majority
-    }
-
-    public void TwoPC(int seq, ClientCommand cmd)
-    {
-        //send tentative with seq for command(cmd)
-        bankToBankFrontends.ForEach(server =>
-        {
-            server.SendTwoPCTentative(_currentSlot, cmd, seq);
-
-        });
-
-        //TODO: wait for acknowledgement of majority
-
-        //send commit to all replicas
-        bankToBankFrontends.ForEach(server =>
-        {
-            server.SendTwoPCCommit(_currentSlot, cmd, seq);
-
-        });
-
-        //TODO: wait for acknowledgement of majority ???????????
-    }
-
-    public static void CommandProcessing( int id, Queue<ClientCommand> receivedCommands)
-    {
-        //Waiting for commands to be received, commands only added to the queue if is primary
-        Monitor.Enter(receivedCommands);
-        
-        while (true)
-        {
-            if (receivedCommands.Count == 0)
-            {
-                Monitor.Wait(receivedCommands);
-            } 
-            else
-            {
-                ClientCommand cc = receivedCommands.Dequeue();
-                Console.WriteLine($"Bank {_currentSlot}: EXECUTING CMD ({cc.ClientID}, {cc.ClientSeqNumber})");
-                
-                cc.Slot = _currentSlot;
-
-                //FIXME: change seq
-                //TwoPC(1, cc);
-            }
-        }
-
-        Monitor.Exit(receivedCommands);
-    }
-
-
-
 
 
     public static void PrintHeader()

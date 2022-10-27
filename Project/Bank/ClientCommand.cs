@@ -9,16 +9,31 @@ namespace DADProject
     public class ClientCommand
     {
         private int slot;
+
+        //Identification
         private int clientID;
         private int clientSeqNumber;
-        private string message;
 
-        public ClientCommand(int slot, int clientID, int clientSeqNumber, string message)
+        //Content
+        private string type;
+        private double amount;
+
+        public ClientCommand(int slot, int clientID, int clientSeqNumber, string type, double amount)
         {
             this.slot = slot;
             this.clientID = clientID;
             this.clientSeqNumber = clientSeqNumber;
-            this.message = message;
+            this.type = type;
+            this.amount = amount;
+        }
+
+        public ClientCommand(ClientCommand cc)
+        {
+            this.slot = cc.slot;
+            this.clientID = cc.clientID;
+            this.clientSeqNumber = cc.clientSeqNumber;
+            this.type = cc.type;
+            this.amount = cc.amount;
         }
 
         public int Slot
@@ -39,20 +54,20 @@ namespace DADProject
             set { clientSeqNumber = value; }
         }
 
-        public string Message
-        {
-            get { return message; }
-            set { message = value; }
-        }
-
         public ClientCommandGRPC CreateCommandGRPC(int globalSeqNumber)
         {
-            return new() { Slot = slot, ClientId = clientID, ClientSeqNumber = clientSeqNumber, Message = message, GlobalSeqNumber = globalSeqNumber };
+            return new() { 
+                Slot = slot, 
+                ClientId = clientID, 
+                ClientSeqNumber = clientSeqNumber, 
+                Type = type, 
+                Amount = amount, 
+                GlobalSeqNumber = globalSeqNumber };
         }
 
         public static ClientCommand CreateCommandFromGRPC(ClientCommandGRPC command)
         {
-            return new(command.Slot, command.ClientId, command.ClientSeqNumber, command.Message);
+            return new(command.Slot, command.ClientId, command.ClientSeqNumber, command.Type, command.Amount);
         }
     }
 }
