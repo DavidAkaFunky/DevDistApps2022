@@ -43,9 +43,9 @@ public class ClientFrontend
                     Console.WriteLine("Balance: " + reply.Balance.ToString("C", CultureInfo.CurrentCulture));
                     return;
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    Console.WriteLine("Oops"); // TODO
+                    Console.WriteLine(e);
                 }
             });
             thread.Start();
@@ -66,9 +66,9 @@ public class ClientFrontend
                     Console.WriteLine("Deposit of " + amount.ToString("C", CultureInfo.CurrentCulture));
                     return;
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    Console.WriteLine("Oops"); // TODO
+                    Console.WriteLine(e);
                 }
             });
             thread.Start();
@@ -89,9 +89,9 @@ public class ClientFrontend
                     Console.WriteLine("Withdrawal of " + amount.ToString("C", CultureInfo.CurrentCulture));
                     return;
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    Console.WriteLine("Oops"); // TODO
+                    Console.WriteLine(e);
                 }
             });
             thread.Start();

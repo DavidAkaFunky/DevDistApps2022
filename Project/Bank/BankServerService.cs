@@ -62,9 +62,15 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         //if (primary[currentSlot] != id) return Task.FromResult(reply);
 
         //=====================2PC=======================
-
-        TwoPC.Run(new(currentSlot, request.SenderId, request.Seq, "D", request.Amount));
-
+        try
+        {
+            TwoPC.Run(new(currentSlot, request.SenderId, request.Seq, "D", request.Amount));
+        }
+        catch (Exception e) // TODO: REMOVE THIS!!!
+        {
+            Console.WriteLine(e);
+            Thread.Sleep(100000);
+        }
         //================Execute and Reply==============
 
         //account.Deposit(request.Amount);

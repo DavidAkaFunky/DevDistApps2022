@@ -111,6 +111,7 @@ public class TwoPhaseCommit
 
     public void Run(ClientCommand cmd)
     {
+        var seqNumber = committedCommands.IsEmpty ? 0 : committedCommands.Keys.Max();
         Run(cmd, committedCommands.Keys.Max() + 1);
     }
 

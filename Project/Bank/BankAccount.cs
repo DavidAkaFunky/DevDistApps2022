@@ -2,7 +2,7 @@
 
 public class BankAccount
 {
-    public double Balance { get; private set; } = 694.20;
+    public double Balance { get; private set; } = 0;
 
     public void Deposit(double amount)
     {
