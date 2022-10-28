@@ -45,14 +45,14 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         
         //================Execute and Reply==============
 
-        //reply.Balance = account.Balance;
+        reply.Balance = account.Balance;
 
         return Task.FromResult(reply);
     }
 
     public override Task<DepositReply> Deposit(DepositRequest request, ServerCallContext context)
     {
-        DepositReply reply = new() { Status = -1 };
+        DepositReply reply = new() { Status = false };
 
         //=============Check If Leader===================
 
@@ -73,7 +73,9 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         }
         //================Execute and Reply==============
 
-        //account.Deposit(request.Amount);
+        account.Deposit(request.Amount);
+
+        reply.Status = true;
 
         return Task.FromResult(reply);
     }
@@ -95,7 +97,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
         //================Execute and Reply==============
 
-        //reply.Status = account.Withdraw(request.Amount);
+        reply.Status = account.Withdraw(request.Amount) ? 1 : 0;
 
         return Task.FromResult(reply);
     }
