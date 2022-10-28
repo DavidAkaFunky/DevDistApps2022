@@ -28,4 +28,8 @@
         <Protobuf Include="protos\BoneyLearner.proto" GrpcServices="BoneyLearner" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\PerfectChannel\PerfectChannel.csproj" />
+    </ItemGroup>
+
 </Project>

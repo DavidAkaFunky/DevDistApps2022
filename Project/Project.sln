@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Boney", "Boney\Boney.csproj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PuppetMaster", "PuppetMaster\PuppetMaster.csproj", "{A2A5E21E-D509-42C6-AADB-7CB114ECB81E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerfectChannel", "PerfectChannel\PerfectChannel.csproj", "{A4846985-AA96-4D0C-82E9-01C3834A5B77}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{A2A5E21E-D509-42C6-AADB-7CB114ECB81E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A2A5E21E-D509-42C6-AADB-7CB114ECB81E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A2A5E21E-D509-42C6-AADB-7CB114ECB81E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A4846985-AA96-4D0C-82E9-01C3834A5B77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4846985-AA96-4D0C-82E9-01C3834A5B77}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4846985-AA96-4D0C-82E9-01C3834A5B77}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4846985-AA96-4D0C-82E9-01C3834A5B77}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

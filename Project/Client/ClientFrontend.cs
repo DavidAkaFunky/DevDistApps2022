@@ -1,123 +1,285 @@
 ﻿using System.Globalization;
 using Grpc.Core;
-using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 
 namespace DADProject;
 
 public class ClientFrontend
 {
-    private readonly List<GrpcChannel> bankServers = new();
+    private static readonly int TIMEOUT = 100;
+    private readonly List<Sender> _bankServers = new();
+
     public ClientFrontend(List<string> bankServers)
     {
-        foreach (string s in bankServers)
-            AddServer(s);
+        bankServers.ForEach(s => _bankServers.Add(new Sender(GrpcChannel.ForAddress(s), TIMEOUT)));
     }
 
     public void AddServer(string server)
     {
-        var channel = GrpcChannel.ForAddress(server);
-        bankServers.Add(channel);
+        _bankServers.Add(new Sender(GrpcChannel.ForAddress(server), TIMEOUT));
     }
 
     public void DeleteServers()
     {
-        foreach (var server in bankServers)
-        {
-            server.ShutdownAsync().Wait();
-            bankServers.Remove(server);
-        }
-    }
-
-    public void TestSuccess(bool success)
-    {
-        if (!success)
-            Console.Error.WriteLine("The command could not be executed. Please try again!");
+        _bankServers.ForEach(s => s.Close());
     }
 
     public void ReadBalance()
     {
-        var success = false;
-        foreach (var channel in bankServers)
+        AutoResetEvent gotResult = new(false);
+        var finished = false;
+        object finishedLock = new();
+        var responseCount = 0;
+        _bankServers.ForEach(s =>
         {
-            var client = new ProjectBankServerService.ProjectBankServerServiceClient(channel);
-            Thread thread = new(() =>
+            //TODO maybe change to read majority and return the newest value
+            s.Send(new ReadBalanceRequest()).ContinueWith(task =>
             {
-                try
+                lock (finishedLock)
                 {
-                    ReadBalanceRequest request = new();
-                    var reply = client.ReadBalance(request);
-                    if (reply.Balance > -1)
+                    responseCount++;
+
+                    if (!finished && task.Result.Balance > 0)
                     {
-                        success = true;
-                        Console.WriteLine("Balance: " + reply.Balance.ToString("C", CultureInfo.CurrentCulture));
+                        Console.WriteLine("Balance: " + task.Result.Balance.ToString("C", CultureInfo.CurrentCulture));
+                        finished = true;
                     }
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
+
+                    gotResult.Set();
                 }
             });
-            thread.Start();
+        });
+
+        while (true)
+        {
+            var cond = false;
+            lock (finishedLock)
+            {
+                cond = !finished && responseCount != _bankServers.Count;
+            }
+
+            if (!cond)
+                gotResult.WaitOne();
+            else
+                break;
         }
-        TestSuccess(success);
     }
+
 
     public void Deposit(double amount)
     {
-        var success = false;
-        foreach (var channel in bankServers)
+        AutoResetEvent gotResult = new(false);
+        var finished = false;
+        object finishedLock = new();
+        var responseCount = 0;
+        _bankServers.ForEach(s =>
         {
-            var client = new ProjectBankServerService.ProjectBankServerServiceClient(channel);
-            Thread thread = new(() =>
+            //TODO maybe change to read majority and return the newest value
+            s.Send(new DepositRequest { Amount = amount }).ContinueWith(task =>
             {
-                try
+                lock (finishedLock)
                 {
-                    DepositRequest request = new() { Amount = amount };
-                    var reply = client.Deposit(request);
-                    if (reply.Status)
+                    responseCount++;
+
+                    if (!finished && !task.Result.Status)
                     {
-                        success = true;
                         Console.WriteLine("Deposit of " + amount.ToString("C", CultureInfo.CurrentCulture));
+                        finished = true;
                     }
-                    return;
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e);
+
+                    gotResult.Set();
                 }
             });
-            thread.Start();
+        });
+
+        while (true)
+        {
+            var cond = false;
+            lock (finishedLock)
+            {
+                cond = !finished && responseCount != _bankServers.Count;
+            }
+
+            if (!cond)
+                gotResult.WaitOne();
+            else
+                break;
         }
-        TestSuccess(success);
     }
+
 
     public void Withdraw(double amount)
     {
-        var success = false;
-        foreach (var channel in bankServers)
+        AutoResetEvent gotResult = new(false);
+        var finished = false;
+        object finishedLock = new();
+        var responseCount = 0;
+        _bankServers.ForEach(s =>
         {
-            var client = new ProjectBankServerService.ProjectBankServerServiceClient(channel);
-            Thread thread = new(() =>
+            //TODO maybe change to read majority and return the newest value
+            s.Send(new WithdrawRequest { Amount = amount }).ContinueWith(task =>
+            {
+                lock (finishedLock)
+                {
+                    responseCount++;
+
+                    if (!finished)
+                    {
+                        switch (task.Result.Status)
+                        {
+                            case > 0:
+                                Console.WriteLine("Deposit of " + amount.ToString("C", CultureInfo.CurrentCulture));
+                                break;
+                            case 0:
+                                Console.Error.WriteLine("The account's balance is not high enough");
+                                break;
+                        }
+
+                        finished = true;
+                    }
+
+                    gotResult.Set();
+                }
+            });
+        });
+
+        while (true)
+        {
+            var cond = false;
+            lock (finishedLock)
+            {
+                cond = !finished && responseCount != _bankServers.Count;
+            }
+
+            if (!cond)
+                gotResult.WaitOne();
+            else
+                break;
+        }
+    }
+}
+
+public class Sender
+{
+    private readonly GrpcChannel _channel;
+    private readonly Random _random = new();
+    private readonly Mutex _seqLock = new();
+    private readonly int _timeout;
+    private int _currentSeq = 1;
+
+    public Sender(GrpcChannel channel, int timeout)
+    {
+        _channel = channel;
+        _timeout = timeout;
+    }
+
+    public Task<ReadBalanceReply> Send(ReadBalanceRequest req)
+    {
+        var t = new Task<ReadBalanceReply>(() =>
+        {
+            var stub = new ProjectBankServerService.ProjectBankServerServiceClient(_channel);
+            ReadBalanceReply? reply = null;
+            lock (_seqLock)
+            {
+                req.Seq = _currentSeq++;
+            }
+
+            while (true)
             {
                 try
                 {
-                    WithdrawRequest request = new() { Amount = amount };
-                    var reply = client.Withdraw(request);
-                    if (reply.Status < 0)
-                        return;
-                    if (reply.Status == 0)
-                        Console.Error.WriteLine("The account's balance is not high enough");
-                    if (reply.Status > 0)
-                        Console.WriteLine("Withdrawal of " + amount.ToString("C", CultureInfo.CurrentCulture));
+                    reply = stub.ReadBalance(req, null,
+                        DateTime.Now.AddMilliseconds(_timeout + _random.Next() % _timeout));
                 }
-                catch (Exception e)
+                catch (RpcException)
                 {
-                    Console.WriteLine(e);
+                    reply = null;
+                    continue;
                 }
-            });
-            thread.Start();
-        }
-        TestSuccess(success);
+
+                if (reply.Ack <= req.Seq)
+                    continue;
+                break;
+            }
+
+            return reply;
+        });
+        t.Start();
+        return t;
+    }
+
+    public Task<DepositReply> Send(DepositRequest req)
+    {
+        var t = new Task<DepositReply>(() =>
+        {
+            var stub = new ProjectBankServerService.ProjectBankServerServiceClient(_channel);
+            DepositReply? reply = null;
+            lock (_seqLock)
+            {
+                req.Seq = _currentSeq++;
+            }
+
+            while (true)
+            {
+                try
+                {
+                    reply = stub.Deposit(req, null,
+                        DateTime.Now.AddMilliseconds(_timeout + _random.Next() % _timeout));
+                }
+                catch (RpcException)
+                {
+                    reply = null;
+                    continue;
+                }
+
+                if (reply.Ack <= req.Seq)
+                    continue;
+                break;
+            }
+
+            return reply;
+        });
+        t.Start();
+        return t;
+    }
+
+    public Task<WithdrawReply> Send(WithdrawRequest req)
+    {
+        var t = new Task<WithdrawReply>(() =>
+        {
+            var stub = new ProjectBankServerService.ProjectBankServerServiceClient(_channel);
+            WithdrawReply? reply = null;
+            lock (_seqLock)
+            {
+                req.Seq = _currentSeq++;
+            }
+
+            while (true)
+            {
+                try
+                {
+                    reply = stub.Withdraw(req, null,
+                        DateTime.Now.AddMilliseconds(_timeout + _random.Next() % _timeout));
+                }
+                catch (RpcException)
+                {
+                    reply = null;
+                    continue;
+                }
+
+                if (reply.Ack <= req.Seq)
+                    continue;
+                break;
+            }
+
+            return reply;
+        });
+        t.Start();
+        return t;
+    }
+
+    public void Close()
+    {
+        _channel.ShutdownAsync().Wait();
     }
 }

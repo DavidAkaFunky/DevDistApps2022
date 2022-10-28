@@ -55,7 +55,7 @@ internal class Boney
             "T" => Command.WallTime,
             "D" => Command.SlotDuration,
             "F" => Command.SlotState,
-            _ => Command.Invalid,
+            _ => Command.Invalid
         };
     }
 
@@ -97,7 +97,7 @@ internal class Boney
                         break;
                     case Command.SlotState:
                         // Giga Cursed
-                        foreach (var c in new string[] { ",", "(", ")" })
+                        foreach (var c in new[] { ",", "(", ")" })
                             line = line.Replace(c, string.Empty);
                         var fields = line.Split();
                         Dictionary<int, ServerState> states = new();
@@ -105,14 +105,14 @@ internal class Boney
                         {
                             var _id = int.Parse(fields[i]);
                             if (!_boneyIDs.Contains(_id)) continue;
-                            bool isFrozen = fields[i + 1] != "N";
+                            var isFrozen = fields[i + 1] != "N";
                             bool isSuspected;
                             if (_id == id)
                                 isSuspected = isFrozen;
                             else
                                 isSuspected = fields[i + 2] == "S";
                             var state = new ServerState
-                            { IsFrozen = isFrozen, IsSuspected = isSuspected };
+                                { IsFrozen = isFrozen, IsSuspected = isSuspected };
                             states.Add(_id, state);
                         }
 
@@ -146,7 +146,7 @@ internal class Boney
         var isPerceivedLeader = new Dictionary<int, bool>();
         var isFrozen = new Dictionary<int, bool>();
 
-        for (int slot = 0; slot < _serverStates.Count; slot++)
+        for (var slot = 0; slot < _serverStates.Count; slot++)
         {
             // ver se está frozen em cada slot
             isFrozen[slot + 1] = _serverStates[slot][id].IsFrozen;
@@ -154,20 +154,21 @@ internal class Boney
             // pls don't blame me for spaghetti code, couldn't find a way to convert it
             // directly to list without converting to dict and then getting the keys
             var notSuspected = _serverStates[slot].Where(server => !server.Value.IsSuspected)
-                                                  .ToDictionary(server => server.Key, server => server.Value)
-                                                  .Keys.ToList();
+                .ToDictionary(server => server.Key, server => server.Value)
+                .Keys.ToList();
 
             // pensa que e lider se a lista de servidores vivos para um slot n estiver vazia (duh)
             // e se o minimo dos valores da lista for ele proprio
             isPerceivedLeader[slot + 1] = notSuspected.Count > 0 && notSuspected.Min() == id;
         }
-            
+
 
         //======================================================SERVICES===========================================
 
         var proposerService = new BoneyProposerService(id, slotsHistory, slotsInfo, isFrozen, _boneySlot);
         var acceptorService = new BoneyAcceptorService(id, boneyToBoneyfrontends, slotsInfo, isFrozen, _boneySlot);
-        var learnerService = new BoneyLearnerService(id, boneyToBankfrontends, _boneyAddresses.Count, slotsHistory, isFrozen, _boneySlot);
+        var learnerService = new BoneyLearnerService(id, boneyToBankfrontends, _boneyAddresses.Count, slotsHistory,
+            isFrozen, _boneySlot);
 
         var ownUri = new Uri(_address);
         var server = new Server
@@ -187,15 +188,15 @@ internal class Boney
         Console.WriteLine("Server " + ownUri.Host + " listening on port " + ownUri.Port);
 
         Paxos(id,
-              _slotDuration,
-              _slotCount,
-              boneyToBoneyfrontends,
-              isPerceivedLeader, 
-              slotsInfo,
-              slotsHistory,
-              proposerService,
-              acceptorService,
-              learnerService);
+            _slotDuration,
+            _slotCount,
+            boneyToBoneyfrontends,
+            isPerceivedLeader,
+            slotsInfo,
+            slotsHistory,
+            proposerService,
+            acceptorService,
+            learnerService);
 
         Console.WriteLine("Press any key to stop the server...");
         Console.ReadKey();
@@ -218,18 +219,18 @@ internal class Boney
     }
 
     public static void Paxos(int id,
-                             int slotDuration,
-                             int slotCount,
-                             List<BoneyToBoneyFrontend> frontends,
-                             Dictionary<int, bool> isPerceivedLeader, 
-                             ConcurrentDictionary<int, Slot> slotsInfo,
-                             ConcurrentDictionary<int, int> slotHistory,
-                             BoneyProposerService proposerService,
-                             BoneyAcceptorService acceptorService,
-                             BoneyLearnerService learnerService)
+        int slotDuration,
+        int slotCount,
+        List<BoneyToBoneyFrontend> frontends,
+        Dictionary<int, bool> isPerceivedLeader,
+        ConcurrentDictionary<int, Slot> slotsInfo,
+        ConcurrentDictionary<int, int> slotHistory,
+        BoneyProposerService proposerService,
+        BoneyAcceptorService acceptorService,
+        BoneyLearnerService learnerService)
     {
-        int timestampId = id;
-        Slot slotToPropose;
+        var timestampId = id;
+        Slot? slotToPropose;
 
         //========================================BONEY_SLOT_TIMER====================================================
 
@@ -252,7 +253,7 @@ internal class Boney
 
         //======================================================================================================
 
-        while(true)
+        while (true)
         {
             //Loop enquanto nao sou lider
             if (!isPerceivedLeader[_boneySlot]) continue;
@@ -264,7 +265,7 @@ internal class Boney
 
             // se nao (dicionario vazio ou o menor valor n é o meu), desisto 
 
-            Console.WriteLine("Proposer: " + mostRecentslot + ": STARTING CONSENSUS" );
+            Console.WriteLine("Proposer: " + mostRecentslot + ": STARTING CONSENSUS");
 
             var value = slotToPropose.CurrentValue;
             var ts = 0;
@@ -298,10 +299,8 @@ internal class Boney
             }
 
             if (stop)
-            {
                 //MAYBE aumentar timestampId
                 continue;
-            }
 
             Console.WriteLine("Proposer: {0}: Send ACCEPT \n ========> Value: {1} / TS: {2}",
                 mostRecentslot, value, ts);
@@ -315,7 +314,6 @@ internal class Boney
                 server.Accept(mostRecentslot, timestampId, value);
                 Console.WriteLine($"Proposer: ACCEPT TO {server.ServerAddress} REPLY");
             });
-
         }
     }
 }

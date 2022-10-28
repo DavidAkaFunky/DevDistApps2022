@@ -1,5 +1,5 @@
-﻿using Grpc.Core;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
+using Grpc.Core;
 
 namespace DADProject;
 
@@ -7,33 +7,41 @@ namespace DADProject;
 // ChatServerServiceBase is the generated base implementation of the service
 internal class BankServerService : ProjectBankServerService.ProjectBankServerServiceBase
 {
-    private int id;
+    private readonly object _ackLock = new();
     private readonly BankAccount account = new();
 
-    private int currentSlot = 1;
-    private ConcurrentDictionary<int, int> primary; //  primary/backup
+    private readonly int id;
+    private readonly ConcurrentDictionary<int, int> primary; //  primary/backup
 
-    private TwoPhaseCommit TwoPC;
+    private readonly TwoPhaseCommit TwoPC;
 
-    public BankServerService(int id, ConcurrentDictionary<int, int> primary, TwoPhaseCommit TwoPC) 
+    //TODO change this to a dictionary where <clientId>, <lastAck> pairs are saved
+    //TODO this implies changing proto messages to include clientIds in all the requests
+    private int _ack;
+
+    public BankServerService(int id, ConcurrentDictionary<int, int> primary, TwoPhaseCommit TwoPC)
     {
         this.id = id;
         this.primary = primary;
         this.TwoPC = TwoPC;
     }
 
-    public int CurrentSlot
-    {
-        get { return currentSlot; }
-        set { currentSlot = value; }
-    }
+    public int CurrentSlot { get; set; } = 1;
 
     public override Task<ReadBalanceReply> ReadBalance(ReadBalanceRequest request, ServerCallContext context)
     {
+        lock (_ackLock)
+        {
+            if (request.Seq != _ack + 1)
+                return Task.FromResult(new ReadBalanceReply { Ack = _ack });
+            _ack = request.Seq;
+        }
+
+
         ReadBalanceReply reply = new() { Balance = -1 };
 
         //=============Check If Leader===================
-        
+
         //temporary 
         if (id != 4) return Task.FromResult(reply);
 
@@ -41,8 +49,8 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
         //=====================2PC=======================
 
-        TwoPC.Run(new(currentSlot, request.SenderId, request.Seq, "R", 0));
-        
+        TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "R", 0));
+
         //================Execute and Reply==============
 
         reply.Balance = account.Balance;
@@ -52,6 +60,13 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
     public override Task<DepositReply> Deposit(DepositRequest request, ServerCallContext context)
     {
+        lock (_ackLock)
+        {
+            if (request.Seq != _ack + 1)
+                return Task.FromResult(new DepositReply { Ack = _ack });
+            _ack = request.Seq;
+        }
+
         DepositReply reply = new() { Status = false };
 
         //=============Check If Leader===================
@@ -64,7 +79,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         //=====================2PC=======================
         try
         {
-            TwoPC.Run(new(currentSlot, request.SenderId, request.Seq, "D", request.Amount));
+            TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "D", request.Amount));
         }
         catch (Exception e) // TODO: REMOVE THIS!!!
         {
@@ -82,6 +97,13 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
     public override Task<WithdrawReply> Withdraw(WithdrawRequest request, ServerCallContext context)
     {
+        lock (_ackLock)
+        {
+            if (request.Seq != _ack + 1)
+                return Task.FromResult(new WithdrawReply { Ack = _ack });
+            _ack = request.Seq;
+        }
+
         WithdrawReply reply = new() { Status = -1 };
 
         //=============Check If Leader===================
@@ -93,7 +115,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
         //=====================2PC=======================
 
-        TwoPC.Run(new(currentSlot, request.SenderId, request.Seq, "W", request.Amount));
+        TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "W", request.Amount));
 
         //================Execute and Reply==============
 
