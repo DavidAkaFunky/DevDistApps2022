@@ -58,11 +58,13 @@ public class ClientFrontend
                 cond = !finished && responseCount != _bankServers.Count;
             }
 
-            if (!cond)
-                gotResult.WaitOne();
-            else
+            if (cond)
                 break;
+            gotResult.WaitOne();
         }
+
+        if (!finished)
+            Console.WriteLine("The command couldn't be processed. Please try again!");
     }
 
 
@@ -100,11 +102,13 @@ public class ClientFrontend
                 cond = !finished && responseCount != _bankServers.Count;
             }
 
-            if (!cond)
-                gotResult.WaitOne();
-            else
+            if (cond)
                 break;
+            gotResult.WaitOne();
         }
+
+        if (!finished)
+            Console.WriteLine("The command couldn't be processed. Please try again!");
     }
 
 
@@ -151,11 +155,13 @@ public class ClientFrontend
                 cond = !finished && responseCount != _bankServers.Count;
             }
 
-            if (!cond)
-                gotResult.WaitOne();
-            else
+            if (cond)
                 break;
+            gotResult.WaitOne();
         }
+
+        if (!finished)
+            Console.WriteLine("The command couldn't be processed. Please try again!");
     }
 }
 
@@ -188,8 +194,8 @@ public class Sender
             {
                 try
                 {
-                    reply = stub.ReadBalance(req, null,
-                        DateTime.Now.AddMilliseconds(_timeout + _random.Next() % _timeout));
+                    reply = stub.ReadBalance(req,
+                                             deadline: DateTime.Now.AddMilliseconds(_timeout + _random.Next() % _timeout));
                 }
                 catch (RpcException)
                 {
@@ -197,9 +203,8 @@ public class Sender
                     continue;
                 }
 
-                if (reply.Ack <= req.Seq)
-                    continue;
-                break;
+                if (reply.Ack >= req.Seq)
+                    break;
             }
 
             return reply;
@@ -210,8 +215,10 @@ public class Sender
 
     public Task<DepositReply> Send(DepositRequest req)
     {
+
         var t = new Task<DepositReply>(() =>
         {
+
             var stub = new ProjectBankServerService.ProjectBankServerServiceClient(_channel);
             DepositReply? reply = null;
             lock (_seqLock)
@@ -223,8 +230,8 @@ public class Sender
             {
                 try
                 {
-                    reply = stub.Deposit(req, null,
-                        DateTime.Now.AddMilliseconds(_timeout + _random.Next() % _timeout));
+                    reply = stub.Deposit(req,
+                                         deadline: DateTime.Now.AddMilliseconds(_timeout + _random.Next() % _timeout));
                 }
                 catch (RpcException)
                 {
@@ -232,9 +239,8 @@ public class Sender
                     continue;
                 }
 
-                if (reply.Ack <= req.Seq)
-                    continue;
-                break;
+                if (reply.Ack >= req.Seq)
+                    break;
             }
 
             return reply;
@@ -258,8 +264,8 @@ public class Sender
             {
                 try
                 {
-                    reply = stub.Withdraw(req, null,
-                        DateTime.Now.AddMilliseconds(_timeout + _random.Next() % _timeout));
+                    reply = stub.Withdraw(req,
+                                          deadline: DateTime.Now.AddMilliseconds(_timeout + _random.Next() % _timeout));
                 }
                 catch (RpcException)
                 {
@@ -267,9 +273,8 @@ public class Sender
                     continue;
                 }
 
-                if (reply.Ack <= req.Seq)
-                    continue;
-                break;
+                if (reply.Ack >= req.Seq)
+                    break;
             }
 
             return reply;

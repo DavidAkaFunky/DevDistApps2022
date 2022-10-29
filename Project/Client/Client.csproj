@@ -19,9 +19,5 @@
         </PackageReference>
 		<Protobuf Include="..\Bank\protos\BankServer.proto" GrpcServices="BankServer" />
 	</ItemGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\PerfectChannel\PerfectChannel.csproj" />
-    </ItemGroup>
-
+	
 </Project>

@@ -3,15 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.3.32901.215
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csproj", "{5EC84FE3-D0AD-4244-A4DF-90CAF52672E6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Client", "Client\Client.csproj", "{5EC84FE3-D0AD-4244-A4DF-90CAF52672E6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bank", "Bank\Bank.csproj", "{80ACB705-B05E-4E86-9E32-2DFD2451CE6B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bank", "Bank\Bank.csproj", "{80ACB705-B05E-4E86-9E32-2DFD2451CE6B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Boney", "Boney\Boney.csproj", "{89D69423-F723-4448-94FD-31C81B67B43B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Boney", "Boney\Boney.csproj", "{89D69423-F723-4448-94FD-31C81B67B43B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PuppetMaster", "PuppetMaster\PuppetMaster.csproj", "{A2A5E21E-D509-42C6-AADB-7CB114ECB81E}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PerfectChannel", "PerfectChannel\PerfectChannel.csproj", "{A4846985-AA96-4D0C-82E9-01C3834A5B77}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PuppetMaster", "PuppetMaster\PuppetMaster.csproj", "{A2A5E21E-D509-42C6-AADB-7CB114ECB81E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,10 +33,6 @@ Global
 		{A2A5E21E-D509-42C6-AADB-7CB114ECB81E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A2A5E21E-D509-42C6-AADB-7CB114ECB81E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A2A5E21E-D509-42C6-AADB-7CB114ECB81E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A4846985-AA96-4D0C-82E9-01C3834A5B77}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A4846985-AA96-4D0C-82E9-01C3834A5B77}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A4846985-AA96-4D0C-82E9-01C3834A5B77}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A4846985-AA96-4D0C-82E9-01C3834A5B77}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
