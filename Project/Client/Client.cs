@@ -18,15 +18,15 @@ public class Client
         const string READ_BALANCE_CMD = "R";
         const string WAIT_CMD = "S";
 
-        if (args.Length != 2)
+        if (args.Length != 3)
         {
-            Console.Error.WriteLine("Wrong number of arguments: [id] [configPath]");
+            Console.Error.WriteLine("Wrong number of arguments: [id] [generalConfigPath] [clientConfigPath]");
             return;
         }
 
         try
         {
-            Id = int.Parse(args[0]);
+            _id = int.Parse(args[0]);
         }
         catch (Exception)
         {
@@ -35,26 +35,23 @@ public class Client
         }
 
         List<string> bankServers = new();
-        
-        foreach (string line in File.ReadAllLines(args[1]))
+
+        File.ReadLines(args[1]).ToList().ForEach(line =>
         {
             var tokens = line.Split(' ');
             if (tokens[0] == "P")
                 if (tokens[2] == "bank")
                     bankServers.Add(tokens[3]);
-        }
+        });
 
         AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-        ClientFrontend frontend = new(bankServers);
+        ClientFrontend frontend = new(bankServers, _id);
 
         PrintHeader();
 
-        while (true)
+        File.ReadLines(args[2]).ToList().ForEach(line =>
         {
-            Console.Write("Enter command: ");
-            var line = Console.ReadLine();
-            if (line is null)
-                return;
+
             var tokens = line.Split(' ');
             var cmd = tokens[0];
             int amount;
@@ -66,7 +63,7 @@ public class Client
                         Console.Error.WriteLine("ERROR: Invalid command");
                         break;
                     }
-                    
+
                     try
                     {
                         amount = int.Parse(tokens[1]);
@@ -104,7 +101,7 @@ public class Client
                     {
                         Console.Error.WriteLine("ERROR: Invalid timespan");
                     }
-                    
+
                     break;
                 case READ_BALANCE_CMD: // Read balance: R
                     if (tokens.Length != 1)
@@ -145,7 +142,7 @@ public class Client
                     Console.Error.WriteLine("ERROR: Unknown command");
                     break;
             }
-        }
+        });
     }
 
     public static void PrintHeader() 

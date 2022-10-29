@@ -9,14 +9,9 @@ public class ClientFrontend
     private static readonly int TIMEOUT = 100;
     private readonly List<Sender> _bankServers = new();
 
-    public ClientFrontend(List<string> bankServers)
+    public ClientFrontend(List<string> bankServers, int senderID)
     {
-        bankServers.ForEach(s => _bankServers.Add(new Sender(GrpcChannel.ForAddress(s), TIMEOUT)));
-    }
-
-    public void AddServer(string server)
-    {
-        _bankServers.Add(new Sender(GrpcChannel.ForAddress(server), TIMEOUT));
+        bankServers.ForEach(s => _bankServers.Add(new Sender(GrpcChannel.ForAddress(s), TIMEOUT, senderID)));
     }
 
     public void DeleteServers()
@@ -172,11 +167,13 @@ public class Sender
     private readonly Mutex _seqLock = new();
     private readonly int _timeout;
     private int _currentSeq = 1;
+    private int _senderID;
 
-    public Sender(GrpcChannel channel, int timeout)
+    public Sender(GrpcChannel channel, int timeout, int senderID)
     {
         _channel = channel;
         _timeout = timeout;
+        _senderID = senderID;
     }
 
     public Task<ReadBalanceReply> Send(ReadBalanceRequest req)
@@ -189,7 +186,7 @@ public class Sender
             {
                 req.Seq = _currentSeq++;
             }
-
+            req.SenderId = _senderID;
             while (true)
             {
                 try
@@ -225,7 +222,7 @@ public class Sender
             {
                 req.Seq = _currentSeq++;
             }
-
+            req.SenderId = _senderID;
             while (true)
             {
                 try
@@ -259,7 +256,7 @@ public class Sender
             {
                 req.Seq = _currentSeq++;
             }
-
+            req.SenderId = _senderID;
             while (true)
             {
                 try
