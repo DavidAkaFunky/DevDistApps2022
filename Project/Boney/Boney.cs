@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using Grpc.Core;
 using Timer = System.Timers.Timer;
 
@@ -25,13 +26,15 @@ internal struct ServerState
 internal class Boney
 {
     private static int _boneySlot = 1;
+    private static int _slotCount;
+    private static int _slotDuration;
+    private static int _initialSleepTime;
+
     private static string _address = "";
     private static readonly List<string> _boneyAddresses = new();
-    private static readonly List<int> _boneyIDs = new();
     private static readonly List<string> _bankAddresses = new();
-    private static int _slotCount;
-    private static readonly List<int> _wallTimes = new();
-    private static int _slotDuration;
+    private static readonly List<int> _boneyIDs = new();
+
     private static readonly List<Dictionary<int, ServerState>> _serverStates = new();
 
     private static Command GetType(string line, out string[] tokens)
@@ -90,7 +93,11 @@ internal class Boney
                         _slotCount = int.Parse(tokens[1]);
                         break;
                     case Command.WallTime:
-                        tokens[1].Split(':').ToList().ForEach(time => _wallTimes.Add(int.Parse(time)));
+                        var currentTime = DateTime.Now;
+                        var startTime = Convert.ToDateTime(tokens[1]);
+                        if (startTime < currentTime)
+                            startTime.AddDays(1);
+                        _initialSleepTime = (int)(startTime - currentTime).TotalMilliseconds;
                         break;
                     case Command.SlotDuration:
                         _slotDuration = int.Parse(tokens[1]);
@@ -182,7 +189,6 @@ internal class Boney
             Ports = { new ServerPort(ownUri.Host, ownUri.Port, ServerCredentials.Insecure) }
         };
         server.Start();
-        Thread.Sleep(5000);
 
         PrintHeader();
         Console.WriteLine("Server " + ownUri.Host + " listening on port " + ownUri.Port);
@@ -246,6 +252,10 @@ internal class Boney
             learnerService.CurrentSlot = _boneySlot;
             Console.WriteLine("--NEW SLOT: {0}--", _boneySlot);
         }
+
+        //ACTIVATE BEFORE THE DELIVERY!!!!
+        //Console.WriteLine("Waiting for " + _initialSleepTime + " milliseconds");
+        //Thread.Sleep(_initialSleepTime);
 
         timer.Elapsed += (sender, e) => HandleSlotTimer();
         timer.Start();

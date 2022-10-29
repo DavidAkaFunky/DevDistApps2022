@@ -28,7 +28,7 @@ internal class Bank
     private static int _currentSlot = 1;
     private static int _slotCount;
     private static int _slotDuration;
-    private static readonly List<int> _wallTimes = new();
+    private static int _initialSleepTime;
 
     private static string _address = "";
     private static readonly List<string> _boneyAddresses = new();
@@ -96,7 +96,11 @@ internal class Bank
                         _slotCount = int.Parse(tokens[1]);
                         break;
                     case Command.WallTime:
-                        tokens[1].Split(':').ToList().ForEach(time => _wallTimes.Add(int.Parse(time)));
+                        var currentTime = DateTime.Now;
+                        var startTime = Convert.ToDateTime(tokens[1]);
+                        if (startTime < currentTime)
+                            startTime.AddDays(1);
+                        _initialSleepTime = (int)(startTime - currentTime).TotalMilliseconds;
                         break;
                     case Command.SlotDuration:
                         _slotDuration = int.Parse(tokens[1]);
@@ -163,7 +167,6 @@ internal class Bank
             Ports = { new ServerPort(ownUri.Host, ownUri.Port, ServerCredentials.Insecure) }
         };
         server.Start();
-        Thread.Sleep(5000);
 
         PrintHeader();
 
@@ -199,6 +202,10 @@ internal class Bank
                 TwoPC.CleanUp2PC(_currentSlot);
             }
         }
+
+        //ACTIVATE BEFORE THE DELIVERY!!!!
+        //Console.WriteLine("Waiting for " + _initialSleepTime + " milliseconds");
+        //Thread.Sleep(_initialSleepTime);
 
         Timer timer = new(_slotDuration);
         timer.Elapsed += (sender, e) => HandleTimer();
