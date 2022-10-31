@@ -50,9 +50,8 @@ public class ClientFrontend
             var cond = false;
             lock (finishedLock)
             {
-                cond = !finished && responseCount != _bankServers.Count;
+                cond = finished || responseCount == _bankServers.Count;
             }
-
             if (cond)
                 break;
             gotResult.WaitOne();
@@ -94,9 +93,8 @@ public class ClientFrontend
             var cond = false;
             lock (finishedLock)
             {
-                cond = !finished && responseCount != _bankServers.Count;
+                cond = finished || responseCount == _bankServers.Count;
             }
-
             if (cond)
                 break;
             gotResult.WaitOne();
@@ -127,7 +125,7 @@ public class ClientFrontend
                         switch (task.Result.Status)
                         {
                             case > 0:
-                                Console.WriteLine("Deposit of " + amount.ToString("C", CultureInfo.CurrentCulture));
+                                Console.WriteLine("Withdrawal of " + amount.ToString("C", CultureInfo.CurrentCulture));
                                 break;
                             case 0:
                                 Console.Error.WriteLine("The account's balance is not high enough");
@@ -147,7 +145,7 @@ public class ClientFrontend
             var cond = false;
             lock (finishedLock)
             {
-                cond = !finished && responseCount != _bankServers.Count;
+                cond = finished || responseCount == _bankServers.Count;
             }
 
             if (cond)
@@ -191,15 +189,13 @@ public class Sender
             {
                 try
                 {
-                    reply = stub.ReadBalance(req,
-                                             deadline: DateTime.Now.AddMilliseconds(_timeout + _random.Next() % _timeout));
+                    reply = stub.ReadBalance(req);
                 }
                 catch (RpcException)
                 {
                     reply = null;
                     continue;
                 }
-
                 if (reply.Ack >= req.Seq)
                     break;
             }
@@ -227,15 +223,13 @@ public class Sender
             {
                 try
                 {
-                    reply = stub.Deposit(req,
-                                         deadline: DateTime.Now.AddMilliseconds(_timeout + _random.Next() % _timeout));
+                    reply = stub.Deposit(req);
                 }
                 catch (RpcException)
                 {
                     reply = null;
                     continue;
                 }
-
                 if (reply.Ack >= req.Seq)
                     break;
             }
@@ -261,15 +255,13 @@ public class Sender
             {
                 try
                 {
-                    reply = stub.Withdraw(req,
-                                          deadline: DateTime.Now.AddMilliseconds(_timeout + _random.Next() % _timeout));
+                    reply = stub.Withdraw(req);
                 }
                 catch (RpcException)
                 {
                     reply = null;
                     continue;
                 }
-
                 if (reply.Ack >= req.Seq)
                     break;
             }

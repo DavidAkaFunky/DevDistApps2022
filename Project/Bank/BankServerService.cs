@@ -19,7 +19,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
     //TODO change this to a dictionary where <clientId>, <lastAck> pairs are saved
     //TODO this implies changing proto messages to include clientIds in all the requests
-    private int _ack;
+    private int _ack = 0;
 
     public BankServerService(int id, ConcurrentDictionary<int, int> primary, TwoPhaseCommit TwoPC, Dictionary<int, bool> isFrozen)
     {
@@ -36,12 +36,11 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         lock (_ackLock)
         {
             if (request.Seq != _ack + 1)
-                return Task.FromResult(new ReadBalanceReply { Ack = _ack });
+                return Task.FromResult(new ReadBalanceReply { Balance = -1, Ack = _ack });
             _ack = request.Seq;
         }
 
-
-        ReadBalanceReply reply = new() { Balance = -1 };
+        var reply = new ReadBalanceReply { Balance = -1, Ack = request.Seq };
 
         //=============Check If Leader===================
 
@@ -54,7 +53,6 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         //================Execute and Reply==============
 
         reply.Balance = account.Balance;
-
         return Task.FromResult(reply);
     }
 
@@ -63,26 +61,20 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         lock (_ackLock)
         {
             if (request.Seq != _ack + 1)
-                return Task.FromResult(new DepositReply { Ack = _ack });
+                return Task.FromResult(new DepositReply { Status = false, Ack = _ack });
             _ack = request.Seq;
         }
 
-        DepositReply reply = new() { Status = false };
+        var reply = new DepositReply { Status = false, Ack = request.Seq };
 
         //=============Check If Leader===================
 
         if (primary[CurrentSlot] != id || isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
         //=====================2PC=======================
-        try
-        {
-            TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "D", request.Amount));
-        }
-        catch (Exception e) // TODO: REMOVE THIS!!!
-        {
-            Console.WriteLine(e);
-            Thread.Sleep(100000);
-        }
+        
+        TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "D", request.Amount));
+        
         //================Execute and Reply==============
 
         account.Deposit(request.Amount);
@@ -97,11 +89,11 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         lock (_ackLock)
         {
             if (request.Seq != _ack + 1)
-                return Task.FromResult(new WithdrawReply { Ack = _ack });
+                return Task.FromResult(new WithdrawReply { Status = -1, Ack = _ack });
             _ack = request.Seq;
         }
 
-        WithdrawReply reply = new() { Status = -1 };
+        var reply = new WithdrawReply { Status = -1, Ack = request.Seq };
 
         //=============Check If Leader===================
 
@@ -120,7 +112,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
     public override Task<CompareSwapReply> AcceptCompareSwapResult(CompareSwapResult request, ServerCallContext context)
     {
-        //Console.WriteLine("Received result for slot {0}: {1}", request.Slot, request.Value);
+        Console.WriteLine("Received result for slot {0}: {1}", request.Slot, request.Value);
         
         if (!isFrozen[CurrentSlot])
             primary[request.Slot] = request.Value;

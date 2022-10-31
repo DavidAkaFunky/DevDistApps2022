@@ -147,8 +147,6 @@ internal class Bank
         _address = _bankAddresses[id - _boneyAddresses.Count - 1];
         Uri ownUri = new(_address);
 
-        var bankServerService = new BankServerService(id, primaries, TwoPC);
-        var bank2PCService = new BankTwoPCService(id, primaries, TwoPC);
         var isPerceivedLeader = new Dictionary<int, bool>();
         var isFrozen = new Dictionary<int, bool>();
 
@@ -168,11 +166,14 @@ internal class Bank
             isPerceivedLeader[slot + 1] = notSuspected.Count > 0 && notSuspected.Min() == id;
         }
 
+        var bankServerService = new BankServerService(id, primaries, TwoPC, isFrozen);
+        var bank2PCService = new BankTwoPCService(id, primaries, TwoPC, isFrozen);
+
         _bankAddresses.ForEach(serverAddr =>
-            bankToBankFrontends.Add(new BankToBankFrontend(id, serverAddr, isFrozen)));
+            bankToBankFrontends.Add(new BankToBankFrontend(id, serverAddr)));
 
         _boneyAddresses.ForEach(serverAddr =>
-            bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr, primaries, isFrozen)));
+            bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr, primaries)));
 
         Server server = new()
         {

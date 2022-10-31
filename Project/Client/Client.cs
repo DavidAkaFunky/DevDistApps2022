@@ -1,5 +1,5 @@
 ﻿namespace DADProject;
-
+using System.Globalization;
 public class Client
 {
 
@@ -47,14 +47,16 @@ public class Client
         AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
         ClientFrontend frontend = new(bankServers, _id);
 
+        Thread.Sleep(3000);
+
         PrintHeader();
 
         File.ReadLines(args[2]).ToList().ForEach(line =>
         {
-
+            Console.WriteLine(line);
             var tokens = line.Split(' ');
             var cmd = tokens[0];
-            int amount;
+            double amount;
             switch (cmd)
             {
                 case DEPOSIT_CMD: // Deposit: D amount
@@ -66,17 +68,30 @@ public class Client
 
                     try
                     {
-                        amount = int.Parse(tokens[1]);
+                        amount = double.Parse(tokens[1], CultureInfo.InvariantCulture);
                         if (amount <= 0)
                         {
-                            Console.Error.WriteLine("ERROR: Invalid amount");
+                            Console.Error.WriteLine("ERROR: Invalid deposit amount");
                             break;
                         }
                         frontend.Deposit(amount);
                     }
                     catch (FormatException)
                     {
-                        Console.Error.WriteLine("ERROR: Invalid timespan");
+                        try
+                        {
+                            amount = (double) int.Parse(tokens[1]);
+                            if (amount <= 0)
+                            {
+                                Console.Error.WriteLine("ERROR: Invalid deposit amount");
+                                break;
+                            }
+                            frontend.Deposit(amount);
+                        }
+                        catch (FormatException)
+                        {
+                            Console.Error.WriteLine("ERROR: Invalid deposit amount");
+                        }
                     }
 
                     break;
@@ -88,10 +103,10 @@ public class Client
                     }
                     try
                     {
-                        amount = int.Parse(tokens[1]);
+                        amount = double.Parse(tokens[1], CultureInfo.InvariantCulture);
                         if (amount <= 0)
                         {
-                            Console.Error.WriteLine("ERROR: Invalid amount");
+                            Console.Error.WriteLine("ERROR: Invalid withdrawal amount");
                             break;
                         }
 
@@ -99,7 +114,21 @@ public class Client
                     }
                     catch (FormatException)
                     {
-                        Console.Error.WriteLine("ERROR: Invalid timespan");
+                        try
+                        {
+                            amount = (double) int.Parse(tokens[1]);
+                            if (amount <= 0)
+                            {
+                                Console.Error.WriteLine("ERROR: Invalid withdrawal amount");
+                                break;
+                            }
+
+                            frontend.Withdraw(amount);
+                        }
+                        catch (FormatException)
+                        {
+                            Console.Error.WriteLine("ERROR: Invalid withdrawal amount");
+                        }
                     }
 
                     break;
