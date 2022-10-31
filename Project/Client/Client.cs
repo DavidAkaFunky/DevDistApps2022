@@ -47,7 +47,7 @@ public class Client
         AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
         ClientFrontend frontend = new(bankServers, _id);
 
-        Thread.Sleep(3000);
+        Thread.Sleep(5000);
 
         PrintHeader();
 
