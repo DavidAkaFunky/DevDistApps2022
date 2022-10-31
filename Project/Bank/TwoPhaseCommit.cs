@@ -54,14 +54,13 @@ public class TwoPhaseCommit
         //var item = tentativeCommands.First(kvp => kvp.Value.ClientID == cc.ClientID && kvp.Value.ClientSeqNumber == cc.ClientSeqNumber);
     }
 
-
     public void CleanUp2PC(int slot)
     {
-        Dictionary<int, ClientCommand> commandsToCommit = new();
+        var commandsToCommit = new Dictionary<Tuple<int, int>, Tuple<int, ClientCommand>>();
 
         foreach(var kvp in tentativeCommands)
         {
-            commandsToCommit[kvp.Key] = new(kvp.Value);//cria copia
+            commandsToCommit[new(kvp.Value.ClientID, kvp.Value.ClientSeqNumber)] = new(kvp.Key, kvp.Value); //cria copia
         }
 
         //listPendingRequests(lastKnownSequenceNumber) to all
@@ -73,40 +72,26 @@ public class TwoPhaseCommit
 
                 foreach (var cmd in reply.Commands)
                 {
-                    //Remove duplicates and prefer the most recent tentative version 
-                    if (!commandsToCommit.ContainsKey(cmd.GlobalSeqNumber))
-                    {
-                        commandsToCommit.Add(
-                            cmd.GlobalSeqNumber,
-                            new(cmd.Slot,
-                                cmd.ClientId,
-                                cmd.ClientSeqNumber,
-                                cmd.Type,
-                                cmd.Amount));
-                    }
-                    else
-                    {
-                        if (commandsToCommit[cmd.GlobalSeqNumber].Slot < cmd.Slot)
-                        {
-                            commandsToCommit[cmd.GlobalSeqNumber] = new(cmd.Slot, cmd.ClientId, cmd.ClientSeqNumber, cmd.Type, cmd.Amount);
-                        }
-
-                    }
+                    var clientCommandTuple = new Tuple<int, int>(cmd.ClientId, cmd.ClientSeqNumber);
+                    if (commandsToCommit.TryGetValue(clientCommandTuple, out var sameCommand) && cmd.Slot > sameCommand.Item2.Slot)
+                        commandsToCommit[clientCommandTuple] = new(cmd.GlobalSeqNumber, ClientCommand.CreateCommandFromGRPC(cmd));
                 }
-                
             }
         });
 
-        var Keys = commandsToCommit.Keys.ToList();
-        Keys.Sort();
+        //TODO: wait for majority 
 
-        foreach (int seq in Keys)
+        var commandsToSend = commandsToCommit.Values.ToList();
+        commandsToSend.OrderBy(cmd => cmd.Item1).ThenBy(cmd => cmd.Item2.Slot);
+
+        foreach (var cmd in commandsToSend)
         {
-            commandsToCommit[seq].Slot = slot;
-            Run(commandsToCommit[seq], seq);
+            cmd.Item2.Slot = slot;
+            Run(cmd.Item2, cmd.Item1);
         }
 
         //TODO: wait for majority 
+
     }
 
     public void Run(ClientCommand cmd)
