@@ -8,17 +8,16 @@ namespace DADProject;
 // ChatServerServiceBase is the generated base implementation of the service
 public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceBase
 {
-    private readonly int id;
+    private readonly object _ackLock = new();
     private int currentSlot = 1;
-    
+    private int _ack = 0;
     private readonly ConcurrentDictionary<int, int> isPrimary; //  primary/backup
 
     private readonly TwoPhaseCommit TwoPC;
     private readonly Dictionary<int, bool> isFrozen;
 
-    public BankTwoPCService(int id, ConcurrentDictionary<int, int> isPrimary, TwoPhaseCommit TwoPC, Dictionary<int, bool> isFrozen)
+    public BankTwoPCService(ConcurrentDictionary<int, int> isPrimary, TwoPhaseCommit TwoPC, Dictionary<int, bool> isFrozen)
     {
-        this.id = id;
         this.isPrimary = isPrimary;
         this.TwoPC = TwoPC;
         this.isFrozen = isFrozen;
@@ -46,6 +45,13 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
 
     public override Task<ListPendingRequestsReply> ListPendingRequests(ListPendingRequestsRequest request, ServerCallContext context)
     {
+        lock (_ackLock)
+        {
+            if (request.Seq != _ack + 1)
+                return Task.FromResult(new ListPendingRequestsReply { Ack = _ack });
+            _ack = request.Seq;
+        }
+
         return Task.FromResult(TwoPC.ListPendingRequest(request.GlobalSeqNumber));
     }
 
@@ -55,7 +61,14 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
         // I.e., since the leader coordinates the messages, even the receiver had it once,
         // cleanup will remove it, so the new version can arrive without repetition
 
-        var reply = new TwoPCTentativeReply() { Status = false };
+        lock (_ackLock)
+        {
+            if (request.Seq != _ack + 1)
+                return Task.FromResult(new TwoPCTentativeReply { Ack = _ack });
+            _ack = request.Seq;
+        }
+
+        var reply = new TwoPCTentativeReply { Status = false, Ack = request.Seq };
 
         if (CheckLeadership(request.Command.Slot, request.SenderId))
         {
@@ -74,7 +87,14 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
 
     public override Task<TwoPCCommitReply> TwoPCCommit(TwoPCCommitRequest request, ServerCallContext context)
     {
-        var reply = new TwoPCCommitReply() { Status = false };
+        lock (_ackLock)
+        {
+            if (request.Seq != _ack + 1)
+                return Task.FromResult(new TwoPCCommitReply { Ack = _ack });
+            _ack = request.Seq;
+        }
+
+        var reply = new TwoPCCommitReply { Status = false, Ack = request.Seq };
 
         if (CheckLeadership(request.Command.Slot, request.SenderId))
         {
