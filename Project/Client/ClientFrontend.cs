@@ -156,124 +156,124 @@ public class ClientFrontend
         if (!finished)
             Console.WriteLine("The command couldn't be processed. Please try again!");
     }
-}
 
-public class Sender
-{
-    private readonly GrpcChannel _channel;
-    private readonly Random _random = new();
-    private readonly Mutex _seqLock = new();
-    private readonly int _timeout;
-    private int _currentSeq = 1;
-    private int _senderID;
-
-    public Sender(GrpcChannel channel, int timeout, int senderID)
+    private class Sender
     {
-        _channel = channel;
-        _timeout = timeout;
-        _senderID = senderID;
-    }
+        private readonly GrpcChannel _channel;
+        private readonly Random _random = new();
+        private readonly Mutex _seqLock = new();
+        private readonly int _timeout;
+        private int _currentSeq = 1;
+        private int _senderID;
 
-    public Task<ReadBalanceReply> Send(ReadBalanceRequest req)
-    {
-        var t = new Task<ReadBalanceReply>(() =>
+        public Sender(GrpcChannel channel, int timeout, int senderID)
         {
-            var stub = new ProjectBankServerService.ProjectBankServerServiceClient(_channel);
-            ReadBalanceReply? reply = null;
-            lock (_seqLock)
+            _channel = channel;
+            _timeout = timeout;
+            _senderID = senderID;
+        }
+
+        public Task<ReadBalanceReply> Send(ReadBalanceRequest req)
+        {
+            var t = new Task<ReadBalanceReply>(() =>
             {
-                req.Seq = _currentSeq++;
-            }
-            req.SenderId = _senderID;
-            while (true)
-            {
-                try
+                var stub = new ProjectBankServerService.ProjectBankServerServiceClient(_channel);
+                ReadBalanceReply? reply = null;
+                lock (_seqLock)
                 {
-                    reply = stub.ReadBalance(req);
+                    req.Seq = _currentSeq++;
                 }
-                catch (RpcException)
+                req.SenderId = _senderID;
+                while (true)
                 {
-                    reply = null;
-                    continue;
+                    try
+                    {
+                        reply = stub.ReadBalance(req);
+                    }
+                    catch (RpcException)
+                    {
+                        reply = null;
+                        continue;
+                    }
+                    if (reply.Ack >= req.Seq)
+                        break;
                 }
-                if (reply.Ack >= req.Seq)
-                    break;
-            }
 
-            return reply;
-        });
-        t.Start();
-        return t;
-    }
+                return reply;
+            });
+            t.Start();
+            return t;
+        }
 
-    public Task<DepositReply> Send(DepositRequest req)
-    {
-
-        var t = new Task<DepositReply>(() =>
+        public Task<DepositReply> Send(DepositRequest req)
         {
 
-            var stub = new ProjectBankServerService.ProjectBankServerServiceClient(_channel);
-            DepositReply? reply = null;
-            lock (_seqLock)
+            var t = new Task<DepositReply>(() =>
             {
-                req.Seq = _currentSeq++;
-            }
-            req.SenderId = _senderID;
-            while (true)
-            {
-                try
-                {
-                    reply = stub.Deposit(req);
-                }
-                catch (RpcException)
-                {
-                    reply = null;
-                    continue;
-                }
-                if (reply.Ack >= req.Seq)
-                    break;
-            }
 
-            return reply;
-        });
-        t.Start();
-        return t;
-    }
+                var stub = new ProjectBankServerService.ProjectBankServerServiceClient(_channel);
+                DepositReply? reply = null;
+                lock (_seqLock)
+                {
+                    req.Seq = _currentSeq++;
+                }
+                req.SenderId = _senderID;
+                while (true)
+                {
+                    try
+                    {
+                        reply = stub.Deposit(req);
+                    }
+                    catch (RpcException)
+                    {
+                        reply = null;
+                        continue;
+                    }
+                    if (reply.Ack >= req.Seq)
+                        break;
+                }
 
-    public Task<WithdrawReply> Send(WithdrawRequest req)
-    {
-        var t = new Task<WithdrawReply>(() =>
+                return reply;
+            });
+            t.Start();
+            return t;
+        }
+
+        public Task<WithdrawReply> Send(WithdrawRequest req)
         {
-            var stub = new ProjectBankServerService.ProjectBankServerServiceClient(_channel);
-            WithdrawReply? reply = null;
-            lock (_seqLock)
+            var t = new Task<WithdrawReply>(() =>
             {
-                req.Seq = _currentSeq++;
-            }
-            req.SenderId = _senderID;
-            while (true)
-            {
-                try
+                var stub = new ProjectBankServerService.ProjectBankServerServiceClient(_channel);
+                WithdrawReply? reply = null;
+                lock (_seqLock)
                 {
-                    reply = stub.Withdraw(req);
+                    req.Seq = _currentSeq++;
                 }
-                catch (RpcException)
+                req.SenderId = _senderID;
+                while (true)
                 {
-                    reply = null;
-                    continue;
+                    try
+                    {
+                        reply = stub.Withdraw(req);
+                    }
+                    catch (RpcException)
+                    {
+                        reply = null;
+                        continue;
+                    }
+                    if (reply.Ack >= req.Seq)
+                        break;
                 }
-                if (reply.Ack >= req.Seq)
-                    break;
-            }
 
-            return reply;
-        });
-        t.Start();
-        return t;
-    }
+                return reply;
+            });
+            t.Start();
+            return t;
+        }
 
-    public void Close()
-    {
-        _channel.ShutdownAsync().Wait();
+        public void Close()
+        {
+            _channel.ShutdownAsync().Wait();
+        }
     }
 }

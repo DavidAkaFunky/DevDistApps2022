@@ -172,10 +172,9 @@ internal class Boney
 
         //======================================================SERVICES===========================================
 
-        var proposerService = new BoneyProposerService(id, slotsHistory, slotsInfo, isFrozen, _boneySlot);
-        var acceptorService = new BoneyAcceptorService(id, boneyToBoneyfrontends, slotsInfo, isFrozen, _boneySlot);
-        var learnerService = new BoneyLearnerService(id, boneyToBankfrontends, _boneyAddresses.Count, slotsHistory,
-            isFrozen, _boneySlot);
+        var proposerService = new BoneyProposerService(slotsHistory, slotsInfo, isFrozen, _boneySlot);
+        var acceptorService = new BoneyAcceptorService(boneyToBoneyfrontends, slotsInfo, isFrozen, _boneySlot);
+        var learnerService = new BoneyLearnerService(boneyToBankfrontends, _boneyAddresses.Count, slotsHistory, isFrozen, _boneySlot);
 
         var ownUri = new Uri(_address);
         var server = new Server

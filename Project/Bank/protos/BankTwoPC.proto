@@ -15,10 +15,8 @@ message ListPendingRequestsRequest{
 	int32 globalSeqNumber = 4;
 }
 message ListPendingRequestsReply{
-	int32 senderId = 1;
-	int32 seq = 2;
-	int32 ack = 3;
-	repeated ClientCommandGRPC commands = 5;
+	int32 ack = 1;
+	repeated ClientCommandGRPC commands = 2;
 }
 
 message TwoPCTentativeRequest {
@@ -28,10 +26,8 @@ message TwoPCTentativeRequest {
 	ClientCommandGRPC command = 4;
 }
 message TwoPCTentativeReply {
-	int32 senderId = 1;
-	int32 seq = 2;
-	int32 ack = 3;
-	bool status = 4;
+	int32 ack = 1;
+	bool status = 2;
 }
 
 message TwoPCCommitRequest {
@@ -41,10 +37,8 @@ message TwoPCCommitRequest {
 	ClientCommandGRPC command = 4;
 }
 message TwoPCCommitReply {
-	int32 senderId = 1;
-	int32 seq = 2;
-	int32 ack = 3;
-	bool status = 4;
+	int32 ack = 1;
+	bool status = 2;
 }
 
 message ClientCommandGRPC {

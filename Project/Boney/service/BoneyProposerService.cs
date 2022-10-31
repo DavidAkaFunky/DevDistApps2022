@@ -6,14 +6,14 @@ namespace DADProject;
 public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProposerServiceBase
 {
     private int currentSlot;
-    private readonly int id;
+    private readonly object _ackLock = new();
+    private int _ack = 0;
     private readonly ConcurrentDictionary<int, int> slotsHistory;
     private readonly ConcurrentDictionary<int, Slot> slotsInfo;
     private readonly Dictionary<int, bool> isFrozen;
 
-    public BoneyProposerService(int id, ConcurrentDictionary<int, int> slotsHistory, ConcurrentDictionary<int, Slot> slotsInfo, Dictionary<int, bool> isFrozen, int currentSlot)
+    public BoneyProposerService(ConcurrentDictionary<int, int> slotsHistory, ConcurrentDictionary<int, Slot> slotsInfo, Dictionary<int, bool> isFrozen, int currentSlot)
     {
-        this.id = id;
         this.slotsHistory = slotsHistory;
         this.slotsInfo = slotsInfo;
         this.isFrozen = isFrozen;
@@ -28,7 +28,14 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
 
     public override Task<CompareAndSwapReply> CompareAndSwap(CompareAndSwapRequest request, ServerCallContext context)
     {
-        var reply = new CompareAndSwapReply() { OutValue = -1 };
+        lock (_ackLock)
+        {
+            if (request.Seq != _ack + 1)
+                return Task.FromResult(new CompareAndSwapReply { OutValue = -1, Ack = _ack });
+            _ack = request.Seq;
+        }
+
+        var reply = new CompareAndSwapReply { OutValue = -1, Ack = request.Seq };
 
         if (isFrozen[currentSlot]) return Task.FromResult(reply);
 

@@ -10,13 +10,12 @@ message AcceptedToLearnerRequest {
     int32 ack = 1;
     int32 seq = 2;
     int32 slot = 3;
-    int32 timestampId = 4;
-    int32 value = 5;
+    int32 senderId = 4;
+    int32 timestampId = 5;
+    int32 value = 6;
 }
 
 message AcceptedToLearnerReply {
-    // EMPTY?
     int32 ack = 1;
-    int32 seq = 2;
 }
 

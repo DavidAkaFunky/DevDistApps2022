@@ -167,7 +167,7 @@ internal class Bank
         }
 
         var bankServerService = new BankServerService(id, primaries, TwoPC, isFrozen);
-        var bank2PCService = new BankTwoPCService(id, primaries, TwoPC, isFrozen);
+        var bank2PCService = new BankTwoPCService(primaries, TwoPC, isFrozen);
 
         _bankAddresses.ForEach(serverAddr =>
             bankToBankFrontends.Add(new BankToBankFrontend(id, serverAddr)));
