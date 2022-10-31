@@ -157,7 +157,7 @@ public class PuppetMaster
 
         List<string> boneys = new();
         List<string> banks = new();
-        List<string> clients = new();
+        List<Tuple<string, string>> clients = new();
         List<Process> processes = new();
 
         while (inputFile.ReadLine() is { } line)
@@ -173,14 +173,14 @@ public class PuppetMaster
                     case 4 when tokens[2] == "boney":
                         boneys.Add(processId);
                         break;
-                    case 4:
+                    case 4 when tokens[2] == "bank":
                     {
                         banks.Add(processId);
                         break;
                     }
                     // clients
-                    case 3:
-                        clients.Add(processId);
+                    case 4:
+                        clients.Add(new(processId, tokens[3]));
                         break;
                 }
             }
@@ -191,7 +191,7 @@ public class PuppetMaster
 
         processes.AddRange(boneys.Select(id => runner.Run("../Boney", "dotnet", $"run {id} {args[0]}")));
         processes.AddRange(banks.Select(id => runner.Run("../Bank", "dotnet", $"run {id} {args[0]}")));
-        processes.AddRange(clients.Select(id => runner.Run("../Client", "dotnet", $"run {id} {args[0]}")));
+        processes.AddRange(clients.Select(client => runner.Run("../Client", "dotnet", $"run {client.Item1} {args[0]} {client.Item2}")));
 
         Console.WriteLine("Type anything to kill all processes");
         Console.ReadLine();
