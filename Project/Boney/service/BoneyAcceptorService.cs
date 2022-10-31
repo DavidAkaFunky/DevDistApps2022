@@ -27,11 +27,13 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
         set { currentSlot = value; }
     }
 
-    // TODO juntar metadata
-
     public override Task<PromiseReply> Prepare(PrepareRequest request, ServerCallContext context)
     {
-        var reply = new PromiseReply();
+        var reply = new PromiseReply() { Status = false };
+
+        if (isFrozen[currentSlot]) return Task.FromResult(reply);
+
+        reply.Status = true;
 
         lock (slotsInfo)
         {
@@ -65,7 +67,11 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 
     public override Task<AcceptReply> Accept(AcceptRequest request, ServerCallContext context)
     {
-        var reply = new AcceptReply { Status = false };
+        var reply = new AcceptReply { Status = true };
+
+        if (isFrozen[currentSlot]) return Task.FromResult(reply);
+
+        reply.Status = false;
 
         lock (slotsInfo)
         {

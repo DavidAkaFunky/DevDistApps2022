@@ -34,6 +34,10 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
     public override Task<AcceptedToLearnerReply> AcceptedToLearner(AcceptedToLearnerRequest request,
         ServerCallContext context)
     {
+        var reply = new AcceptedToLearnerReply();
+
+        if (isFrozen[currentSlot]) return Task.FromResult(reply);
+
         lock (receivedAccepts)
         lock (slotsHistory)
         {
@@ -85,6 +89,6 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
         }
 
         //Console.WriteLine("Returned from Learner Routine");
-        return Task.FromResult(new AcceptedToLearnerReply());
+        return Task.FromResult(reply);
     }
 }

@@ -28,13 +28,9 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
 
     public override Task<CompareAndSwapReply> CompareAndSwap(CompareAndSwapRequest request, ServerCallContext context)
     {
-        var reply = new CompareAndSwapReply();
+        var reply = new CompareAndSwapReply() { OutValue = -1 };
 
-        if (isFrozen[currentSlot])
-        {
-            reply.OutValue = -1;
-            return Task.FromResult(reply);
-        }
+        if (isFrozen[currentSlot]) return Task.FromResult(reply);
 
         lock (slotsHistory)
         {
@@ -43,7 +39,7 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
 
             if (reply.OutValue != 0) return Task.FromResult(reply);
         }
-            //slotsHistory[request.Slot] = -1; //caso ja tenha começado consensus
+
         lock (slotsInfo)
         {
             //Verificar se ja tem mensagem para propor

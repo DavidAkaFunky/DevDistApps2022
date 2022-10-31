@@ -6,7 +6,7 @@ namespace DADProject;
 
 public class ClientFrontend
 {
-    private static readonly int TIMEOUT = 100;
+    private static readonly int TIMEOUT = 1000;
     private readonly List<Sender> _bankServers = new();
 
     public ClientFrontend(List<string> bankServers, int senderID)

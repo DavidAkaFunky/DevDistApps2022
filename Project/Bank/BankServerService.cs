@@ -15,15 +15,18 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
     private readonly TwoPhaseCommit TwoPC;
 
+    private readonly Dictionary<int, bool> isFrozen;
+
     //TODO change this to a dictionary where <clientId>, <lastAck> pairs are saved
     //TODO this implies changing proto messages to include clientIds in all the requests
     private int _ack;
 
-    public BankServerService(int id, ConcurrentDictionary<int, int> primary, TwoPhaseCommit TwoPC)
+    public BankServerService(int id, ConcurrentDictionary<int, int> primary, TwoPhaseCommit TwoPC, Dictionary<int, bool> isFrozen)
     {
         this.id = id;
         this.primary = primary;
         this.TwoPC = TwoPC;
+        this.isFrozen = isFrozen;
     }
 
     public int CurrentSlot { get; set; } = 1;
@@ -42,10 +45,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
         //=============Check If Leader===================
 
-        //temporary 
-        if (id != 4) return Task.FromResult(reply);
-
-        //if (primary[currentSlot] != id) return Task.FromResult(reply);
+        if (primary[CurrentSlot] != id || isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
         //=====================2PC=======================
 
@@ -71,10 +71,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
         //=============Check If Leader===================
 
-        //temporary 
-        if (id != 4) return Task.FromResult(reply);
-
-        //if (primary[currentSlot] != id) return Task.FromResult(reply);
+        if (primary[CurrentSlot] != id || isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
         //=====================2PC=======================
         try
@@ -108,10 +105,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
         //=============Check If Leader===================
 
-        //temporary 
-        if (id != 4) return Task.FromResult(reply);
-
-        //if (primary[currentSlot] != id) return Task.FromResult(reply);
+        if (primary[CurrentSlot] != id || isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
         //=====================2PC=======================
 
@@ -127,8 +121,9 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
     public override Task<CompareSwapReply> AcceptCompareSwapResult(CompareSwapResult request, ServerCallContext context)
     {
         //Console.WriteLine("Received result for slot {0}: {1}", request.Slot, request.Value);
-
-        primary[request.Slot] = request.Value;
+        
+        if (!isFrozen[CurrentSlot])
+            primary[request.Slot] = request.Value;
 
         return Task.FromResult(new CompareSwapReply());
     }

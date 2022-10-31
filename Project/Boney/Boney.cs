@@ -301,7 +301,7 @@ internal class Boney
                     }
                     else if (response.WriteTimestamp > ts)
                     {
-                        Console.WriteLine("Procposer: RECEIVED **ACK**");
+                        Console.WriteLine("Proposer: RECEIVED **ACK**");
                         value = response.Value;
                         ts = response.WriteTimestamp;
                     }
@@ -321,9 +321,15 @@ internal class Boney
             frontends.ForEach(server =>
             {
                 Console.WriteLine($"Proposer: ACCEPT TO {server.ServerAddress} SENT");
-                server.Accept(mostRecentslot, timestampId, value);
+                var status = server.Accept(mostRecentslot, timestampId, value);
+                if (!status)
+                    stop = true;
                 Console.WriteLine($"Proposer: ACCEPT TO {server.ServerAddress} REPLY");
             });
+
+            if (stop)
+                //MAYBE aumentar timestampId
+                continue;
         }
     }
 }

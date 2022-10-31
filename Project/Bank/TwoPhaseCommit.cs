@@ -142,7 +142,6 @@ public class TwoPhaseCommit
             {
                 if (kvp.Key > minSeq)
                 {
-                    //tentativeCommands.TryRemove(kvp.Key, out var value);//cant remove things
                     reply.Commands.Add(kvp.Value.CreateCommandGRPC(kvp.Key));
                 }
             }

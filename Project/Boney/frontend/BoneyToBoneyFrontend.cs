@@ -37,7 +37,7 @@ public class BoneyToBoneyFrontend
         return acceptorClient.Prepare(request);
     }
 
-    public void Accept(int slot, int id, int value)
+    public bool Accept(int slot, int id, int value)
     {
         var request = new AcceptRequest
         {
@@ -45,7 +45,7 @@ public class BoneyToBoneyFrontend
             Slot = slot,
             Value = value
         };
-        acceptorClient.Accept(request);
+        return acceptorClient.Accept(request).Status;
     }
 
     // Acceptor 

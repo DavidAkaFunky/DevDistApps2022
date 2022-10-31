@@ -147,15 +147,32 @@ internal class Bank
         _address = _bankAddresses[id - _boneyAddresses.Count - 1];
         Uri ownUri = new(_address);
 
-        _bankAddresses.ForEach(serverAddr => 
-            bankToBankFrontends.Add(new BankToBankFrontend(id, serverAddr)));
-
-        _boneyAddresses.ForEach(serverAddr =>
-            bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr, primaries)));
-
         var bankServerService = new BankServerService(id, primaries, TwoPC);
         var bank2PCService = new BankTwoPCService(id, primaries, TwoPC);
+        var isPerceivedLeader = new Dictionary<int, bool>();
+        var isFrozen = new Dictionary<int, bool>();
 
+        for (var slot = 0; slot < _serverStates.Count; slot++)
+        {
+            // ver se está frozen em cada slot
+            isFrozen[slot + 1] = _serverStates[slot][id].IsFrozen;
+
+            // pls don't blame me for spaghetti code, couldn't find a way to convert it
+            // directly to list without converting to dict and then getting the keys
+            var notSuspected = _serverStates[slot].Where(server => !server.Value.IsSuspected)
+                .ToDictionary(server => server.Key, server => server.Value)
+                .Keys.ToList();
+
+            // pensa que e lider se a lista de servidores vivos para um slot n estiver vazia (duh)
+            // e se o minimo dos valores da lista for ele proprio
+            isPerceivedLeader[slot + 1] = notSuspected.Count > 0 && notSuspected.Min() == id;
+        }
+
+        _bankAddresses.ForEach(serverAddr =>
+            bankToBankFrontends.Add(new BankToBankFrontend(id, serverAddr, isFrozen)));
+
+        _boneyAddresses.ForEach(serverAddr =>
+            bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr, primaries, isFrozen)));
 
         Server server = new()
         {
@@ -193,7 +210,8 @@ internal class Bank
 
             //----------Find way to block this shit-------------
 
-            bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
+            if (isPerceivedLeader[_currentSlot])
+                bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
 
             while (primaries[_currentSlot] == -1) { }
 
