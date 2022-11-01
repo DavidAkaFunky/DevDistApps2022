@@ -18,6 +18,7 @@ public class Client
         const string READ_BALANCE_CMD = "R";
         const string WAIT_CMD = "S";
 
+        Console.OutputEncoding = System.Text.Encoding.Unicode;
         if (args.Length != 3)
         {
             Console.Error.WriteLine("Wrong number of arguments: [id] [generalConfigPath] [clientConfigPath]");
