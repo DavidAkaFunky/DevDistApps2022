@@ -139,7 +139,6 @@ public class Client
                         break;
                     }
 
-                    // TODO: Read balance
                     frontend.ReadBalance();
                     break;
                 case WAIT_CMD: // Wait: S milliseconds
@@ -148,7 +147,6 @@ public class Client
                         Console.Error.WriteLine("ERROR: Invalid command");
                         break;
                     }
-
                     try
                     {
                         var milliseconds = int.Parse(tokens[1]);
@@ -159,7 +157,6 @@ public class Client
                         }
 
                         Thread.Sleep(milliseconds);
-                        Console.WriteLine("hello");
                     }
                     catch (FormatException)
                     {

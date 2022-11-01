@@ -19,7 +19,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
     //TODO change this to a dictionary where <clientId>, <lastAck> pairs are saved
     //TODO this implies changing proto messages to include clientIds in all the requests
-    private int _ack = 0;
+    private Dictionary<int, int[]> _ack = new();
 
     public BankServerService(int id, ConcurrentDictionary<int, int> primary, TwoPhaseCommit TwoPC, Dictionary<int, bool> isFrozen)
     {
@@ -35,9 +35,11 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
     {
         lock (_ackLock)
         {
-            if (request.Seq != _ack + 1)
-                return Task.FromResult(new ReadBalanceReply { Balance = -1, Ack = _ack });
-            _ack = request.Seq;
+            if (!_ack.ContainsKey(request.SenderId))
+                _ack[request.SenderId] = new int[2] { 0, 0 };
+            if (request.Seq != _ack[request.SenderId][0] + 1)
+                return Task.FromResult(new ReadBalanceReply { Ack = _ack[request.SenderId][0] });
+            _ack[request.SenderId][0] = request.Seq;
         }
 
         var reply = new ReadBalanceReply { Balance = -1, Ack = request.Seq };
@@ -53,6 +55,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         //================Execute and Reply==============
 
         reply.Balance = account.Balance;
+        Console.WriteLine(account.Balance);
         return Task.FromResult(reply);
     }
 
@@ -60,9 +63,11 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
     {
         lock (_ackLock)
         {
-            if (request.Seq != _ack + 1)
-                return Task.FromResult(new DepositReply { Status = false, Ack = _ack });
-            _ack = request.Seq;
+            if (!_ack.ContainsKey(request.SenderId))
+                _ack[request.SenderId] = new int[2] { 0, 0 };
+            if (request.Seq != _ack[request.SenderId][0] + 1)
+                return Task.FromResult(new DepositReply { Ack = _ack[request.SenderId][0] });
+            _ack[request.SenderId][0] = request.Seq;
         }
 
         var reply = new DepositReply { Status = false, Ack = request.Seq };
@@ -77,7 +82,9 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         
         //================Execute and Reply==============
 
+        Console.WriteLine("DEPOSIT " + request.Amount + account.Balance);
         account.Deposit(request.Amount);
+        Console.WriteLine(account.Balance);
 
         reply.Status = true;
 
@@ -88,9 +95,11 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
     {
         lock (_ackLock)
         {
-            if (request.Seq != _ack + 1)
-                return Task.FromResult(new WithdrawReply { Status = -1, Ack = _ack });
-            _ack = request.Seq;
+            if (!_ack.ContainsKey(request.SenderId))
+                _ack[request.SenderId] = new int[2] { 0, 0 };
+            if (request.Seq != _ack[request.SenderId][0] + 1)
+                return Task.FromResult(new WithdrawReply { Ack = _ack[request.SenderId][0] });
+            _ack[request.SenderId][0] = request.Seq;
         }
 
         var reply = new WithdrawReply { Status = -1, Ack = request.Seq };
@@ -104,8 +113,10 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "W", request.Amount));
 
         //================Execute and Reply==============
+        Console.WriteLine("WITHDRAW " + account.Balance);
 
         reply.Status = account.Withdraw(request.Amount) ? 1 : 0;
+        Console.WriteLine(account.Balance);
 
         return Task.FromResult(reply);
     }
@@ -114,9 +125,11 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
     {
         lock (_ackLock)
         {
-            if (request.Seq != _ack + 1)
-                return Task.FromResult(new CompareSwapReply { Ack = _ack });
-            _ack = request.Seq;
+            if (!_ack.ContainsKey(request.SenderId))
+                _ack[request.SenderId] = new int[2] { 0, 0 };
+            if (request.Seq != _ack[request.SenderId][1] + 1)
+                return Task.FromResult(new CompareSwapReply { Ack = _ack[request.SenderId][1] });
+            _ack[request.SenderId][1] = request.Seq;
         }
 
         Console.WriteLine("Received result for slot {0}: {1}", request.Slot, request.Value);
