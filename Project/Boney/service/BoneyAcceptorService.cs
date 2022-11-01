@@ -5,16 +5,15 @@ namespace DADProject;
 
 public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceBase
 {
-    private int ack = 0;
+    private int _ack = 0;
     private int currentSlot;
-    private readonly int id;
+    private readonly object _ackLock = new();
     private readonly Dictionary<int, bool> isFrozen;
     private readonly List<BoneyToBoneyFrontend> serverFrontends;
     private readonly ConcurrentDictionary<int, Slot> slotsInfo;
 
-    public BoneyAcceptorService(int id, List<BoneyToBoneyFrontend> frontends, ConcurrentDictionary<int, Slot> slotsInfo, Dictionary<int, bool> isFrozen, int currentSlot)
+    public BoneyAcceptorService(List<BoneyToBoneyFrontend> frontends, ConcurrentDictionary<int, Slot> slotsInfo, Dictionary<int, bool> isFrozen, int currentSlot)
     {
-        this.id = id;
         serverFrontends = frontends;
         this.slotsInfo = slotsInfo;
         this.isFrozen = isFrozen;
@@ -29,7 +28,14 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 
     public override Task<PromiseReply> Prepare(PrepareRequest request, ServerCallContext context)
     {
-        var reply = new PromiseReply() { Status = false };
+        lock (_ackLock)
+        {
+            if (request.Seq != _ack + 1)
+                return Task.FromResult(new PromiseReply { Status = false, Ack = _ack });
+            _ack = request.Seq;
+        }
+
+        var reply = new PromiseReply { Status = false, Ack = request.Seq };
 
         if (isFrozen[currentSlot]) return Task.FromResult(reply);
 
@@ -67,7 +73,15 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 
     public override Task<AcceptReply> Accept(AcceptRequest request, ServerCallContext context)
     {
-        var reply = new AcceptReply { Status = true };
+        lock (_ackLock)
+        {
+            Console.WriteLine(request.Seq + " " + _ack);
+            if (request.Seq != _ack + 1)
+                return Task.FromResult(new AcceptReply { Status = true, Ack = _ack }); // Status = true only means it was not rejected (bc it's frozen)!
+            _ack = request.Seq;
+        }
+
+        var reply = new AcceptReply { Status = true, Ack = request.Seq };
 
         if (isFrozen[currentSlot]) return Task.FromResult(reply);
 
@@ -91,7 +105,9 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 
                 // atualiza tuplo do acceptor para o slot dado
                 slotsInfo[request.Slot] = slotInfo;
-            } else
+            } 
+
+            else
             {
                 Console.WriteLine("Acceptor: {0}: REJECTED Accept with timestamp {1} and value {2}",
                     request.Slot, request.TimestampId, request.Value);

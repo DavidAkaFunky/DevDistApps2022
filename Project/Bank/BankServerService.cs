@@ -112,11 +112,18 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
     public override Task<CompareSwapReply> AcceptCompareSwapResult(CompareSwapResult request, ServerCallContext context)
     {
+        lock (_ackLock)
+        {
+            if (request.Seq != _ack + 1)
+                return Task.FromResult(new CompareSwapReply { Ack = _ack });
+            _ack = request.Seq;
+        }
+
         Console.WriteLine("Received result for slot {0}: {1}", request.Slot, request.Value);
         
         if (!isFrozen[CurrentSlot])
             primary[request.Slot] = request.Value;
 
-        return Task.FromResult(new CompareSwapReply());
+        return Task.FromResult(new CompareSwapReply { Ack = request.Seq });
     }
 }

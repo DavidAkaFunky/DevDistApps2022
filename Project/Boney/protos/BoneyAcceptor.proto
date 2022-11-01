@@ -16,12 +16,10 @@ message PrepareRequest {
 }
 
 message PromiseReply {
-	int32 senderId = 1;
-	int32 seq = 2;
-	int32 ack = 3;
-	bool status = 4;
-	int32 value = 5;
-	int32 writeTimestamp = 6;
+	int32 ack = 1;
+	bool status = 2;
+	int32 value = 3;
+	int32 writeTimestamp = 4;
 }
 
 message AcceptRequest {
@@ -34,8 +32,6 @@ message AcceptRequest {
 }
 
 message AcceptReply {
-	int32 senderId = 1;
-	int32 seq = 2;
-	int32 ack = 3;
-	bool status = 4;
+	int32 ack = 1;
+	bool status = 2;
 }

@@ -18,10 +18,8 @@ message CompareAndSwapRequest {
 }
 
 message CompareAndSwapReply {
-	int32 senderId = 1;
-	int32 seq = 2;
-	int32 ack = 3;
-	int32 outValue = 4;
+	int32 ack = 1;
+	int32 outValue = 2;
 }
 
 message ResultToProposerRequest {
@@ -33,7 +31,5 @@ message ResultToProposerRequest {
 }
 
 message ResultToProposerReply {
-	int32 senderId = 1;
-	int32 seq = 2;
-	int32 ack = 3;
+	int32 ack = 1;
 }

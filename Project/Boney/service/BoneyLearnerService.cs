@@ -5,19 +5,18 @@ namespace DADProject;
 
 public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearnerServiceBase
 {
-    private int ack = 0;
+    private int _ack = 0;
     private int currentSlot;
-    private readonly int id;
     private readonly int majority;
     private readonly List<BoneyToBankFrontend> boneyToBankFrontends;
     private readonly Dictionary<int, bool> isFrozen;
     private readonly ConcurrentDictionary<int, int> slotsHistory;
     private readonly ConcurrentDictionary<int, List<int>> receivedAccepts = new();
+    private readonly object _ackLock = new();
 
-    public BoneyLearnerService(int id, List<BoneyToBankFrontend> boneyToBankFrontends, int numberOfAcceptors,
+    public BoneyLearnerService(List<BoneyToBankFrontend> boneyToBankFrontends, int numberOfAcceptors,
                                ConcurrentDictionary<int, int> slotsHistory, Dictionary<int, bool> isFrozen, int currentSlot)
     {
-        this.id = id;
         this.boneyToBankFrontends = boneyToBankFrontends;
         majority = (numberOfAcceptors >> 1) + 1;
         this.slotsHistory = slotsHistory;
@@ -34,7 +33,14 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
     public override Task<AcceptedToLearnerReply> AcceptedToLearner(AcceptedToLearnerRequest request,
         ServerCallContext context)
     {
-        var reply = new AcceptedToLearnerReply();
+        lock (_ackLock)
+        {
+            if (request.Seq != _ack + 1)
+                return Task.FromResult(new AcceptedToLearnerReply { Ack = _ack });
+            _ack = request.Seq;
+        }
+
+        var reply = new AcceptedToLearnerReply { Ack = request.Seq };
 
         if (isFrozen[currentSlot]) return Task.FromResult(reply);
 
@@ -42,7 +48,7 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
         lock (slotsHistory)
         {
             if (slotsHistory.ContainsKey(request.Slot) && slotsHistory[request.Slot] > 0)
-                return Task.FromResult(new AcceptedToLearnerReply());
+                return Task.FromResult(reply);
 
 
             //List -> [valor, timestamp, contador]
@@ -70,7 +76,7 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
             else
             {
                 Console.WriteLine("Learner: {0}: NEW Accept\n =======> IGNORED", request.Slot);
-                return Task.FromResult(new AcceptedToLearnerReply());
+                return Task.FromResult(reply);
             }
 
             //verificar se o contador atingiu a maioria
