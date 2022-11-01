@@ -5,7 +5,7 @@ namespace DADProject;
 
 public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearnerServiceBase
 {
-    private int _ack = 0;
+    private Dictionary<int, int> _ack = new();
     private int currentSlot;
     private readonly int majority;
     private readonly List<BoneyToBankFrontend> boneyToBankFrontends;
@@ -35,9 +35,11 @@ public class BoneyLearnerService : ProjectBoneyLearnerService.ProjectBoneyLearne
     {
         lock (_ackLock)
         {
-            if (request.Seq != _ack + 1)
-                return Task.FromResult(new AcceptedToLearnerReply { Ack = _ack });
-            _ack = request.Seq;
+            if (!_ack.ContainsKey(request.SenderId))
+                _ack[request.SenderId] = 0;
+            if (request.Seq != _ack[request.SenderId] + 1)
+                return Task.FromResult(new AcceptedToLearnerReply { Ack = _ack[request.SenderId] });
+            _ack[request.SenderId] = request.Seq;
         }
 
         var reply = new AcceptedToLearnerReply { Ack = request.Seq };

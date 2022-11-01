@@ -77,7 +77,7 @@ public class ClientFrontend
                 {
                     responseCount++;
 
-                    if (!finished && !task.Result.Status)
+                    if (!finished && task.Result.Status)
                     {
                         Console.WriteLine("Deposit of " + amount.ToString("C", CultureInfo.CurrentCulture));
                         finished = true;
@@ -132,7 +132,7 @@ public class ClientFrontend
                                 break;
                         }
 
-                        finished = true;
+                        finished = task.Result.Status >= 0;
                     }
 
                     gotResult.Set();

@@ -7,7 +7,7 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
 {
     private int currentSlot;
     private readonly object _ackLock = new();
-    private int _ack = 0;
+    private Dictionary<int, int> _ack = new();
     private readonly ConcurrentDictionary<int, int> slotsHistory;
     private readonly ConcurrentDictionary<int, Slot> slotsInfo;
     private readonly Dictionary<int, bool> isFrozen;
@@ -30,9 +30,11 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
     {
         lock (_ackLock)
         {
-            if (request.Seq != _ack + 1)
-                return Task.FromResult(new CompareAndSwapReply { OutValue = -1, Ack = _ack });
-            _ack = request.Seq;
+            if (!_ack.ContainsKey(request.SenderId))
+                _ack[request.SenderId] = 0;
+            if (request.Seq != _ack[request.SenderId] + 1)
+                return Task.FromResult(new CompareAndSwapReply { Ack = _ack[request.SenderId] });
+            _ack[request.SenderId] = request.Seq;
         }
 
         var reply = new CompareAndSwapReply { OutValue = -1, Ack = request.Seq };

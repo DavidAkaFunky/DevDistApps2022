@@ -5,7 +5,7 @@ namespace DADProject;
 
 public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcceptorServiceBase
 {
-    private int _ack = 0;
+    private Dictionary<int, int> _ack = new();
     private int currentSlot;
     private readonly object _ackLock = new();
     private readonly Dictionary<int, bool> isFrozen;
@@ -30,9 +30,11 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
     {
         lock (_ackLock)
         {
-            if (request.Seq != _ack + 1)
-                return Task.FromResult(new PromiseReply { Status = false, Ack = _ack });
-            _ack = request.Seq;
+            if (!_ack.ContainsKey(request.SenderId))
+                _ack[request.SenderId] = 0;
+            if (request.Seq != _ack[request.SenderId] + 1)
+                return Task.FromResult(new PromiseReply { Ack = _ack[request.SenderId] });
+            _ack[request.SenderId] = request.Seq;
         }
 
         var reply = new PromiseReply { Status = false, Ack = request.Seq };
@@ -75,10 +77,12 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
     {
         lock (_ackLock)
         {
+            if (!_ack.ContainsKey(request.SenderId))
+                _ack[request.SenderId] = 0;
             Console.WriteLine(request.Seq + " " + _ack);
-            if (request.Seq != _ack + 1)
-                return Task.FromResult(new AcceptReply { Status = true, Ack = _ack }); // Status = true only means it was not rejected (bc it's frozen)!
-            _ack = request.Seq;
+            if (request.Seq != _ack[request.SenderId] + 1)
+                return Task.FromResult(new AcceptReply { Ack = _ack[request.SenderId] });
+            _ack[request.SenderId] = request.Seq;
         }
 
         var reply = new AcceptReply { Status = true, Ack = request.Seq };

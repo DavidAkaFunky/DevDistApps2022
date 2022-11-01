@@ -10,7 +10,7 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
 {
     private readonly object _ackLock = new();
     private int currentSlot = 1;
-    private int _ack = 0;
+    private Dictionary<int, int> _ack = new();
     private readonly ConcurrentDictionary<int, int> isPrimary; //  primary/backup
 
     private readonly TwoPhaseCommit TwoPC;
@@ -47,9 +47,11 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
     {
         lock (_ackLock)
         {
-            if (request.Seq != _ack + 1)
-                return Task.FromResult(new ListPendingRequestsReply { Ack = _ack });
-            _ack = request.Seq;
+            if (!_ack.ContainsKey(request.SenderId))
+                _ack[request.SenderId] = 0;
+            if (request.Seq != _ack[request.SenderId] + 1)
+                return Task.FromResult(new ListPendingRequestsReply { Ack = _ack[request.SenderId] });
+            _ack[request.SenderId] = request.Seq;
         }
 
         return Task.FromResult(TwoPC.ListPendingRequest(request.GlobalSeqNumber));
@@ -63,9 +65,11 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
 
         lock (_ackLock)
         {
-            if (request.Seq != _ack + 1)
-                return Task.FromResult(new TwoPCTentativeReply { Ack = _ack });
-            _ack = request.Seq;
+            if (!_ack.ContainsKey(request.SenderId))
+                _ack[request.SenderId] = 0;
+            if (request.Seq != _ack[request.SenderId] + 1)
+                return Task.FromResult(new TwoPCTentativeReply { Ack = _ack[request.SenderId] });
+            _ack[request.SenderId] = request.Seq;
         }
 
         var reply = new TwoPCTentativeReply { Status = false, Ack = request.Seq };
@@ -89,9 +93,11 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
     {
         lock (_ackLock)
         {
-            if (request.Seq != _ack + 1)
-                return Task.FromResult(new TwoPCCommitReply { Ack = _ack });
-            _ack = request.Seq;
+            if (!_ack.ContainsKey(request.SenderId))
+                _ack[request.SenderId] = 0;
+            if (request.Seq != _ack[request.SenderId] + 1)
+                return Task.FromResult(new TwoPCCommitReply { Ack = _ack[request.SenderId] });
+            _ack[request.SenderId] = request.Seq;
         }
 
         var reply = new TwoPCCommitReply { Status = false, Ack = request.Seq };
