@@ -72,7 +72,7 @@ public class BoneyToBoneyFrontend
         private readonly Random _random = new();
         private readonly Mutex _seqLock = new();
         private readonly int _timeout;
-        private int _currentSeq = 1;
+        private int[] _currentSeq = new int[3] { 1, 1, 1 };
         private int _senderID;
 
         public Sender(GrpcChannel channel, int timeout, int senderID)
@@ -90,7 +90,7 @@ public class BoneyToBoneyFrontend
                 PromiseReply? reply = null;
                 lock (_seqLock)
                 {
-                    req.Seq = _currentSeq++;
+                    req.Seq = _currentSeq[1]++;
                 }
                 req.SenderId = _senderID;
                 while (true)
@@ -122,7 +122,7 @@ public class BoneyToBoneyFrontend
                 AcceptReply? reply = null;
                 lock (_seqLock)
                 {
-                    req.Seq = _currentSeq++;
+                    req.Seq = _currentSeq[1]++;
                 }
                 req.SenderId = _senderID;
                 while (true)
@@ -154,7 +154,7 @@ public class BoneyToBoneyFrontend
                 AcceptedToLearnerReply? reply = null;
                 lock (_seqLock)
                 {
-                    req.Seq = _currentSeq++;
+                    req.Seq = _currentSeq[2]++;
                 }
                 req.SenderId = _senderID;
                 while (true)
@@ -186,7 +186,7 @@ public class BoneyToBoneyFrontend
                 ResultToProposerReply? reply = null;
                 lock (_seqLock)
                 {
-                    req.Seq = _currentSeq++;
+                    req.Seq = _currentSeq[0]++;
                 }
                 req.SenderId = _senderID;
                 while (true)

@@ -75,6 +75,7 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
     {
         lock (_ackLock)
         {
+            Console.WriteLine(request.Seq + " " + _ack);
             if (request.Seq != _ack + 1)
                 return Task.FromResult(new AcceptReply { Status = true, Ack = _ack }); // Status = true only means it was not rejected (bc it's frozen)!
             _ack = request.Seq;
@@ -104,7 +105,9 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
 
                 // atualiza tuplo do acceptor para o slot dado
                 slotsInfo[request.Slot] = slotInfo;
-            } else
+            } 
+
+            else
             {
                 Console.WriteLine("Acceptor: {0}: REJECTED Accept with timestamp {1} and value {2}",
                     request.Slot, request.TimestampId, request.Value);

@@ -207,10 +207,8 @@ public class ClientFrontend
 
         public Task<DepositReply> Send(DepositRequest req)
         {
-
             var t = new Task<DepositReply>(() =>
             {
-
                 var stub = new ProjectBankServerService.ProjectBankServerServiceClient(_channel);
                 DepositReply? reply = null;
                 lock (_seqLock)
