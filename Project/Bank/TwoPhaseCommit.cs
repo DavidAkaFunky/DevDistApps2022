@@ -11,24 +11,26 @@ namespace DADProject;
 public class TwoPhaseCommit
 {
     private int id;
+    private BankAccount account;
     private List<BankToBankFrontend> bankToBankFrontends;
     private ConcurrentDictionary<int, ClientCommand> tentativeCommands = new();
     private ConcurrentDictionary<int, ClientCommand> committedCommands = new();
 
-    public TwoPhaseCommit(int id, List<BankToBankFrontend> frontends)
+    public TwoPhaseCommit(int id, List<BankToBankFrontend> frontends, BankAccount account)
     {
         this.id = id;
         this.bankToBankFrontends = frontends;
+        this.account = account;
     }
 
-    public bool AddTentative(int seq, ClientCommand cc)
+    public bool AddTentative(int seq, ClientCommand cmd)
     {
         bool result = true;
         lock (tentativeCommands)
         {
-            if(!tentativeCommands.TryAdd(seq, cc))
+            if(!tentativeCommands.TryAdd(seq, cmd))
             {
-                if (tentativeCommands[seq].Slot < cc.Slot) tentativeCommands[seq] = cc;
+                if (tentativeCommands[seq].Slot < cmd.Slot) tentativeCommands[seq] = cmd;
                 else result = false;
             }
         }
@@ -36,22 +38,17 @@ public class TwoPhaseCommit
         return result;
     }
 
-    public void AddCommitted(int seq, ClientCommand cc)
+    public void AddCommitted(int seq, ClientCommand cmd)
     {
-        
         lock (committedCommands)
         {
-            committedCommands[seq] = cc;
+            // Check if the command isn't in this server yet
+            if (!committedCommands.Where(kvp => kvp.Value.ClientID == cmd.ClientID && kvp.Value.ClientSeqNumber == cmd.ClientSeqNumber).Any())
+            {
+                RunCommand(cmd);
+                committedCommands[seq] = cmd;
+            }
         }
-
-        //if (tentativeCommands.TryGetValue(seq, out var value) && value.ClientID == cc.ClientID && value.ClientSeqNumber == cc.ClientSeqNumber)
-        //{
-        //    committedCommands[seq] = cc;
-        //    result = true;
-        //}
-
-        // Remove message from tentative commands -> shouldnt remove
-        //var item = tentativeCommands.First(kvp => kvp.Value.ClientID == cc.ClientID && kvp.Value.ClientSeqNumber == cc.ClientSeqNumber);
     }
 
     public void CleanUp2PC(int slot)
@@ -94,14 +91,16 @@ public class TwoPhaseCommit
 
     }
 
-    public void Run(ClientCommand cmd)
+    public bool Run(ClientCommand cmd)
     {
         var seqNumber = committedCommands.IsEmpty ? 0 : committedCommands.Keys.Max();
-        Run(cmd, seqNumber + 1);
+        return Run(cmd, seqNumber + 1);
     }
 
-    protected void Run(ClientCommand cmd, int seq)
+    protected bool Run(ClientCommand cmd, int seq)
     {
+        bool result;
+
         lock(tentativeCommands)
         lock(committedCommands)
         {
@@ -121,6 +120,8 @@ public class TwoPhaseCommit
             //This should work
             committedCommands[seq] = cmd;
 
+            result = RunCommand(cmd);
+
             //send commit to all replicas
             bankToBankFrontends.ForEach(server =>
             {
@@ -128,8 +129,10 @@ public class TwoPhaseCommit
 
             });
         }
-        
+
         //TODO: wait for acknowledgement of majority ???????????
+
+        return result;
     }
 
     public ListPendingRequestsReply ListPendingRequest(int minSeq)
@@ -148,6 +151,22 @@ public class TwoPhaseCommit
         }
 
         return reply;
+    }
+
+    public bool RunCommand(ClientCommand cmd)
+    {
+        if (cmd.Type == "D")
+        {
+            lock(account)
+                account.Deposit(cmd.Amount);
+            return true;
+        }
+        else if (cmd.Type == "W")
+        {   
+            lock(account)
+                return account.Withdraw(cmd.Amount);
+        }
+        return false;
     }
 }
 

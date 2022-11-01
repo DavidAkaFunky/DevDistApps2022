@@ -54,6 +54,16 @@ namespace DADProject
             set { clientSeqNumber = value; }
         }
 
+        public string Type
+        {
+            get { return type; }
+        }
+
+        public double Amount
+        {
+            get { return amount; }
+        }
+
         public ClientCommandGRPC CreateCommandGRPC(int globalSeqNumber)
         {
             return new() { 

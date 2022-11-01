@@ -138,9 +138,9 @@ internal class Bank
         }
 
         //==================================Service Info======================================
-
+        var account = new BankAccount();
         var primaries = new ConcurrentDictionary<int, int>();
-        var TwoPC = new TwoPhaseCommit(id, bankToBankFrontends);
+        var TwoPC = new TwoPhaseCommit(id, bankToBankFrontends, account);
 
         //===================================Server Initialization============================
 
@@ -166,7 +166,7 @@ internal class Bank
             isPerceivedLeader[slot + 1] = notSuspected.Count > 0 && notSuspected.Min() == id;
         }
 
-        var bankServerService = new BankServerService(id, primaries, TwoPC, isFrozen);
+        var bankServerService = new BankServerService(id, primaries, TwoPC, isFrozen, account);
         var bank2PCService = new BankTwoPCService(primaries, TwoPC, isFrozen);
 
         _bankAddresses.ForEach(serverAddr =>

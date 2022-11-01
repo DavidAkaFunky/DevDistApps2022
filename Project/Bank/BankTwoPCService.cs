@@ -60,7 +60,7 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
     public override Task<TwoPCTentativeReply> TwoPCTentative(TwoPCTentativeRequest request, ServerCallContext context)
     {
         // Should we assume the commands will never be in the dictionary more than once?
-        // I.e., since the leader coordinates the messages, even the receiver had it once,
+        // I.e., since the leader coordinates the messages, even if the receiver had it once,
         // cleanup will remove it, so the new version can arrive without repetition
 
         lock (_ackLock)

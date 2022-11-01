@@ -8,8 +8,7 @@ namespace DADProject;
 internal class BankServerService : ProjectBankServerService.ProjectBankServerServiceBase
 {
     private readonly object _ackLock = new();
-    private readonly BankAccount account = new();
-
+    private BankAccount account;
     private readonly int id;
     private readonly ConcurrentDictionary<int, int> primary; //  primary/backup
 
@@ -21,12 +20,13 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
     //TODO this implies changing proto messages to include clientIds in all the requests
     private Dictionary<int, int[]> _ack = new();
 
-    public BankServerService(int id, ConcurrentDictionary<int, int> primary, TwoPhaseCommit TwoPC, Dictionary<int, bool> isFrozen)
+    public BankServerService(int id, ConcurrentDictionary<int, int> primary, TwoPhaseCommit TwoPC, Dictionary<int, bool> isFrozen, BankAccount account)
     {
         this.id = id;
         this.primary = primary;
         this.TwoPC = TwoPC;
         this.isFrozen = isFrozen;
+        this.account = account;
     }
 
     public int CurrentSlot { get; set; } = 1;
@@ -48,14 +48,11 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
         if (primary[CurrentSlot] != id || isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
-        //=====================2PC=======================
-
-        TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "R", 0));
-
         //================Execute and Reply==============
 
-        reply.Balance = account.Balance;
-        Console.WriteLine(account.Balance);
+        lock(account)
+            reply.Balance = account.Balance;
+
         return Task.FromResult(reply);
     }
 
@@ -77,14 +74,8 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         if (primary[CurrentSlot] != id || isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
         //=====================2PC=======================
-        
-        TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "D", request.Amount));
-        
-        //================Execute and Reply==============
 
-        Console.WriteLine("DEPOSIT " + request.Amount + account.Balance);
-        account.Deposit(request.Amount);
-        Console.WriteLine(account.Balance);
+        TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "D", request.Amount));
 
         reply.Status = true;
 
@@ -110,13 +101,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
         //=====================2PC=======================
 
-        TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "W", request.Amount));
-
-        //================Execute and Reply==============
-        Console.WriteLine("WITHDRAW " + account.Balance);
-
-        reply.Status = account.Withdraw(request.Amount) ? 1 : 0;
-        Console.WriteLine(account.Balance);
+        reply.Status = TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "W", request.Amount)) ? 1 : 0;
 
         return Task.FromResult(reply);
     }
