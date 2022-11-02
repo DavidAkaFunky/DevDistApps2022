@@ -1,4 +1,5 @@
-﻿using Grpc.Core;
+﻿using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 using System.Collections.Concurrent;
 
 namespace DADProject;
@@ -122,9 +123,14 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
         if (reply.Status)
             serverFrontends.ForEach(server =>
             {
-                Console.WriteLine("Acceptor : -- Sent Accepted To Learner");
-                server.AcceptedToLearner(request.Slot, request.TimestampId, request.Value);
-                Console.WriteLine("Acceptor : -- Returned from sending Accepted To Learner");
+                new Thread(() =>
+                {
+                    Console.WriteLine("Acceptor : -- Sent Accepted To Learner");
+                    server.AcceptedToLearner(request.Slot, request.TimestampId, request.Value);
+                    Console.WriteLine("Acceptor : -- Returned from sending Accepted To Learner");
+
+                }).Start();
+                
             });
 
         Console.WriteLine("Returning from accept routine");

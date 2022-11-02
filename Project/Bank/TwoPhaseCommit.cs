@@ -1,4 +1,5 @@
-﻿using Grpc.Core;
+﻿using Google.Protobuf.WellKnownTypes;
+using Grpc.Core;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -11,6 +12,7 @@ namespace DADProject;
 public class TwoPhaseCommit
 {
     private int id;
+    private int majority;
     private BankAccount account;
     private List<BankToBankFrontend> bankToBankFrontends;
     private ConcurrentDictionary<int, ClientCommand> tentativeCommands = new();
@@ -21,6 +23,7 @@ public class TwoPhaseCommit
         this.id = id;
         this.bankToBankFrontends = frontends;
         this.account = account;
+        this.majority = frontends.Count / 2 + 1;
     }
 
     public bool AddTentative(int seq, ClientCommand cmd)
@@ -53,6 +56,7 @@ public class TwoPhaseCommit
 
     public void CleanUp2PC(int slot)
     {
+        var responses = new List<ListPendingRequestsReply>();
         var commandsToCommit = new Dictionary<Tuple<int, int>, Tuple<int, ClientCommand>>();
 
         foreach(var kvp in tentativeCommands)
@@ -65,18 +69,40 @@ public class TwoPhaseCommit
         {
             if (frontend.Id != id)
             {
-                var reply = frontend.ListPendingTwoPCRequests(committedCommands.Keys.Max());
+                new Thread(() =>
+                {
+                    var reply = frontend.ListPendingTwoPCRequests(committedCommands.Keys.Max());
+                    lock (responses)
+                    {
+                        responses.Add(reply);
+                        Monitor.PulseAll(responses);
+                    }
 
-                foreach (var cmd in reply.Commands)
+                }).Start();
+            }
+        });
+
+        lock (responses)
+        {
+            //espera pela maioria das respostas
+            while (responses.Count < majority)
+            {
+                Monitor.Wait(responses);
+            }
+
+            //processa respostas
+            foreach (var res in responses)
+            {
+                foreach (var cmd in res.Commands)
                 {
                     var clientCommandTuple = new Tuple<int, int>(cmd.ClientId, cmd.ClientSeqNumber);
                     if (commandsToCommit.TryGetValue(clientCommandTuple, out var sameCommand) && cmd.Slot > sameCommand.Item2.Slot)
                         commandsToCommit[clientCommandTuple] = new(cmd.GlobalSeqNumber, ClientCommand.CreateCommandFromGRPC(cmd));
                 }
             }
-        });
 
-        //TODO: wait for majority 
+        }
+
 
         var commandsToSend = commandsToCommit.Values.ToList();
         commandsToSend.OrderBy(cmd => cmd.Item1).ThenBy(cmd => cmd.Item2.Slot);
@@ -86,9 +112,6 @@ public class TwoPhaseCommit
             cmd.Item2.Slot = slot;
             Run(cmd.Item2, cmd.Item1);
         }
-
-        //TODO: wait for majority 
-
     }
 
     public bool Run(ClientCommand cmd)
@@ -100,8 +123,9 @@ public class TwoPhaseCommit
     protected bool Run(ClientCommand cmd, int seq)
     {
         bool result;
+        var responses = new List<bool>();
 
-        lock(tentativeCommands)
+        lock (tentativeCommands)
         lock(committedCommands)
         {
             
@@ -111,11 +135,35 @@ public class TwoPhaseCommit
             //send tentative with seq for command(cmd)
             bankToBankFrontends.ForEach(server =>
             {
-                if(server.Id != id) server.SendTwoPCTentative(cmd, seq);
+                if(server.Id != id)
+                {
+                    new Thread(() =>
+                    {
+                        var status = server.SendTwoPCTentative(cmd, seq).Status;
+                        lock (responses)
+                        {
+                            responses.Add(status);
+                            Monitor.PulseAll(responses);
+                        }
 
+                    }).Start();
+                }
             });
 
-            //TODO: wait for acknowledgement of majority
+            lock (responses)
+            {
+                //espera pela maioria das respostas
+                while (responses.Count < majority)
+                {
+                    Monitor.Wait(responses);
+                }
+
+                foreach(var status in responses)
+                {
+                    if (!status) return false;
+                }
+
+            }
 
             //This should work
             committedCommands[seq] = cmd;
@@ -125,12 +173,17 @@ public class TwoPhaseCommit
             //send commit to all replicas
             bankToBankFrontends.ForEach(server =>
             {
-                if(server.Id != id)  server.SendTwoPCCommit(cmd, seq);
+                if (server.Id != id)
+                {
+                    new Thread(() =>
+                    {
+                        server.SendTwoPCCommit(cmd, seq);
+
+                    }).Start();
+                }
 
             });
         }
-
-        //TODO: wait for acknowledgement of majority ???????????
 
         return result;
     }

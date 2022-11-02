@@ -236,6 +236,7 @@ internal class Boney
     {
         var timestampId = id;
         Slot? slotToPropose;
+        int majority = frontends.Count / 2 + 1;
 
         //========================================BONEY_SLOT_TIMER====================================================
 
@@ -279,6 +280,7 @@ internal class Boney
             var value = slotToPropose.CurrentValue;
             var ts = 0;
             var stop = false;
+            var responses = new List<PromiseReply>();
 
             // se eu for o lider:
             // vou mandar um prepare(n) para todos os acceptors (assumindo que nao sou o primeiro)
@@ -291,22 +293,49 @@ internal class Boney
 
                 frontends.ForEach(server =>
                 {
-                    var response = server.Prepare(mostRecentslot, timestampId);
+                    new Thread(() =>
+                    {
+                        var r = server.Prepare(mostRecentslot, timestampId);
+                        lock (responses)
+                        {
+                            responses.Add(r);
+                            Monitor.PulseAll(responses);
+                        }
+                        
 
-                    if (response.Value == -1 && response.WriteTimestamp == -1)
-                    {
-                        Console.WriteLine("Proposer: RECEIVED **NACK**");
-                        stop = true;
-                    }
-                    else if (response.WriteTimestamp > ts)
-                    {
-                        Console.WriteLine("Proposer: RECEIVED **ACK**");
-                        value = response.Value;
-                        ts = response.WriteTimestamp;
-                    }
+                    }).Start(); 
                 });
             }
 
+            lock (responses)
+            {
+                //espera pela maioria das respostas
+                while (responses.Count < majority)
+                {
+                    Monitor.Wait(responses);
+                    
+                }
+
+                //processa respostas
+                foreach (var res in responses)
+                {
+                    if (res.Value == -1 && res.WriteTimestamp == -1)
+                    {
+                        Console.WriteLine("Proposer: RECEIVED **NACK**");
+                        stop = true;
+                        break;
+                    }
+                    else if (res.WriteTimestamp > ts)
+                    {
+                        Console.WriteLine("Proposer: RECEIVED **ACK**");
+                        value = res.Value;
+                        ts = res.WriteTimestamp;
+                    }
+                }
+                
+            }
+
+            //no caso de ter recebido nack no proprose
             if (stop)
                 //MAYBE aumentar timestampId
                 continue;
@@ -319,16 +348,14 @@ internal class Boney
             // esperar por maioria (para efeitos de historico)
             frontends.ForEach(server =>
             {
-                Console.WriteLine($"Proposer: ACCEPT TO {server.ServerAddress} SENT");
-                var status = server.Accept(mostRecentslot, timestampId, value);
-                if (!status)
-                    stop = true;
-                Console.WriteLine($"Proposer: ACCEPT TO {server.ServerAddress} REPLY");
-            });
+                new Thread(() =>
+                {
+                    Console.WriteLine($"Proposer: ACCEPT TO {server.ServerAddress} SENT");
+                    var status = server.Accept(mostRecentslot, timestampId, value);
+                    Console.WriteLine($"Proposer: ACCEPT TO {server.ServerAddress} REPLY");
 
-            if (stop)
-                //MAYBE aumentar timestampId
-                continue;
+                }).Start();
+            });
         }
     }
 }

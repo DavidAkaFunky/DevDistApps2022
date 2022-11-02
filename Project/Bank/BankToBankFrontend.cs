@@ -34,14 +34,15 @@ public class BankToBankFrontend
         return null; //Will never happen
     }
 
-    public void SendTwoPCTentative(ClientCommand command, int tentativeSeqNumber)
+    public TwoPCTentativeReply? SendTwoPCTentative(ClientCommand command, int tentativeSeqNumber)
     {
         var request = new TwoPCTentativeRequest
         {
             SenderId = id,
             Command = command.CreateCommandGRPC(tentativeSeqNumber)
         };
-        sender.Send(request);
+        sender.Send(request).ContinueWith(task => { return task.Result; });
+        return null;
     }
 
     public void SendTwoPCCommit(ClientCommand command, int committedSeqNumber)

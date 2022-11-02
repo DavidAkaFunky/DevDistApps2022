@@ -209,7 +209,6 @@ internal class Bank
 
             Console.WriteLine("--NEW SLOT: {0}--", _currentSlot);
 
-            //----------Find way to block this shit-------------
 
             if (isPerceivedLeader[_currentSlot])
                 bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
