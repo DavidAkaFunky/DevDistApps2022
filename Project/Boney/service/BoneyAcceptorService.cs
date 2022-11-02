@@ -80,7 +80,6 @@ public class BoneyAcceptorService : ProjectBoneyAcceptorService.ProjectBoneyAcce
         {
             if (!_ack.ContainsKey(request.SenderId))
                 _ack[request.SenderId] = 0;
-            Console.WriteLine(request.Seq + " " + _ack);
             if (request.Seq != _ack[request.SenderId] + 1)
                 return Task.FromResult(new AcceptReply { Ack = _ack[request.SenderId] });
             _ack[request.SenderId] = request.Seq;

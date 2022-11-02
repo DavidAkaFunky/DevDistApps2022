@@ -280,7 +280,6 @@ internal class Boney
             var value = slotToPropose.CurrentValue;
             var ts = 0;
             var stop = false;
-            var responses = new List<PromiseReply>();
 
             // se eu for o lider:
             // vou mandar um prepare(n) para todos os acceptors (assumindo que nao sou o primeiro)
@@ -289,6 +288,7 @@ internal class Boney
 
             if (timestampId != 1)
             {
+                var promiseResponses = new List<PromiseReply>();
                 Console.WriteLine("Proposer: {0}: Send Prepare with timestamp {1}", mostRecentslot, timestampId);
 
                 frontends.ForEach(server =>
@@ -296,49 +296,47 @@ internal class Boney
                     new Thread(() =>
                     {
                         var r = server.Prepare(mostRecentslot, timestampId);
-                        lock (responses)
+                        lock (promiseResponses)
                         {
-                            responses.Add(r);
-                            Monitor.PulseAll(responses);
+                            promiseResponses.Add(r);
+                            Monitor.PulseAll(promiseResponses);
                         }
                         
 
                     }).Start(); 
                 });
-            }
 
-            lock (responses)
-            {
-                //espera pela maioria das respostas
-                while (responses.Count < majority)
+                lock (promiseResponses)
                 {
-                    Monitor.Wait(responses);
-                    
-                }
+                    //espera pela maioria das respostas
+                    while (promiseResponses.Count < majority)
+                        Monitor.Wait(promiseResponses);
 
-                //processa respostas
-                foreach (var res in responses)
-                {
-                    if (res.Value == -1 && res.WriteTimestamp == -1)
+                    //processa respostas
+                    foreach (var res in promiseResponses)
                     {
-                        Console.WriteLine("Proposer: RECEIVED **NACK**");
-                        stop = true;
-                        break;
-                    }
-                    else if (res.WriteTimestamp > ts)
-                    {
-                        Console.WriteLine("Proposer: RECEIVED **ACK**");
-                        value = res.Value;
-                        ts = res.WriteTimestamp;
+                        if (res.Value == -1 && res.WriteTimestamp == -1)
+                        {
+                            Console.WriteLine("Proposer: RECEIVED **NACK**");
+                            stop = true;
+                            break;
+                        }
+                        else if (res.WriteTimestamp > ts)
+                        {
+                            Console.WriteLine("Proposer: RECEIVED **ACK**");
+                            value = res.Value;
+                            ts = res.WriteTimestamp;
+                        }
                     }
                 }
-                
-            }
 
-            //no caso de ter recebido nack no proprose
-            if (stop)
-                //MAYBE aumentar timestampId
-                continue;
+                //no caso de ter recebido nack no proprose
+                if (stop)
+                {
+                    timestampId += frontends.Count;
+                    continue;
+                }
+            }
 
             Console.WriteLine("Proposer: {0}: Send ACCEPT \n ========> Value: {1} / TS: {2}",
                 mostRecentslot, value, ts);
@@ -346,6 +344,7 @@ internal class Boney
             // enviar accept(<value mais recente>) a todos
             // TODO: meter isto assincrono (tasks ou threads?)
             // esperar por maioria (para efeitos de historico)
+            var acceptedResponses = new List<bool>();
             frontends.ForEach(server =>
             {
                 new Thread(() =>
@@ -354,8 +353,32 @@ internal class Boney
                     var status = server.Accept(mostRecentslot, timestampId, value);
                     Console.WriteLine($"Proposer: ACCEPT TO {server.ServerAddress} REPLY");
 
+                    lock (acceptedResponses)
+                    {
+                        acceptedResponses.Add(status);
+                        Monitor.PulseAll(acceptedResponses);
+                    }
+
                 }).Start();
+
             });
+
+            lock (acceptedResponses)
+            {
+                //espera pela maioria das respostas
+                while (acceptedResponses.Count < majority)
+                    Monitor.Wait(acceptedResponses);
+
+                //processa respostas
+                foreach (var status in acceptedResponses)
+                {
+                    if (!status)
+                    {
+                        timestampId += frontends.Count;
+                        break;
+                    }
+                }
+            }
         }
     }
 }

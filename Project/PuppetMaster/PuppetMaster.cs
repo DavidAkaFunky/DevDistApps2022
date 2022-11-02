@@ -185,13 +185,10 @@ public class PuppetMaster
                 }
             }
         }
-        //PARA TESTE
-        //processes.AddRange(boneys.Select(id => runner.Run("../Boney", "dotnet", $"run {id} {args[0]} > boney{id}.txt")));
-        //processes.AddRange(banks.Select(id => runner.Run("../Bank", "dotnet", $"run {id} {args[0]} > bank{id}.txt")));
 
         processes.AddRange(boneys.Select(id => runner.Run("../Boney", "dotnet", $"run {id} {args[0]}")));
         processes.AddRange(banks.Select(id => runner.Run("../Bank", "dotnet", $"run {id} {args[0]}")));
-        //processes.AddRange(clients.Select(client => runner.Run("../Client", "dotnet", $"run {client.Item1} {args[0]} {client.Item2}")));
+        processes.AddRange(clients.Select(client => runner.Run("../Client", "dotnet", $"run {client.Item1} {args[0]} {client.Item2}")));
 
         Console.WriteLine("Type anything to kill all processes");
         Console.ReadLine();

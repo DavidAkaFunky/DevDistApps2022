@@ -27,7 +27,6 @@ public class ClientFrontend
         var responseCount = 0;
         _bankServers.ForEach(s =>
         {
-            //TODO maybe change to read majority and return the newest value
             s.Send(new ReadBalanceRequest()).ContinueWith(task =>
             {
                 lock (finishedLock)

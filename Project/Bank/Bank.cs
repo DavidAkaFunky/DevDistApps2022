@@ -209,7 +209,6 @@ internal class Bank
 
             Console.WriteLine("--NEW SLOT: {0}--", _currentSlot);
 
-
             if (isPerceivedLeader[_currentSlot])
                 bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
 
@@ -231,7 +230,8 @@ internal class Bank
 
         //=============================Start Processing Commands===============================
 
-        bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
+        if (isPerceivedLeader[_currentSlot])
+            bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
 
         Console.WriteLine("Press any key to stop the server...");
         Console.ReadKey();
