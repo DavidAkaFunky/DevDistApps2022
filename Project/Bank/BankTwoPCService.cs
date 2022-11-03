@@ -77,10 +77,9 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
 
         var reply = new TwoPCTentativeReply { Status = -1, Ack = request.Seq };
 
-        Console.WriteLine("STARTING TENTATIVE!!!!");
-
         if (CheckLeadership(request.Command.Slot, request.SenderId))
         {
+            Console.WriteLine("STARTING TENTATIVE!!!!");
             reply.Status = TwoPC.AddTentative(
                 request.Command.GlobalSeqNumber, 
                 new(request.Command.Slot, 
@@ -106,10 +105,11 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
         }
 
         var reply = new TwoPCCommitReply { Ack = request.Seq };
-        Console.WriteLine("STARTING COMMIT!!!!");
 
         if (CheckLeadership(request.Command.Slot, request.SenderId))
         {
+            Console.WriteLine("STARTING COMMIT!!!!");
+
             TwoPC.AddCommitted(
                 request.Command.GlobalSeqNumber,
                 new(request.Command.Slot,

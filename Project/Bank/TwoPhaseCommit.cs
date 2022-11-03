@@ -75,7 +75,8 @@ public class TwoPhaseCommit
             {
                 new Thread(() =>
                 {
-                    var reply = frontend.ListPendingTwoPCRequests(committedCommands.Keys.Max());
+                    var seqNumber = committedCommands.IsEmpty ? 0 : committedCommands.Keys.Max();
+                    var reply = frontend.ListPendingTwoPCRequests(seqNumber);
                     lock (responses)
                     {
                         responses.Add(reply);

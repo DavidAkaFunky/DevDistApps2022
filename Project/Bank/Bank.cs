@@ -211,11 +211,17 @@ internal class Bank
             if (isPerceivedLeader[_currentSlot])
                 bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
 
-            while (primaries[_currentSlot] == -1) { }
-
-            if(primaries[_currentSlot] == id && primaries[_currentSlot] != primaries[_currentSlot - 1])
+            if (!isFrozen[_currentSlot])
             {
-                TwoPC.CleanUp2PC(_currentSlot);
+                while (primaries[_currentSlot] == -1) { }
+
+                Console.WriteLine(_currentSlot - 1 + " " + primaries[_currentSlot - 1]);
+                Console.WriteLine(_currentSlot + " " + primaries[_currentSlot]);
+
+                if (primaries[_currentSlot] == id && primaries[_currentSlot] != primaries[_currentSlot - 1])
+                {
+                    TwoPC.CleanUp2PC(_currentSlot);
+                }
             }
         }
 
@@ -228,6 +234,8 @@ internal class Bank
         timer.Start();
 
         //=============================Start Processing Commands===============================
+
+        primaries[_currentSlot] = -1;
 
         if (isPerceivedLeader[_currentSlot])
             bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
