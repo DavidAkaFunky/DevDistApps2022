@@ -99,6 +99,7 @@ public class TwoPhaseCommit
             //processa respostas
             foreach (var res in responses)
             {
+                Console.WriteLine("COMMANDS TO COMMIT " + res.Commands.Count);
                 foreach (var cmd in res.Commands)
                 {
                     var clientCommandTuple = new Tuple<int, int>(cmd.ClientId, cmd.ClientSeqNumber);
@@ -108,8 +109,6 @@ public class TwoPhaseCommit
             }
 
         }
-        Console.WriteLine(commandsToCommit.Count);
-
 
         var commandsToSend = commandsToCommit.Values.ToList();
         commandsToSend.OrderBy(cmd => cmd.Item1).ThenBy(cmd => cmd.Item2.Slot);
@@ -142,7 +141,6 @@ public class TwoPhaseCommit
             lock (responses)
                 responses.Add(1);
 
-            Console.WriteLine(bankToBankFrontends.Count);
             //send tentative with seq for command(cmd)
             bankToBankFrontends.ForEach(server =>
             {
@@ -205,6 +203,7 @@ public class TwoPhaseCommit
         {
             foreach (var kvp in tentativeCommands)
             {
+                Console.WriteLine("TENTATIVE COMMANDS: " + kvp.Key + " " + minSeq);
                 if (kvp.Key > minSeq)
                 {
                     reply.Commands.Add(kvp.Value.CreateCommandGRPC(kvp.Key));

@@ -57,6 +57,8 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
             _ack[request.SenderId] = request.Seq;
         }
 
+        if (isFrozen[currentSlot]) return Task.FromResult(new ListPendingRequestsReply());
+
         return Task.FromResult(TwoPC.ListPendingRequest(request.GlobalSeqNumber));
     }
 
@@ -87,7 +89,6 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
                     request.Command.ClientSeqNumber, 
                     request.Command.Type, 
                     request.Command.Amount)) ? 1 : 0;
-            
         }
 
         return Task.FromResult(reply);
@@ -118,8 +119,6 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
                     request.Command.Type,
                     request.Command.Amount));
         }
-
-        Console.WriteLine("FINISHED COMMIT!!!!");
 
         return Task.FromResult(reply);
     }
