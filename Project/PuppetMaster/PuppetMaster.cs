@@ -159,6 +159,7 @@ public class PuppetMaster
         List<string> banks = new();
         List<Tuple<string, string>> clients = new();
         List<Process> processes = new();
+        string? startTime = null;
 
         while (inputFile.ReadLine() is { } line)
         {
@@ -184,11 +185,15 @@ public class PuppetMaster
                         break;
                 }
             }
+            else if (tokens[0] == "T")
+            {
+                startTime = tokens[1];
+            }
         }
 
-        processes.AddRange(boneys.Select(id => runner.Run("../Boney", "dotnet", $"run {id} {args[0]}")));
-        processes.AddRange(banks.Select(id => runner.Run("../Bank", "dotnet", $"run {id} {args[0]}")));
-        processes.AddRange(clients.Select(client => runner.Run("../Client", "dotnet", $"run {client.Item1} {args[0]} {client.Item2}")));
+        processes.AddRange(boneys.Select(id => runner.Run("../Boney", "dotnet", $"run {id} {args[0]} {startTime}")));
+        processes.AddRange(banks.Select(id => runner.Run("../Bank", "dotnet", $"run {id} {args[0]} {startTime}")));
+        processes.AddRange(clients.Select(client => runner.Run("../Client", "dotnet", $"run {client.Item1} {args[0]} {client.Item2} {startTime}")));
 
         Console.WriteLine("Type anything to kill all processes");
         Console.ReadLine();

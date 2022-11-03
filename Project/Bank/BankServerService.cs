@@ -46,6 +46,8 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
         //=============Check If Leader===================
 
+        while (!primary.ContainsKey(CurrentSlot)) { }
+
         if (primary[CurrentSlot] != id || isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
         //================Execute and Reply==============
@@ -70,6 +72,8 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         var reply = new DepositReply { Status = false, Ack = request.Seq };
 
         //=============Check If Leader===================
+
+        while (!primary.ContainsKey(CurrentSlot)) { }
 
         if (primary[CurrentSlot] != id || isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
@@ -96,6 +100,8 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         var reply = new WithdrawReply { Status = -1, Ack = request.Seq };
 
         //=============Check If Leader===================
+
+        while (!primary.ContainsKey(CurrentSlot)) { }
 
         if (primary[CurrentSlot] != id || isFrozen[CurrentSlot]) return Task.FromResult(reply);
 

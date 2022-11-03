@@ -4,6 +4,7 @@ public class Client
 {
 
     private static int _id;
+    private static int _initialSleepTime;
 
     private static int Id
     {
@@ -19,15 +20,20 @@ public class Client
         const string WAIT_CMD = "S";
 
         Console.OutputEncoding = System.Text.Encoding.Unicode;
-        if (args.Length != 3)
+        if (args.Length != 4)
         {
-            Console.Error.WriteLine("Wrong number of arguments: [id] [generalConfigPath] [clientConfigPath]");
+            Console.Error.WriteLine("Wrong number of arguments: [id] [generalConfigPath] [clientConfigPath] [startTime]");
             return;
         }
 
         try
         {
             _id = int.Parse(args[0]);
+            var currentTime = DateTime.Now;
+            var startTime = Convert.ToDateTime(args[3]);
+            if (startTime < currentTime)
+                startTime = startTime.AddDays(1);
+            _initialSleepTime = (int)(startTime - currentTime).TotalMilliseconds + 1000;
         }
         catch (Exception)
         {
@@ -48,9 +54,10 @@ public class Client
         AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
         ClientFrontend frontend = new(bankServers, _id);
 
-        Thread.Sleep(5000);
-
         PrintHeader();
+
+        Console.WriteLine("Waiting for " + _initialSleepTime + " milliseconds");
+        Thread.Sleep(_initialSleepTime);
 
         File.ReadLines(args[2]).ToList().ForEach(line =>
         {

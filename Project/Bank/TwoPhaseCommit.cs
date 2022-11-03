@@ -64,6 +64,8 @@ public class TwoPhaseCommit
             commandsToCommit[new(kvp.Value.ClientID, kvp.Value.ClientSeqNumber)] = new(kvp.Key, kvp.Value); //cria copia
         }
 
+        Console.WriteLine("INSIDE CLEANUP");
+
         //listPendingRequests(lastKnownSequenceNumber) to all
         bankToBankFrontends.ForEach(frontend =>
         {
@@ -81,6 +83,7 @@ public class TwoPhaseCommit
                 }).Start();
             }
         });
+
 
         lock (responses)
         {
@@ -102,6 +105,7 @@ public class TwoPhaseCommit
             }
 
         }
+        Console.WriteLine(commandsToCommit.Count);
 
 
         var commandsToSend = commandsToCommit.Values.ToList();

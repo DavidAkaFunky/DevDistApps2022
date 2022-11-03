@@ -58,7 +58,6 @@ internal class Bank
                 _ => Command.Client
             },
             "S" => Command.SlotCount,
-            "T" => Command.WallTime,
             "D" => Command.SlotDuration,
             "F" => Command.SlotState,
             _ => Command.Invalid,
@@ -67,9 +66,9 @@ internal class Bank
 
     public static void Main(string[] args)
     {
-        if (args.Length != 2)
+        if (args.Length != 3)
         {
-            Console.Error.WriteLine("Wrong number of arguments: [id] [configPath]");
+            Console.Error.WriteLine("Wrong number of arguments: [id] [configPath] [startTime]");
             return;
         }
 
@@ -94,13 +93,6 @@ internal class Bank
                         break;
                     case Command.SlotCount:
                         _slotCount = int.Parse(tokens[1]);
-                        break;
-                    case Command.WallTime:
-                        var currentTime = DateTime.Now;
-                        var startTime = Convert.ToDateTime(tokens[1]);
-                        if (startTime < currentTime)
-                            startTime.AddDays(1);
-                        _initialSleepTime = (int)(startTime - currentTime).TotalMilliseconds;
                         break;
                     case Command.SlotDuration:
                         _slotDuration = int.Parse(tokens[1]);
@@ -130,6 +122,12 @@ internal class Bank
                         break;
                 }
             });
+
+            var currentTime = DateTime.Now;
+            var startTime = Convert.ToDateTime(args[2]);
+            if (startTime < currentTime)
+                startTime = startTime.AddDays(1);
+            _initialSleepTime = (int)(startTime - currentTime).TotalMilliseconds;
         }
         catch (Exception)
         {
@@ -221,8 +219,8 @@ internal class Bank
         }
 
         //ACTIVATE BEFORE THE DELIVERY!!!!
-        //Console.WriteLine("Waiting for " + _initialSleepTime + " milliseconds");
-        //Thread.Sleep(_initialSleepTime);
+        Console.WriteLine("Waiting for " + _initialSleepTime + " milliseconds");
+        Thread.Sleep(_initialSleepTime);
 
         Timer timer = new(_slotDuration);
         timer.Elapsed += (sender, e) => HandleTimer();
