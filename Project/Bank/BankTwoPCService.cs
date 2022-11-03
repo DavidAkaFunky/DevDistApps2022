@@ -32,8 +32,6 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
     // All tentatives/commits coming from anyone other than the leader will be ignored!
     private bool CheckLeadership(int slot, int senderID) {
 
-
-
         if (slot > currentSlot || isFrozen[currentSlot])
             return false;
 
@@ -68,6 +66,8 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
         // I.e., since the leader coordinates the messages, even if the receiver had it once,
         // cleanup will remove it, so the new version can arrive without repetition
 
+        Console.WriteLine("STARTING TENTATIVE!!!!");
+
         lock (_ackLock)
         {
             if (!_ack.ContainsKey(request.SenderId))
@@ -77,8 +77,8 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
             _ack[request.SenderId] = request.Seq;
         }
 
-        var reply = new TwoPCTentativeReply { Status = false, Ack = request.Seq };
-
+        var reply = new TwoPCTentativeReply { Status = -1, Ack = request.Seq };
+        Console.WriteLine("STARTING TENTATIVE2!!!!");
         if (CheckLeadership(request.Command.Slot, request.SenderId))
         {
             reply.Status = TwoPC.AddTentative(
@@ -87,10 +87,10 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
                     request.Command.ClientId, 
                     request.Command.ClientSeqNumber, 
                     request.Command.Type, 
-                    request.Command.Amount));
+                    request.Command.Amount)) ? 1 : 0;
             
         }
-
+        Console.WriteLine("FINISHED TENTATIVE!!!!");
         return Task.FromResult(reply);
     }
 
@@ -105,12 +105,11 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
             _ack[request.SenderId] = request.Seq;
         }
 
-        var reply = new TwoPCCommitReply { Status = false, Ack = request.Seq };
+        var reply = new TwoPCCommitReply { Ack = request.Seq };
+        Console.WriteLine("STARTING COMMIT!!!!");
 
         if (CheckLeadership(request.Command.Slot, request.SenderId))
         {
-            reply.Status = true;
-                
             TwoPC.AddCommitted(
                 request.Command.GlobalSeqNumber,
                 new(request.Command.Slot,
@@ -119,6 +118,7 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
                     request.Command.Type,
                     request.Command.Amount));
         }
+        Console.WriteLine("FINISHED COMMIT!!!!");
 
         return Task.FromResult(reply);
     }

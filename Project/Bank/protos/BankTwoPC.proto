@@ -27,7 +27,7 @@ message TwoPCTentativeRequest {
 }
 message TwoPCTentativeReply {
 	int32 ack = 1;
-	bool status = 2;
+	int32 status = 2;
 }
 
 message TwoPCCommitRequest {
@@ -38,7 +38,6 @@ message TwoPCCommitRequest {
 }
 message TwoPCCommitReply {
 	int32 ack = 1;
-	bool status = 2;
 }
 
 message ClientCommandGRPC {

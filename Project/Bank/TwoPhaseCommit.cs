@@ -127,14 +127,17 @@ public class TwoPhaseCommit
     protected bool Run(ClientCommand cmd, int seq)
     {
         bool result;
-        var responses = new List<bool>();
+        var responses = new List<int>();
 
         lock (tentativeCommands)
-        lock(committedCommands)
+        lock (committedCommands)
         {
             
             //This should work
             tentativeCommands[seq] = cmd;
+
+            lock (responses)
+                responses.Add(1);
 
             //send tentative with seq for command(cmd)
             bankToBankFrontends.ForEach(server =>
@@ -143,6 +146,7 @@ public class TwoPhaseCommit
                 {
                     new Thread(() =>
                     {
+                        Console.WriteLine("SENDING TENTATIVE");
                         var status = server.SendTwoPCTentative(cmd, seq).Status;
                         lock (responses)
                         {
@@ -157,6 +161,8 @@ public class TwoPhaseCommit
             lock (responses)
             {
                 //espera pela maioria das respostas
+                Console.WriteLine("GOT TENTATIVE");
+
                 while (responses.Count < majority)
                 {
                     Monitor.Wait(responses);
@@ -164,15 +170,19 @@ public class TwoPhaseCommit
 
                 foreach(var status in responses)
                 {
-                    if (!status) return false;
+                    if (status == 0) return false;
                 }
 
+                if (responses.FindAll(x => x == 1).Count < majority)
+                    return false;
             }
 
             //This should work
             committedCommands[seq] = cmd;
 
+            Console.WriteLine("running command");
             result = RunCommand(cmd);
+            Console.WriteLine("ran command");
 
             //send commit to all replicas
             bankToBankFrontends.ForEach(server =>
@@ -181,6 +191,7 @@ public class TwoPhaseCommit
                 {
                     new Thread(() =>
                     {
+                        Console.WriteLine("SENDING COMMIT");
                         server.SendTwoPCCommit(cmd, seq);
 
                     }).Start();
