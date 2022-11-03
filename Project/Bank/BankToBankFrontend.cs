@@ -8,11 +8,13 @@ public class BankToBankFrontend
     private readonly int id;
     private int seq;
     private static readonly int TIMEOUT = 1000;
+    private readonly string serverAddress;
     private readonly Sender sender;
 
     public BankToBankFrontend(int id, string serverAddress)
     {
         this.id = id;
+        this.serverAddress = serverAddress;
         seq = 0;
         sender = new(GrpcChannel.ForAddress(serverAddress), TIMEOUT, id);
     }
@@ -22,27 +24,30 @@ public class BankToBankFrontend
         get { return id; }
     }
 
+    public string ServerAddress
+    {
+        get { return serverAddress; }
+    }
 
-    public ListPendingRequestsReply? ListPendingTwoPCRequests(int lastKnownSequenceNumber)
+
+    public ListPendingRequestsReply ListPendingTwoPCRequests(int lastKnownSequenceNumber)
     {
         var request = new ListPendingRequestsRequest
         {
             SenderId = id,
             GlobalSeqNumber = lastKnownSequenceNumber
         };
-        sender.Send(request).ContinueWith(task => { return task.Result; });
-        return null; //Will never happen
+        return sender.Send(request).Result;
     }
 
-    public TwoPCTentativeReply? SendTwoPCTentative(ClientCommand command, int tentativeSeqNumber)
+    public TwoPCTentativeReply SendTwoPCTentative(ClientCommand command, int tentativeSeqNumber)
     {
         var request = new TwoPCTentativeRequest
         {
             SenderId = id,
             Command = command.CreateCommandGRPC(tentativeSeqNumber)
         };
-        sender.Send(request).ContinueWith(task => { return task.Result; });
-        return null;
+        return sender.Send(request).Result;
     }
 
     public void SendTwoPCCommit(ClientCommand command, int committedSeqNumber)
@@ -122,13 +127,11 @@ public class BankToBankFrontend
                     }
                     catch (RpcException)
                     {
-                        reply = null;
                         continue;
                     }
                     if (reply.Ack >= req.Seq)
                         break;
                 }
-
                 return reply;
             });
             t.Start();

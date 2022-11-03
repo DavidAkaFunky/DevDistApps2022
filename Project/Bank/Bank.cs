@@ -138,11 +138,18 @@ internal class Bank
         //==================================Service Info======================================
         var account = new BankAccount();
         var primaries = new ConcurrentDictionary<int, int>();
-        var TwoPC = new TwoPhaseCommit(id, bankToBankFrontends, account);
+        _address = _bankAddresses[id - _boneyAddresses.Count - 1];
+
+        _bankAddresses.ForEach(serverAddr =>
+            bankToBankFrontends.Add(new BankToBankFrontend(id, serverAddr)));
+
+        _boneyAddresses.ForEach(serverAddr =>
+            bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr, primaries)));
+
+        var TwoPC = new TwoPhaseCommit(id, _address, bankToBankFrontends, account);
 
         //===================================Server Initialization============================
 
-        _address = _bankAddresses[id - _boneyAddresses.Count - 1];
         Uri ownUri = new(_address);
 
         var isPerceivedLeader = new Dictionary<int, bool>();
@@ -166,12 +173,6 @@ internal class Bank
 
         var bankServerService = new BankServerService(id, primaries, TwoPC, isFrozen, account);
         var bank2PCService = new BankTwoPCService(primaries, TwoPC, isFrozen);
-
-        _bankAddresses.ForEach(serverAddr =>
-            bankToBankFrontends.Add(new BankToBankFrontend(id, serverAddr)));
-
-        _boneyAddresses.ForEach(serverAddr =>
-            bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr, primaries)));
 
         Server server = new()
         {

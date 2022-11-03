@@ -13,14 +13,16 @@ public class TwoPhaseCommit
 {
     private int id;
     private int majority;
+    private string address;
     private BankAccount account;
     private List<BankToBankFrontend> bankToBankFrontends;
     private ConcurrentDictionary<int, ClientCommand> tentativeCommands = new();
     private ConcurrentDictionary<int, ClientCommand> committedCommands = new();
 
-    public TwoPhaseCommit(int id, List<BankToBankFrontend> frontends, BankAccount account)
+    public TwoPhaseCommit(int id, string address, List<BankToBankFrontend> frontends, BankAccount account)
     {
         this.id = id;
+        this.address = address;
         this.bankToBankFrontends = frontends;
         this.account = account;
         this.majority = frontends.Count / 2 + 1;
@@ -69,7 +71,7 @@ public class TwoPhaseCommit
         //listPendingRequests(lastKnownSequenceNumber) to all
         bankToBankFrontends.ForEach(frontend =>
         {
-            if (frontend.Id != id)
+            if (frontend.ServerAddress != address)
             {
                 new Thread(() =>
                 {
@@ -118,15 +120,15 @@ public class TwoPhaseCommit
         }
     }
 
-    public bool Run(ClientCommand cmd)
+    public int Run(ClientCommand cmd)
     {
         var seqNumber = committedCommands.IsEmpty ? 0 : committedCommands.Keys.Max();
         return Run(cmd, seqNumber + 1);
     }
 
-    protected bool Run(ClientCommand cmd, int seq)
+    protected int Run(ClientCommand cmd, int seq)
     {
-        bool result;
+        int result;
         var responses = new List<int>();
 
         lock (tentativeCommands)
@@ -139,14 +141,14 @@ public class TwoPhaseCommit
             lock (responses)
                 responses.Add(1);
 
+            Console.WriteLine(bankToBankFrontends.Count);
             //send tentative with seq for command(cmd)
             bankToBankFrontends.ForEach(server =>
             {
-                if(server.Id != id)
+                if (server.ServerAddress != address)
                 {
                     new Thread(() =>
                     {
-                        Console.WriteLine("SENDING TENTATIVE");
                         var status = server.SendTwoPCTentative(cmd, seq).Status;
                         lock (responses)
                         {
@@ -161,42 +163,33 @@ public class TwoPhaseCommit
             lock (responses)
             {
                 //espera pela maioria das respostas
-                Console.WriteLine("GOT TENTATIVE");
 
-                while (responses.Count < majority)
+                while (responses.Count != bankToBankFrontends.Count)
                 {
                     Monitor.Wait(responses);
+                    if (responses.FindAll(x => x == 1).Count >= majority)
+                        break;
                 }
 
                 foreach(var status in responses)
                 {
-                    if (status == 0) return false;
+                    if (status == 0) return -1;
                 }
 
                 if (responses.FindAll(x => x == 1).Count < majority)
-                    return false;
+                    return 1; // It was successful because cleanup will eventually commit it!
             }
 
             //This should work
             committedCommands[seq] = cmd;
 
-            Console.WriteLine("running command");
             result = RunCommand(cmd);
-            Console.WriteLine("ran command");
 
             //send commit to all replicas
             bankToBankFrontends.ForEach(server =>
             {
-                if (server.Id != id)
-                {
-                    new Thread(() =>
-                    {
-                        Console.WriteLine("SENDING COMMIT");
-                        server.SendTwoPCCommit(cmd, seq);
-
-                    }).Start();
-                }
-
+                if (server.ServerAddress != address)
+                    new Thread(() => server.SendTwoPCCommit(cmd, seq)).Start();
             });
         }
 
@@ -221,20 +214,20 @@ public class TwoPhaseCommit
         return reply;
     }
 
-    public bool RunCommand(ClientCommand cmd)
+    public int RunCommand(ClientCommand cmd)
     {
         if (cmd.Type == "D")
         {
             lock(account)
                 account.Deposit(cmd.Amount);
-            return true;
+            return 1;
         }
         else if (cmd.Type == "W")
         {   
             lock(account)
-                return account.Withdraw(cmd.Amount);
+                return account.Withdraw(cmd.Amount)? 1 : 0;
         }
-        return false;
+        return 0;
     }
 }
 

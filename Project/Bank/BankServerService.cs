@@ -46,10 +46,12 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         var reply = new ReadBalanceReply { Balance = -1, Ack = request.Seq };
 
         //=============Check If Leader===================
-        Console.WriteLine("WAITING FOR PRIMARY INFO");
+
+        if (isFrozen[CurrentSlot]) return Task.FromResult(reply);
+
         while (!primary.ContainsKey(CurrentSlot)) { }
-        Console.WriteLine("GOT PRIMARY INFO");
-        if (primary[CurrentSlot] != id || isFrozen[CurrentSlot]) return Task.FromResult(reply);
+
+        if (primary[CurrentSlot] != id) return Task.FromResult(reply);
 
         //================Execute and Reply==============
 
@@ -74,16 +76,16 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         var reply = new DepositReply { Status = false, Ack = request.Seq };
 
         //=============Check If Leader===================
-        Console.WriteLine("WAITING FOR PRIMARY INFO");
+
+        if (isFrozen[CurrentSlot]) return Task.FromResult(reply);
+
         while (!primary.ContainsKey(CurrentSlot)) { }
-        Console.WriteLine("GOT PRIMARY INFO");
-        if (primary[CurrentSlot] != id || isFrozen[CurrentSlot]) return Task.FromResult(reply);
+
+        if (primary[CurrentSlot] != id) return Task.FromResult(reply);
 
         //=====================2PC=======================
 
-        TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "D", request.Amount));
-
-        reply.Status = true;
+        reply.Status = TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "D", request.Amount)) == 1;
 
         return Task.FromResult(reply);
     }
@@ -94,7 +96,6 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         {
             if (!_ack.ContainsKey(request.SenderId))
                 _ack[request.SenderId] = new int[2] { 0, 0 };
-            Console.WriteLine("DEPOSIT " + request.Amount + " REQUEST SEQ = " + request.Seq + " ACK = " + _ack[request.SenderId][0]);
             if (request.Seq != _ack[request.SenderId][0] + 1)
                 return Task.FromResult(new WithdrawReply { Ack = _ack[request.SenderId][0] });
             _ack[request.SenderId][0] = request.Seq;
@@ -103,14 +104,16 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         var reply = new WithdrawReply { Status = -1, Ack = request.Seq };
 
         //=============Check If Leader===================
-        Console.WriteLine("WAITING FOR PRIMARY INFO");
+
+        if (isFrozen[CurrentSlot]) return Task.FromResult(reply);
+
         while (!primary.ContainsKey(CurrentSlot)) { }
-        Console.WriteLine("GOT PRIMARY INFO");
-        if (primary[CurrentSlot] != id || isFrozen[CurrentSlot]) return Task.FromResult(reply);
+
+        if (primary[CurrentSlot] != id) return Task.FromResult(reply);
 
         //=====================2PC=======================
 
-        reply.Status = TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "W", request.Amount)) ? 1 : 0;
+        reply.Status = TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "W", request.Amount));
 
         return Task.FromResult(reply);
     }

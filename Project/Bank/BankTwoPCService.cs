@@ -66,8 +66,6 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
         // I.e., since the leader coordinates the messages, even if the receiver had it once,
         // cleanup will remove it, so the new version can arrive without repetition
 
-        Console.WriteLine("STARTING TENTATIVE!!!!");
-
         lock (_ackLock)
         {
             if (!_ack.ContainsKey(request.SenderId))
@@ -78,7 +76,9 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
         }
 
         var reply = new TwoPCTentativeReply { Status = -1, Ack = request.Seq };
-        Console.WriteLine("STARTING TENTATIVE2!!!!");
+
+        Console.WriteLine("STARTING TENTATIVE!!!!");
+
         if (CheckLeadership(request.Command.Slot, request.SenderId))
         {
             reply.Status = TwoPC.AddTentative(
@@ -90,7 +90,7 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
                     request.Command.Amount)) ? 1 : 0;
             
         }
-        Console.WriteLine("FINISHED TENTATIVE!!!!");
+
         return Task.FromResult(reply);
     }
 
@@ -118,6 +118,7 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
                     request.Command.Type,
                     request.Command.Amount));
         }
+
         Console.WriteLine("FINISHED COMMIT!!!!");
 
         return Task.FromResult(reply);
