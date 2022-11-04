@@ -7,7 +7,7 @@ P 6 bank http://localhost:10009/
 P 7 client ../Config/bank_client_script_sample.txt
 P 8 client ../Config/bank_client_script_sample.txt
 S 5
-T 00:20:25
+T 09:24:45
 D 5000
 F 1 (1, N, NS) (2, N, NS) (3, N, NS) (4, F, S) (5, N, NS) (6, F, S)
 F 2 (1, N, NS) (2, N, NS) (3, N, NS) (4, N, NS) (5, N, NS) (6, N, NS)

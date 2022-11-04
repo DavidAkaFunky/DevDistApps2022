@@ -11,21 +11,29 @@ namespace DADProject;
 
 public class TwoPhaseCommit
 {
-    private int id;
     private int majority;
+    private int currentSlot;
     private string address;
     private BankAccount account;
     private List<BankToBankFrontend> bankToBankFrontends;
+    private ConcurrentDictionary<int, int> primary; //  primary/backup
     private ConcurrentDictionary<int, ClientCommand> tentativeCommands = new();
     private ConcurrentDictionary<int, ClientCommand> committedCommands = new();
 
-    public TwoPhaseCommit(int id, string address, List<BankToBankFrontend> frontends, BankAccount account)
+    public TwoPhaseCommit(ConcurrentDictionary<int, int> primary, int currentSlot, string address, List<BankToBankFrontend> frontends, BankAccount account)
     {
-        this.id = id;
+        this.primary = primary;
+        this.currentSlot = currentSlot;
         this.address = address;
         this.bankToBankFrontends = frontends;
         this.account = account;
         this.majority = frontends.Count / 2 + 1;
+    }
+
+    public int CurrentSlot
+    {
+        get { return currentSlot; }
+        set { currentSlot = value; }
     }
 
     public bool AddTentative(int seq, ClientCommand cmd)
@@ -33,12 +41,17 @@ public class TwoPhaseCommit
         bool result = true;
         lock (tentativeCommands)
         {
-            if(!tentativeCommands.TryAdd(seq, cmd))
+            Console.WriteLine(tentativeCommands.Count);
+
+            if (!tentativeCommands.TryAdd(seq, cmd))
             {
                 if (tentativeCommands[seq].Slot < cmd.Slot) tentativeCommands[seq] = cmd;
                 else result = false;
             }
+            Console.WriteLine(tentativeCommands.Count);
+
         }
+
 
         return result;
     }
@@ -92,15 +105,15 @@ public class TwoPhaseCommit
             while (responses.Count != (bankToBankFrontends.Count - 1))
             {
                 //PROSSEGUE, caso ja tenha uma maioria de respostas de servidores normais
-                //if (responses.FindAll(r => r.Status).Count + 1 >= majority)
-                //    break;
+                if (responses.FindAll(r => r.Status).Count + 1 >= majority)
+                    break;
 
                 Monitor.Wait(responses);
             }
 
             //caso uma maioria de servidores esteja frozen
             if (responses.FindAll(r => r.Status).Count + 1 < majority)
-                return; // TODO: CHANGE TO PRIMARY[CURRENTSLOT] = -1
+                primary[currentSlot] = -1;
 
             //processa respostas
             foreach (var res in responses)
@@ -108,7 +121,7 @@ public class TwoPhaseCommit
                 foreach (var cmd in res.Commands)
                 {
                     var clientCommandTuple = new Tuple<int, int>(cmd.ClientId, cmd.ClientSeqNumber);
-                    if (commandsToCommit.TryGetValue(clientCommandTuple, out var sameCommand) && cmd.Slot > sameCommand.Item2.Slot)
+                    if (!commandsToCommit.TryGetValue(clientCommandTuple, out var sameCommand) || cmd.Slot > sameCommand.Item2.Slot)
                         commandsToCommit[clientCommandTuple] = new(cmd.GlobalSeqNumber, ClientCommand.CreateCommandFromGRPC(cmd));
                 }
             }
@@ -120,6 +133,7 @@ public class TwoPhaseCommit
 
         foreach (var cmd in commandsToSend)
         {
+            Console.WriteLine("SENDING NEW COMMAND");
             cmd.Item2.Slot = slot;
             Run(cmd.Item2, cmd.Item1);
         }
@@ -127,7 +141,7 @@ public class TwoPhaseCommit
 
     public int Run(ClientCommand cmd)
     {
-        var seqNumber = committedCommands.IsEmpty ? 0 : committedCommands.Keys.Max();
+        var seqNumber = tentativeCommands.IsEmpty ? 0 : tentativeCommands.Keys.Max();
         return Run(cmd, seqNumber + 1);
     }
 

@@ -243,8 +243,12 @@ internal class Boney
         void HandleSlotTimer()
         {
             _boneySlot++;
-            //if (boneySlot > slotCount)
-            // FINISH
+            if (_boneySlot > slotCount)
+            {
+                timer.Stop();
+                Console.WriteLine("Press any key to leave");
+                Console.ReadKey();
+            }
             proposerService.CurrentSlot = _boneySlot;
             acceptorService.CurrentSlot = _boneySlot;
             learnerService.CurrentSlot = _boneySlot;

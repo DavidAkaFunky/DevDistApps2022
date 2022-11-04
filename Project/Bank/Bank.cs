@@ -146,7 +146,7 @@ internal class Bank
         _boneyAddresses.ForEach(serverAddr =>
             bankToBoneyFrontends.Add(new BankToBoneyFrontend(id, serverAddr, primaries)));
 
-        var TwoPC = new TwoPhaseCommit(id, _address, bankToBankFrontends, account);
+        var TwoPC = new TwoPhaseCommit(primaries, _currentSlot, _address, bankToBankFrontends, account);
 
         //===================================Server Initialization============================
 
@@ -191,6 +191,12 @@ internal class Bank
 
         //============================Set Timer==========================
 
+        //ACTIVATE BEFORE THE DELIVERY!!!!
+        Console.WriteLine("Waiting for " + _initialSleepTime + " milliseconds");
+        Thread.Sleep(_initialSleepTime);
+
+        Timer timer = new(_slotDuration);
+
         void HandleTimer()
         {
             _currentSlot++;
@@ -198,12 +204,15 @@ internal class Bank
 
             bankServerService.CurrentSlot = _currentSlot;
             bank2PCService.CurrentSlot = _currentSlot;
+            TwoPC.CurrentSlot = _currentSlot;
 
             if (_currentSlot > _slotCount)
             {
-                // TODO: Maybe wait until everything was finished, but how?
-                //server.ShutdownAsync().Wait();
-                //Environment.Exit(0);
+                timer.Stop();
+                Console.WriteLine("Press any key to leave");
+                Console.ReadKey();
+                server.ShutdownAsync().Wait();
+                Environment.Exit(0);
             }
 
             Console.WriteLine("--NEW SLOT: {0}--", _currentSlot);
@@ -213,7 +222,7 @@ internal class Bank
 
             if (!isFrozen[_currentSlot])
             {
-                while (primaries[_currentSlot] == -1);
+                while (primaries[_currentSlot] == -1) ;
 
                 if (primaries[_currentSlot] == id && primaries[_currentSlot] != primaries[_currentSlot - 1])
                 {
@@ -222,11 +231,6 @@ internal class Bank
             }
         }
 
-        //ACTIVATE BEFORE THE DELIVERY!!!!
-        Console.WriteLine("Waiting for " + _initialSleepTime + " milliseconds");
-        Thread.Sleep(_initialSleepTime);
-
-        Timer timer = new(_slotDuration);
         timer.Elapsed += (sender, e) => HandleTimer();
         timer.Start();
 
