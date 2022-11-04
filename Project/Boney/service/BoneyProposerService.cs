@@ -39,7 +39,8 @@ public class BoneyProposerService : ProjectBoneyProposerService.ProjectBoneyProp
 
         var reply = new CompareAndSwapReply { OutValue = -1, Ack = request.Seq };
 
-        if (isFrozen[currentSlot]) return Task.FromResult(reply);
+        //if (isFrozen[currentSlot]) return Task.FromResult(reply);
+        while (isFrozen[currentSlot]);
 
         lock (slotsHistory)
         {

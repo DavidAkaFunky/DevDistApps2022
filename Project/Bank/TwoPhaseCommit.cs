@@ -66,8 +66,6 @@ public class TwoPhaseCommit
             commandsToCommit[new(kvp.Value.ClientID, kvp.Value.ClientSeqNumber)] = new(kvp.Key, kvp.Value); //cria copia
         }
 
-        Console.WriteLine("INSIDE CLEANUP");
-
         //listPendingRequests(lastKnownSequenceNumber) to all
         bankToBankFrontends.ForEach(frontend =>
         {
@@ -91,15 +89,22 @@ public class TwoPhaseCommit
         lock (responses)
         {
             //espera pela maioria das respostas
-            while (responses.Count < majority)
+            while (responses.Count != (bankToBankFrontends.Count - 1))
             {
+                //PROSSEGUE, caso ja tenha uma maioria de respostas de servidores normais
+                //if (responses.FindAll(r => r.Status).Count + 1 >= majority)
+                //    break;
+
                 Monitor.Wait(responses);
             }
+
+            //caso uma maioria de servidores esteja frozen
+            if (responses.FindAll(r => r.Status).Count + 1 < majority)
+                return; // TODO: CHANGE TO PRIMARY[CURRENTSLOT] = -1
 
             //processa respostas
             foreach (var res in responses)
             {
-                Console.WriteLine("COMMANDS TO COMMIT " + res.Commands.Count);
                 foreach (var cmd in res.Commands)
                 {
                     var clientCommandTuple = new Tuple<int, int>(cmd.ClientId, cmd.ClientSeqNumber);
@@ -165,9 +170,9 @@ public class TwoPhaseCommit
 
                 while (responses.Count != bankToBankFrontends.Count)
                 {
-                    Monitor.Wait(responses);
                     if (responses.FindAll(x => x == 1).Count >= majority)
                         break;
+                    Monitor.Wait(responses);
                 }
 
                 foreach(var status in responses)
@@ -195,15 +200,14 @@ public class TwoPhaseCommit
         return result;
     }
 
-    public ListPendingRequestsReply ListPendingRequest(int minSeq)
+    public ListPendingRequestsReply ListPendingRequest(int minSeq, int ack)
     {
-        var reply = new ListPendingRequestsReply();
+        var reply = new ListPendingRequestsReply { Status = true, Ack = ack };
 
         lock (tentativeCommands)
         {
             foreach (var kvp in tentativeCommands)
             {
-                Console.WriteLine("TENTATIVE COMMANDS: " + kvp.Key + " " + minSeq);
                 if (kvp.Key > minSeq)
                 {
                     reply.Commands.Add(kvp.Value.CreateCommandGRPC(kvp.Key));

@@ -57,9 +57,9 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
             _ack[request.SenderId] = request.Seq;
         }
 
-        if (isFrozen[currentSlot]) return Task.FromResult(new ListPendingRequestsReply());
+        if (isFrozen[currentSlot]) return Task.FromResult(new ListPendingRequestsReply { Status = false, Ack = request.Seq });
 
-        return Task.FromResult(TwoPC.ListPendingRequest(request.GlobalSeqNumber));
+        return Task.FromResult(TwoPC.ListPendingRequest(request.GlobalSeqNumber, request.Seq));
     }
 
     public override Task<TwoPCTentativeReply> TwoPCTentative(TwoPCTentativeRequest request, ServerCallContext context)
@@ -81,7 +81,6 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
 
         if (CheckLeadership(request.Command.Slot, request.SenderId))
         {
-            Console.WriteLine("STARTING TENTATIVE!!!!");
             reply.Status = TwoPC.AddTentative(
                 request.Command.GlobalSeqNumber, 
                 new(request.Command.Slot, 
@@ -109,8 +108,6 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
 
         if (CheckLeadership(request.Command.Slot, request.SenderId))
         {
-            Console.WriteLine("STARTING COMMIT!!!!");
-
             TwoPC.AddCommitted(
                 request.Command.GlobalSeqNumber,
                 new(request.Command.Slot,

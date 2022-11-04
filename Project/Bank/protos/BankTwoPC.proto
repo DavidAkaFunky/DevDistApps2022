@@ -16,7 +16,8 @@ message ListPendingRequestsRequest{
 }
 message ListPendingRequestsReply{
 	int32 ack = 1;
-	repeated ClientCommandGRPC commands = 2;
+	bool status = 2;
+	repeated ClientCommandGRPC commands = 3;
 }
 
 message TwoPCTentativeRequest {

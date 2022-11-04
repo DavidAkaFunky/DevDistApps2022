@@ -213,10 +213,7 @@ internal class Bank
 
             if (!isFrozen[_currentSlot])
             {
-                while (primaries[_currentSlot] == -1) { }
-
-                Console.WriteLine(_currentSlot - 1 + " " + primaries[_currentSlot - 1]);
-                Console.WriteLine(_currentSlot + " " + primaries[_currentSlot]);
+                while (primaries[_currentSlot] == -1);
 
                 if (primaries[_currentSlot] == id && primaries[_currentSlot] != primaries[_currentSlot - 1])
                 {

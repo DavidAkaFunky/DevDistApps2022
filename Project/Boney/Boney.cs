@@ -306,12 +306,22 @@ internal class Boney
 
                 lock (promiseResponses)
                 {
-                    //espera pela maioria das respostas
-                    while (promiseResponses.Count < majority)
+                    //espera por todas as respostas
+                    while (promiseResponses.Count != frontends.Count)
+                    {
+                        //PROSSEGUE, caso ja tenha uma maioria de respostas de servidores normais
+                        if (promiseResponses.FindAll(r => r.Status).Count >= majority)
+                            break;
+
                         Monitor.Wait(promiseResponses);
+                    }
+
+                    //caso uma maioria de servidores esteja frozen
+                    if (promiseResponses.FindAll(r => r.Status).Count < majority)
+                        continue;
 
                     //processa respostas
-                    foreach (var res in promiseResponses)
+                    foreach (var res in promiseResponses.FindAll(r => r.Status))
                     {
                         if (res.Value == -1 && res.WriteTimestamp == -1)
                         {
@@ -363,18 +373,21 @@ internal class Boney
 
             lock (acceptedResponses)
             {
-                //espera pela maioria das respostas
-                while (acceptedResponses.Count < majority)
-                    Monitor.Wait(acceptedResponses);
-
-                //processa respostas
-                foreach (var status in acceptedResponses)
+                //espera por todas as respostas
+                while (acceptedResponses.Count != frontends.Count)
                 {
-                    if (!status)
-                    {
-                        timestampId += frontends.Count;
+                    //PROSSEGUE, caso ja tenha uma maioria de respostas de servidores normais
+                    if (acceptedResponses.FindAll(status => status).Count >= majority)
                         break;
-                    }
+
+                    Monitor.Wait(acceptedResponses);
+                }
+
+                //caso uma maioria de servidores esteja frozen
+                if (acceptedResponses.FindAll(status => status).Count < majority || acceptedResponses.Any(status => !status))
+                {
+                    timestampId += frontends.Count;
+                    continue;
                 }
             }
         }
