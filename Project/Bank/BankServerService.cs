@@ -49,7 +49,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
         if (isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
-        while (!primary.ContainsKey(CurrentSlot)) { }
+        while (primary[CurrentSlot] == -1) ;
 
         if (primary[CurrentSlot] != id) return Task.FromResult(reply);
 
@@ -79,14 +79,18 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
         if (isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
-        while (!primary.ContainsKey(CurrentSlot)) { }
+        Console.WriteLine("NOT FROZEN");
 
+        while (primary[CurrentSlot] == -1) ;
+
+        Console.WriteLine("LEADER IS: " + primary[CurrentSlot] + " I AM " + id);
         if (primary[CurrentSlot] != id) return Task.FromResult(reply);
 
         //=====================2PC=======================
 
         reply.Status = TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "D", request.Amount)) == 1;
 
+        Console.WriteLine("RESULT: " + reply.Status);
         return Task.FromResult(reply);
     }
 
@@ -107,7 +111,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
         if (isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
-        while (!primary.ContainsKey(CurrentSlot)) { }
+        while (primary[CurrentSlot] == -1) ;
 
         if (primary[CurrentSlot] != id) return Task.FromResult(reply);
 
@@ -120,6 +124,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
     public override Task<CompareSwapReply> AcceptCompareSwapResult(CompareSwapResult request, ServerCallContext context)
     {
+        Console.WriteLine("HELLO");
         lock (_ackLock)
         {
             if (!_ack.ContainsKey(request.SenderId))

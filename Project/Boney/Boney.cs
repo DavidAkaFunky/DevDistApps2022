@@ -199,7 +199,8 @@ internal class Boney
             slotsHistory,
             proposerService,
             acceptorService,
-            learnerService);
+            learnerService,
+            server);
 
         Console.WriteLine("Press any key to stop the server...");
         Console.ReadKey();
@@ -230,7 +231,8 @@ internal class Boney
         ConcurrentDictionary<int, int> slotHistory,
         BoneyProposerService proposerService,
         BoneyAcceptorService acceptorService,
-        BoneyLearnerService learnerService)
+        BoneyLearnerService learnerService,
+        Server server)
     {
         var timestampId = id;
         Slot? slotToPropose;
@@ -243,12 +245,6 @@ internal class Boney
         void HandleSlotTimer()
         {
             _boneySlot++;
-            if (_boneySlot > slotCount)
-            {
-                timer.Stop();
-                Console.WriteLine("Press any key to leave");
-                Console.ReadKey();
-            }
             proposerService.CurrentSlot = _boneySlot;
             acceptorService.CurrentSlot = _boneySlot;
             learnerService.CurrentSlot = _boneySlot;
@@ -267,6 +263,14 @@ internal class Boney
 
         while (true)
         {
+            if (_boneySlot > slotCount)
+            {
+                timer.Stop();
+                Console.WriteLine("Press any key to leave");
+                Console.ReadKey();
+                server.ShutdownAsync().Wait();
+                Environment.Exit(0);
+            }
             //Loop enquanto nao sou lider
             if (!isPerceivedLeader[_boneySlot]) continue;
 
