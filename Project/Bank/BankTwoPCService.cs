@@ -32,7 +32,9 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
     // All tentatives/commits coming from anyone other than the leader will be ignored!
     private bool CheckLeadership(int slot, int senderID) {
 
-        if (slot > currentSlot || isFrozen[currentSlot])
+        while (isFrozen[currentSlot]) ;
+
+        if (slot > currentSlot)
             return false;
 
         // Checking if the leader has always been senderID since the given slot

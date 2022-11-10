@@ -131,18 +131,24 @@ public class TwoPhaseCommit
         var commandsToSend = commandsToCommit.Values.ToList();
         commandsToSend.OrderBy(cmd => cmd.Item1).ThenBy(cmd => cmd.Item2.Slot);
 
-        foreach (var cmd in commandsToSend)
-        {
-            Console.WriteLine("SENDING NEW COMMAND");
-            cmd.Item2.Slot = slot;
-            Run(cmd.Item2, cmd.Item1);
-        }
+        lock (committedCommands)
+        lock (tentativeCommands)
+            foreach (var cmd in commandsToSend)
+            {
+                Console.WriteLine("SENDING NEW COMMAND");
+                cmd.Item2.Slot = slot;
+                Run(cmd.Item2, cmd.Item1);
+            }
     }
 
     public int Run(ClientCommand cmd)
     {
-        var seqNumber = committedCommands.IsEmpty ? 0 : committedCommands.Keys.Max();
-        return Run(cmd, seqNumber + 1);
+        lock (committedCommands)
+        lock (tentativeCommands)
+        {
+            var seqNumber = committedCommands.IsEmpty ? 0 : committedCommands.Keys.Max();
+            return Run(cmd, seqNumber + 1);
+        }
     }
 
     protected int Run(ClientCommand cmd, int seq)
@@ -150,66 +156,61 @@ public class TwoPhaseCommit
         int result;
         var responses = new List<int>();
 
-        lock (tentativeCommands)
-        lock (committedCommands)
+        //This should work
+        tentativeCommands[seq] = cmd;
+
+        lock (responses)
+            responses.Add(1);
+
+        //send tentative with seq for command(cmd)
+        bankToBankFrontends.ForEach(server =>
         {
-            
-            //This should work
-            tentativeCommands[seq] = cmd;
-
-            lock (responses)
-                responses.Add(1);
-
-            //send tentative with seq for command(cmd)
-            bankToBankFrontends.ForEach(server =>
+            if (server.ServerAddress != address)
             {
-                if (server.ServerAddress != address)
+                new Thread(() =>
                 {
-                    new Thread(() =>
+                    var status = server.SendTwoPCTentative(cmd, seq).Status;
+                    lock (responses)
                     {
-                        var status = server.SendTwoPCTentative(cmd, seq).Status;
-                        lock (responses)
-                        {
-                            responses.Add(status);
-                            Monitor.PulseAll(responses);
-                        }
+                        responses.Add(status);
+                        Monitor.PulseAll(responses);
+                    }
 
-                    }).Start();
-                }
-            });
+                }).Start();
+            }
+        });
 
-            lock (responses)
+        lock (responses)
+        {
+            //espera pela maioria das respostas
+
+            while (responses.Count != bankToBankFrontends.Count)
             {
-                //espera pela maioria das respostas
-
-                while (responses.Count != bankToBankFrontends.Count)
-                {
-                    if (responses.FindAll(x => x == 1).Count >= majority)
-                        break;
-                    Monitor.Wait(responses);
-                }
-
-                foreach(var status in responses)
-                {
-                    if (status == 0) return -1;
-                }
-
-                if (responses.FindAll(x => x == 1).Count < majority)
-                    return 1; // It was successful because cleanup will eventually commit it!
+                if (responses.FindAll(x => x == 1).Count >= majority)
+                    break;
+                Monitor.Wait(responses);
             }
 
-            //This should work
-            committedCommands[seq] = cmd;
-
-            result = RunCommand(cmd);
-
-            //send commit to all replicas
-            bankToBankFrontends.ForEach(server =>
+            foreach(var status in responses)
             {
-                if (server.ServerAddress != address)
-                    new Thread(() => server.SendTwoPCCommit(cmd, seq)).Start();
-            });
+                if (status == 0) return -1;
+            }
+
+            if (responses.FindAll(x => x == 1).Count < majority)
+                return 1; // It was successful because cleanup will eventually commit it!
         }
+
+        //This should work
+        committedCommands[seq] = cmd;
+
+        result = RunCommand(cmd);
+
+        //send commit to all replicas
+        bankToBankFrontends.ForEach(server =>
+        {
+            if (server.ServerAddress != address)
+                new Thread(() => server.SendTwoPCCommit(cmd, seq)).Start();
+        });
 
         return result;
     }
