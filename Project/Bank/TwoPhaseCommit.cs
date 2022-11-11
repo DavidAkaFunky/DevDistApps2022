@@ -1,55 +1,59 @@
-﻿using Google.Protobuf.WellKnownTypes;
-using Grpc.Core;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Concurrent;
 
 namespace DADProject;
 
 public class TwoPhaseCommit
 {
-    private int majority;
-    private int currentSlot;
-    private string address;
-    private BankAccount account;
-    private List<BankToBankFrontend> bankToBankFrontends;
-    private ConcurrentDictionary<int, int> primary; //  primary/backup
-    private ConcurrentDictionary<int, ClientCommand> tentativeCommands = new();
-    private ConcurrentDictionary<int, ClientCommand> committedCommands = new();
+    // the bank account
+    private readonly BankAccount account;
 
-    public TwoPhaseCommit(ConcurrentDictionary<int, int> primary, int currentSlot, string address, List<BankToBankFrontend> frontends, BankAccount account)
+    // our address
+    private readonly string address;
+
+    // the bank needs to talk to other banks
+    private readonly List<BankToBankFrontend> bankToBankFrontends;
+
+    // <sequence number, command>
+    private readonly ConcurrentDictionary<int, ClientCommand> committedCommands = new();
+
+    // system's current time slot
+
+    // how many responses in a majority
+    private readonly int majority;
+
+    // <slot, isPrimary : bool>
+    private readonly ConcurrentDictionary<int, int> primary; //  primary/backup
+
+    // <sequence number, command>
+    private readonly ConcurrentDictionary<int, ClientCommand> tentativeCommands = new();
+
+    public TwoPhaseCommit(ConcurrentDictionary<int, int> primary, int currentSlot, string address,
+        List<BankToBankFrontend> frontends, BankAccount account)
     {
         this.primary = primary;
-        this.currentSlot = currentSlot;
+        CurrentSlot = currentSlot;
         this.address = address;
-        this.bankToBankFrontends = frontends;
+        bankToBankFrontends = frontends;
         this.account = account;
-        this.majority = frontends.Count / 2 + 1;
+        majority = frontends.Count / 2 + 1;
     }
 
-    public int CurrentSlot
-    {
-        get { return currentSlot; }
-        set { currentSlot = value; }
-    }
+    public int CurrentSlot { get; set; }
 
     public bool AddTentative(int seq, ClientCommand cmd)
     {
-        bool result = true;
+        var result = true;
         lock (tentativeCommands)
         {
-            Console.WriteLine(tentativeCommands.Count);
+            // Console.WriteLine(tentativeCommands.Count);
 
             if (!tentativeCommands.TryAdd(seq, cmd))
             {
                 if (tentativeCommands[seq].Slot < cmd.Slot) tentativeCommands[seq] = cmd;
                 else result = false;
             }
-            Console.WriteLine(tentativeCommands.Count);
 
+            // Console.WriteLine(tentativeCommands.Count);
         }
 
 
@@ -61,7 +65,8 @@ public class TwoPhaseCommit
         lock (committedCommands)
         {
             // Check if the command isn't in this server yet
-            if (!committedCommands.Where(kvp => kvp.Value.ClientID == cmd.ClientID && kvp.Value.ClientSeqNumber == cmd.ClientSeqNumber).Any())
+            if (!committedCommands.Where(kvp =>
+                    kvp.Value.ClientID == cmd.ClientID && kvp.Value.ClientSeqNumber == cmd.ClientSeqNumber).Any())
             {
                 RunCommand(cmd);
                 committedCommands[seq] = cmd;
@@ -74,18 +79,17 @@ public class TwoPhaseCommit
         var responses = new List<ListPendingRequestsReply>();
         var commandsToCommit = new Dictionary<Tuple<int, int>, Tuple<int, ClientCommand>>();
 
-        foreach(var kvp in tentativeCommands)
-        {
-            commandsToCommit[new(kvp.Value.ClientID, kvp.Value.ClientSeqNumber)] = new(kvp.Key, kvp.Value); //cria copia
-        }
+        foreach (var kvp in tentativeCommands)
+            commandsToCommit[new Tuple<int, int>(kvp.Value.ClientID, kvp.Value.ClientSeqNumber)] =
+                new Tuple<int, ClientCommand>(kvp.Key, kvp.Value); //cria copia
 
         //listPendingRequests(lastKnownSequenceNumber) to all
         bankToBankFrontends.ForEach(frontend =>
         {
             if (frontend.ServerAddress != address)
-            {
                 new Thread(() =>
                 {
+                    // possible race condition here too
                     var seqNumber = committedCommands.IsEmpty ? 0 : committedCommands.Keys.Max();
                     var reply = frontend.ListPendingTwoPCRequests(seqNumber);
                     lock (responses)
@@ -93,16 +97,14 @@ public class TwoPhaseCommit
                         responses.Add(reply);
                         Monitor.PulseAll(responses);
                     }
-
                 }).Start();
-            }
         });
 
 
         lock (responses)
         {
             //espera pela maioria das respostas
-            while (responses.Count != (bankToBankFrontends.Count - 1))
+            while (responses.Count != bankToBankFrontends.Count - 1)
             {
                 //PROSSEGUE, caso ja tenha uma maioria de respostas de servidores normais
                 if (responses.FindAll(r => r.Status).Count + 1 >= majority)
@@ -113,19 +115,18 @@ public class TwoPhaseCommit
 
             //caso uma maioria de servidores esteja frozen
             if (responses.FindAll(r => r.Status).Count + 1 < majority)
-                primary[currentSlot] = -1;
+                primary[CurrentSlot] = -1;
 
             //processa respostas
             foreach (var res in responses)
+            foreach (var cmd in res.Commands)
             {
-                foreach (var cmd in res.Commands)
-                {
-                    var clientCommandTuple = new Tuple<int, int>(cmd.ClientId, cmd.ClientSeqNumber);
-                    if (!commandsToCommit.TryGetValue(clientCommandTuple, out var sameCommand) || cmd.Slot > sameCommand.Item2.Slot)
-                        commandsToCommit[clientCommandTuple] = new(cmd.GlobalSeqNumber, ClientCommand.CreateCommandFromGRPC(cmd));
-                }
+                var clientCommandTuple = new Tuple<int, int>(cmd.ClientId, cmd.ClientSeqNumber);
+                if (!commandsToCommit.TryGetValue(clientCommandTuple, out var sameCommand) ||
+                    cmd.Slot > sameCommand.Item2.Slot)
+                    commandsToCommit[clientCommandTuple] = new Tuple<int, ClientCommand>(cmd.GlobalSeqNumber,
+                        ClientCommand.CreateCommandFromGRPC(cmd));
             }
-
         }
 
         var commandsToSend = commandsToCommit.Values.ToList();
@@ -133,12 +134,14 @@ public class TwoPhaseCommit
 
         lock (committedCommands)
         lock (tentativeCommands)
+        {
             foreach (var cmd in commandsToSend)
             {
                 Console.WriteLine("SENDING NEW COMMAND");
                 cmd.Item2.Slot = slot;
                 Run(cmd.Item2, cmd.Item1);
             }
+        }
     }
 
     public int Run(ClientCommand cmd)
@@ -160,13 +163,14 @@ public class TwoPhaseCommit
         tentativeCommands[seq] = cmd;
 
         lock (responses)
+        {
             responses.Add(1);
+        }
 
         //send tentative with seq for command(cmd)
         bankToBankFrontends.ForEach(server =>
         {
             if (server.ServerAddress != address)
-            {
                 new Thread(() =>
                 {
                     var status = server.SendTwoPCTentative(cmd, seq).Status;
@@ -175,9 +179,7 @@ public class TwoPhaseCommit
                         responses.Add(status);
                         Monitor.PulseAll(responses);
                     }
-
                 }).Start();
-            }
         });
 
         lock (responses)
@@ -191,10 +193,13 @@ public class TwoPhaseCommit
                 Monitor.Wait(responses);
             }
 
-            foreach(var status in responses)
-            {
-                if (status == 0) return -1;
-            }
+            foreach (var status in responses)
+                if (status == 0)
+                {
+                    Console.WriteLine($"2PC response status {status}");
+                    return -1;
+                }
+
 
             if (responses.FindAll(x => x == 1).Count < majority)
                 return 1; // It was successful because cleanup will eventually commit it!
@@ -222,12 +227,8 @@ public class TwoPhaseCommit
         lock (tentativeCommands)
         {
             foreach (var kvp in tentativeCommands)
-            {
                 if (kvp.Key > minSeq)
-                {
                     reply.Commands.Add(kvp.Value.CreateCommandGRPC(kvp.Key));
-                }
-            }
         }
 
         return reply;
@@ -237,16 +238,20 @@ public class TwoPhaseCommit
     {
         if (cmd.Type == "D")
         {
-            lock(account)
+            lock (account)
+            {
                 account.Deposit(cmd.Amount);
+            }
+
             return 1;
         }
-        else if (cmd.Type == "W")
-        {   
-            lock(account)
-                return account.Withdraw(cmd.Amount)? 1 : 0;
-        }
+
+        if (cmd.Type == "W")
+            lock (account)
+            {
+                return account.Withdraw(cmd.Amount) ? 1 : 0;
+            }
+
         return 0;
     }
 }
-

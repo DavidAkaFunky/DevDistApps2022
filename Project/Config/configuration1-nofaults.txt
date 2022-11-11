@@ -6,11 +6,11 @@ P 5 boney http://127.0.0.1:10005
 P 6 bank http://127.0.0.1:10006
 P 7 bank http://127.0.0.1:10007
 P 8 bank http://127.0.0.1:10008
-P 9 client ../Config/bank_client_1_1
-P 10 client ../Config/bank_client_1_2
+P 9 client ../Config/bank_client_1_1.txt
+P 10 client ../Config/bank_client_1_2.txt
 S 12
-T 12:10:15
-D 5000 
+T 01:34:20
+D 6000 
 F 1 (1, N, NS) (2, N, NS) (3, N, NS) (4, N, NS) (5, N, NS) (6, N, NS) (7, N, NS) (8, N, NS)
 F 2 (1, N, NS) (2, N, NS) (3, N, NS) (4, N, NS) (5, N, NS) (6, N, NS) (7, N, NS) (8, N, NS)
 F 3 (1, N, NS) (2, N, NS) (3, N, NS) (4, N, NS) (5, N, NS) (6, N, NS) (7, N, NS) (8, N, NS)
