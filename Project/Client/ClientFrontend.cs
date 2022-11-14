@@ -33,7 +33,7 @@ public class ClientFrontend
                 {
                     responseCount++;
 
-                    if (!finished && task.Result.Balance > 0)
+                    if (!finished && task.Result.Balance >= 0)
                     {
                         Console.WriteLine("Balance: " + task.Result.Balance.ToString("C", CultureInfo.CurrentCulture));
                         finished = true;
@@ -51,10 +51,12 @@ public class ClientFrontend
             {
                 cond = finished || responseCount == _bankServers.Count;
             }
+
             if (cond)
                 break;
             gotResult.WaitOne();
         }
+
 
         if (!finished)
             Console.WriteLine("The command couldn't be processed. Please try again!");
@@ -94,6 +96,7 @@ public class ClientFrontend
             {
                 cond = finished || responseCount == _bankServers.Count;
             }
+
             if (cond)
                 break;
             gotResult.WaitOne();
@@ -160,10 +163,10 @@ public class ClientFrontend
     {
         private readonly GrpcChannel _channel;
         private readonly Random _random = new();
+        private readonly int _senderID;
         private readonly Mutex _seqLock = new();
         private readonly int _timeout;
         private int _currentSeq = 1;
-        private int _senderID;
 
         public Sender(GrpcChannel channel, int timeout, int senderID)
         {
@@ -182,6 +185,7 @@ public class ClientFrontend
                 {
                     req.Seq = _currentSeq++;
                 }
+
                 req.SenderId = _senderID;
                 while (true)
                 {
@@ -194,6 +198,7 @@ public class ClientFrontend
                         reply = null;
                         continue;
                     }
+
                     if (reply.Ack >= req.Seq)
                         break;
                 }
@@ -214,6 +219,7 @@ public class ClientFrontend
                 {
                     req.Seq = _currentSeq++;
                 }
+
                 req.SenderId = _senderID;
                 while (true)
                 {
@@ -226,6 +232,7 @@ public class ClientFrontend
                         reply = null;
                         continue;
                     }
+
                     if (reply.Ack >= req.Seq)
                         break;
                 }
@@ -246,6 +253,7 @@ public class ClientFrontend
                 {
                     req.Seq = _currentSeq++;
                 }
+
                 req.SenderId = _senderID;
                 while (true)
                 {
@@ -258,6 +266,7 @@ public class ClientFrontend
                         reply = null;
                         continue;
                     }
+
                     if (reply.Ack >= req.Seq)
                         break;
                 }

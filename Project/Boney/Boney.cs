@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using Grpc.Core;
 using Timer = System.Timers.Timer;
 
@@ -172,7 +171,8 @@ internal class Boney
 
         var proposerService = new BoneyProposerService(slotsHistory, slotsInfo, isFrozen, _boneySlot);
         var acceptorService = new BoneyAcceptorService(boneyToBoneyfrontends, slotsInfo, isFrozen, _boneySlot);
-        var learnerService = new BoneyLearnerService(boneyToBankfrontends, _boneyAddresses.Count, slotsHistory, isFrozen, _boneySlot);
+        var learnerService = new BoneyLearnerService(boneyToBankfrontends, _boneyAddresses.Count, slotsHistory,
+            isFrozen, _boneySlot);
 
         var ownUri = new Uri(_address);
         var server = new Server
@@ -199,7 +199,8 @@ internal class Boney
             slotsHistory,
             proposerService,
             acceptorService,
-            learnerService);
+            learnerService,
+            server);
 
         Console.WriteLine("Press any key to stop the server...");
         Console.ReadKey();
@@ -230,11 +231,12 @@ internal class Boney
         ConcurrentDictionary<int, int> slotHistory,
         BoneyProposerService proposerService,
         BoneyAcceptorService acceptorService,
-        BoneyLearnerService learnerService)
+        BoneyLearnerService learnerService,
+        Server server)
     {
         var timestampId = id;
         Slot? slotToPropose;
-        int majority = frontends.Count / 2 + 1;
+        var majority = frontends.Count / 2 + 1;
 
         //========================================BONEY_SLOT_TIMER====================================================
 
@@ -243,12 +245,6 @@ internal class Boney
         void HandleSlotTimer()
         {
             _boneySlot++;
-            if (_boneySlot > slotCount)
-            {
-                timer.Stop();
-                Console.WriteLine("Press any key to leave");
-                Console.ReadKey();
-            }
             proposerService.CurrentSlot = _boneySlot;
             acceptorService.CurrentSlot = _boneySlot;
             learnerService.CurrentSlot = _boneySlot;
@@ -267,10 +263,19 @@ internal class Boney
 
         while (true)
         {
+            if (_boneySlot > slotCount)
+            {
+                timer.Stop();
+                Console.WriteLine("Press any key to leave");
+                Console.ReadKey();
+                server.ShutdownAsync().Wait();
+                Environment.Exit(0);
+            }
+
             //Loop enquanto nao sou lider
             if (!isPerceivedLeader[_boneySlot]) continue;
 
-            var mostRecentslot = slotHistory.Count + 1;
+            var mostRecentslot = _boneySlot;
 
             //sou lider, verificar se tenho valor para propor para o slot mais recente
             if (!slotsInfo.TryGetValue(mostRecentslot, out slotToPropose)) continue;
@@ -303,9 +308,7 @@ internal class Boney
                             promiseResponses.Add(r);
                             Monitor.PulseAll(promiseResponses);
                         }
-                        
-
-                    }).Start(); 
+                    }).Start();
                 });
 
                 lock (promiseResponses)
@@ -326,7 +329,6 @@ internal class Boney
 
                     //processa respostas
                     foreach (var res in promiseResponses.FindAll(r => r.Status))
-                    {
                         if (res.Value == -1 && res.WriteTimestamp == -1)
                         {
                             Console.WriteLine("Proposer: RECEIVED **NACK**");
@@ -339,7 +341,6 @@ internal class Boney
                             value = res.Value;
                             ts = res.WriteTimestamp;
                         }
-                    }
                 }
 
                 //no caso de ter recebido nack no proprose
@@ -370,9 +371,7 @@ internal class Boney
                         acceptedResponses.Add(status);
                         Monitor.PulseAll(acceptedResponses);
                     }
-
                 }).Start();
-
             });
 
             lock (acceptedResponses)
@@ -388,11 +387,8 @@ internal class Boney
                 }
 
                 //caso uma maioria de servidores esteja frozen
-                if (acceptedResponses.FindAll(status => status).Count < majority || acceptedResponses.Any(status => !status))
-                {
-                    timestampId += frontends.Count;
-                    continue;
-                }
+                if (acceptedResponses.FindAll(status => status).Count < majority ||
+                    acceptedResponses.Any(status => !status)) timestampId += frontends.Count;
             }
         }
     }

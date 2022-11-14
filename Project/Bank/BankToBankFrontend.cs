@@ -5,36 +5,37 @@ namespace DADProject;
 
 public class BankToBankFrontend
 {
-    private readonly int id;
-    private int seq;
+    // the timeout for waiting for a response
     private static readonly int TIMEOUT = 1000;
-    private readonly string serverAddress;
+
+    //the bank's id
+
+    // the instance of the perfect channel sender
     private readonly Sender sender;
+
+    // the server's ip address / hostname and port
+
+    // old code, unused
+    private int seq;
 
     public BankToBankFrontend(int id, string serverAddress)
     {
-        this.id = id;
-        this.serverAddress = serverAddress;
+        Id = id;
+        ServerAddress = serverAddress;
         seq = 0;
-        sender = new(GrpcChannel.ForAddress(serverAddress), TIMEOUT, id);
+        sender = new Sender(GrpcChannel.ForAddress(serverAddress), TIMEOUT, id);
     }
 
-    public int Id
-    {
-        get { return id; }
-    }
+    public int Id { get; }
 
-    public string ServerAddress
-    {
-        get { return serverAddress; }
-    }
+    public string ServerAddress { get; }
 
 
     public ListPendingRequestsReply ListPendingTwoPCRequests(int lastKnownSequenceNumber)
     {
         var request = new ListPendingRequestsRequest
         {
-            SenderId = id,
+            SenderId = Id,
             GlobalSeqNumber = lastKnownSequenceNumber
         };
         return sender.Send(request).Result;
@@ -44,7 +45,7 @@ public class BankToBankFrontend
     {
         var request = new TwoPCTentativeRequest
         {
-            SenderId = id,
+            SenderId = Id,
             Command = command.CreateCommandGRPC(tentativeSeqNumber)
         };
         return sender.Send(request).Result;
@@ -54,7 +55,7 @@ public class BankToBankFrontend
     {
         var request = new TwoPCCommitRequest
         {
-            SenderId = id,
+            SenderId = Id,
             Command = command.CreateCommandGRPC(committedSeqNumber)
         };
         sender.Send(request);
@@ -62,12 +63,22 @@ public class BankToBankFrontend
 
     private class Sender
     {
+        //the grpc channel to communicate with the server
         private readonly GrpcChannel _channel;
+
+        // used for timeouts
         private readonly Random _random = new();
+
+        // this client's id
+        private readonly int _senderID;
+
+        // used for incrementing the seq
         private readonly Mutex _seqLock = new();
+
         private readonly int _timeout;
+
+        // the current seq
         private int _currentSeq = 1;
-        private int _senderID;
 
         public Sender(GrpcChannel channel, int timeout, int senderID)
         {
@@ -80,13 +91,18 @@ public class BankToBankFrontend
         {
             var t = new Task<ListPendingRequestsReply>(() =>
             {
+                // create a stub to send the rpc
                 var stub = new ProjectBankTwoPCService.ProjectBankTwoPCServiceClient(_channel);
                 ListPendingRequestsReply? reply = null;
+                // get a seq number for the message
                 lock (_seqLock)
                 {
                     req.Seq = _currentSeq++;
                 }
+
+                // stamp our id
                 req.SenderId = _senderID;
+                // will keep trying until we receive a response and it matches the expected ack (seq + 1)
                 while (true)
                 {
                     try
@@ -98,12 +114,14 @@ public class BankToBankFrontend
                         reply = null;
                         continue;
                     }
+
                     if (reply.Ack >= req.Seq)
                         break;
                 }
 
                 return reply;
             });
+            // async so we don't have to wait indefinitely before sending more messages
             t.Start();
             return t;
         }
@@ -118,6 +136,7 @@ public class BankToBankFrontend
                 {
                     req.Seq = _currentSeq++;
                 }
+
                 req.SenderId = _senderID;
                 while (true)
                 {
@@ -129,9 +148,11 @@ public class BankToBankFrontend
                     {
                         continue;
                     }
+
                     if (reply.Ack >= req.Seq)
                         break;
                 }
+
                 return reply;
             });
             t.Start();
@@ -148,6 +169,7 @@ public class BankToBankFrontend
                 {
                     req.Seq = _currentSeq++;
                 }
+
                 req.SenderId = _senderID;
                 while (true)
                 {
@@ -160,6 +182,7 @@ public class BankToBankFrontend
                         reply = null;
                         continue;
                     }
+
                     if (reply.Ack >= req.Seq)
                         break;
                 }

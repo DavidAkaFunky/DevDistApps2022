@@ -7,20 +7,25 @@ namespace DADProject;
 // ChatServerServiceBase is the generated base implementation of the service
 internal class BankServerService : ProjectBankServerService.ProjectBankServerServiceBase
 {
+    // <clientId, lastAckSent[]> (index[1] is used for Boney -> Bank communication)
+    // [0] used for Client -> Bank Communication
+    private readonly Dictionary<int, int[]> _ack = new();
+
+    //object used only for incrementing the ack inside a lock
     private readonly object _ackLock = new();
-    private BankAccount account;
+    private readonly BankAccount account;
     private readonly int id;
+
+    // <slot, bool> 
+    private readonly Dictionary<int, bool> isFrozen;
+
+    // <slot, primaryId>
     private readonly ConcurrentDictionary<int, int> primary; //  primary/backup
 
     private readonly TwoPhaseCommit TwoPC;
 
-    private readonly Dictionary<int, bool> isFrozen;
-
-    //TODO change this to a dictionary where <clientId>, <lastAck> pairs are saved
-    //TODO this implies changing proto messages to include clientIds in all the requests
-    private Dictionary<int, int[]> _ack = new();
-
-    public BankServerService(int id, ConcurrentDictionary<int, int> primary, TwoPhaseCommit TwoPC, Dictionary<int, bool> isFrozen, BankAccount account)
+    public BankServerService(int id, ConcurrentDictionary<int, int> primary, TwoPhaseCommit TwoPC,
+        Dictionary<int, bool> isFrozen, BankAccount account)
     {
         this.id = id;
         this.primary = primary;
@@ -35,28 +40,36 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
     {
         lock (_ackLock)
         {
+            // if first message received from channel _ack[<clientId>] = 0
             if (!_ack.ContainsKey(request.SenderId))
                 _ack[request.SenderId] = new int[2] { 0, 0 };
             Console.WriteLine("READ BALANCE REQUEST " + request.Seq + " ACK = " + _ack[request.SenderId][0]);
+            // if seq is not the expected number (ack + 1), refuse the message and reply with current ack for this channel
             if (request.Seq != _ack[request.SenderId][0] + 1)
                 return Task.FromResult(new ReadBalanceReply { Ack = _ack[request.SenderId][0] });
+            // update ack
             _ack[request.SenderId][0] = request.Seq;
         }
 
         var reply = new ReadBalanceReply { Balance = -1, Ack = request.Seq };
 
         //=============Check If Leader===================
-
+        // if i am frozen, reply with Balance = -1 (unavailable)
         if (isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
-        while (!primary.ContainsKey(CurrentSlot)) { }
+        // wait while the there is no primary server for this slot
+        while (primary[CurrentSlot] == -1) ;
 
+        // if i am not the primary, return
         if (primary[CurrentSlot] != id) return Task.FromResult(reply);
 
         //================Execute and Reply==============
 
-        lock(account)
+        lock (account)
+        {
             reply.Balance = account.Balance;
+            Console.WriteLine($"Account Balance after: {reply.Balance}");
+        }
 
         return Task.FromResult(reply);
     }
@@ -67,7 +80,8 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         {
             if (!_ack.ContainsKey(request.SenderId))
                 _ack[request.SenderId] = new int[2] { 0, 0 };
-            Console.WriteLine("DEPOSIT " + request.Amount + " REQUEST SEQ = " + request.Seq + " ACK = " + _ack[request.SenderId][0]);
+            Console.WriteLine("DEPOSIT " + request.Amount + " REQUEST SEQ = " + request.Seq + " ACK = " +
+                              _ack[request.SenderId][0]);
             if (request.Seq != _ack[request.SenderId][0] + 1)
                 return Task.FromResult(new DepositReply { Ack = _ack[request.SenderId][0] });
             _ack[request.SenderId][0] = request.Seq;
@@ -79,14 +93,19 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
         if (isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
-        while (!primary.ContainsKey(CurrentSlot)) { }
+        Console.WriteLine("NOT FROZEN");
 
+        while (primary[CurrentSlot] == -1) ;
+
+        Console.WriteLine("LEADER IS: " + primary[CurrentSlot] + " I AM " + id);
         if (primary[CurrentSlot] != id) return Task.FromResult(reply);
 
         //=====================2PC=======================
 
-        reply.Status = TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "D", request.Amount)) == 1;
+        reply.Status = TwoPC.Run(new ClientCommand(CurrentSlot, request.SenderId, request.Seq, "D", request.Amount)) ==
+                       1;
 
+        Console.WriteLine("RESULT: " + reply.Status);
         return Task.FromResult(reply);
     }
 
@@ -107,7 +126,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
         if (isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
-        while (!primary.ContainsKey(CurrentSlot)) { }
+        while (primary[CurrentSlot] == -1) ;
 
         if (primary[CurrentSlot] != id) return Task.FromResult(reply);
 
@@ -120,6 +139,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
 
     public override Task<CompareSwapReply> AcceptCompareSwapResult(CompareSwapResult request, ServerCallContext context)
     {
+        Console.WriteLine("HELLO");
         lock (_ackLock)
         {
             if (!_ack.ContainsKey(request.SenderId))
@@ -130,7 +150,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         }
 
         Console.WriteLine("Received result for slot {0}: {1}", request.Slot, request.Value);
-        
+
         if (!isFrozen[CurrentSlot])
             primary[request.Slot] = request.Value;
 

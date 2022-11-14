@@ -1,6 +1,5 @@
-﻿using Google.Protobuf.WellKnownTypes;
+﻿using System.Collections.Concurrent;
 using Grpc.Core;
-using System.Collections.Concurrent;
 
 namespace DADProject;
 
@@ -8,45 +7,46 @@ namespace DADProject;
 // ChatServerServiceBase is the generated base implementation of the service
 public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceBase
 {
+    private readonly Dictionary<int, int> _ack = new();
     private readonly object _ackLock = new();
-    private int currentSlot = 1;
-    private Dictionary<int, int> _ack = new();
+    private readonly Dictionary<int, bool> isFrozen;
     private readonly ConcurrentDictionary<int, int> isPrimary; //  primary/backup
 
     private readonly TwoPhaseCommit TwoPC;
-    private readonly Dictionary<int, bool> isFrozen;
 
-    public BankTwoPCService(ConcurrentDictionary<int, int> isPrimary, TwoPhaseCommit TwoPC, Dictionary<int, bool> isFrozen)
+    public BankTwoPCService(ConcurrentDictionary<int, int> isPrimary, TwoPhaseCommit TwoPC,
+        Dictionary<int, bool> isFrozen)
     {
         this.isPrimary = isPrimary;
         this.TwoPC = TwoPC;
         this.isFrozen = isFrozen;
     }
 
-    public int CurrentSlot
-    {
-        get { return currentSlot; }
-        set { currentSlot = value; }
-    }
+    public int CurrentSlot { get; set; } = 1;
 
     // All tentatives/commits coming from anyone other than the leader will be ignored!
-    private bool CheckLeadership(int slot, int senderID) {
+    private bool CheckLeadership(int slot, int senderID)
+    {
+        // maybe don't wait here
+        // or maybe while isPrimary[slot] == -1
+        while (isFrozen[CurrentSlot]) ;
 
-        if (slot > currentSlot || isFrozen[currentSlot])
+        if (slot > CurrentSlot)
             return false;
 
         // Checking if the leader has always been senderID since the given slot
-        for (int i = slot; i <= currentSlot - 1; ++i)
+        for (var i = slot; i <= CurrentSlot - 1; ++i)
             if (isPrimary[i] != senderID)
                 return false;
 
-        if (isPrimary[currentSlot] != senderID  && isPrimary[currentSlot] != -1)
+        if (isPrimary[CurrentSlot] != senderID && isPrimary[CurrentSlot] != -1)
             return false;
 
         return true;
     }
 
-    public override Task<ListPendingRequestsReply> ListPendingRequests(ListPendingRequestsRequest request, ServerCallContext context)
+    public override Task<ListPendingRequestsReply> ListPendingRequests(ListPendingRequestsRequest request,
+        ServerCallContext context)
     {
         lock (_ackLock)
         {
@@ -57,7 +57,8 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
             _ack[request.SenderId] = request.Seq;
         }
 
-        if (isFrozen[currentSlot]) return Task.FromResult(new ListPendingRequestsReply { Status = false, Ack = request.Seq });
+        if (isFrozen[CurrentSlot])
+            return Task.FromResult(new ListPendingRequestsReply { Status = false, Ack = request.Seq });
 
         return Task.FromResult(TwoPC.ListPendingRequest(request.GlobalSeqNumber, request.Seq));
     }
@@ -80,15 +81,15 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
         var reply = new TwoPCTentativeReply { Status = -1, Ack = request.Seq };
 
         if (CheckLeadership(request.Command.Slot, request.SenderId))
-        {
             reply.Status = TwoPC.AddTentative(
-                request.Command.GlobalSeqNumber, 
-                new(request.Command.Slot, 
-                    request.Command.ClientId, 
-                    request.Command.ClientSeqNumber, 
-                    request.Command.Type, 
-                    request.Command.Amount)) ? 1 : 0;
-        }
+                request.Command.GlobalSeqNumber,
+                new ClientCommand(request.Command.Slot,
+                    request.Command.ClientId,
+                    request.Command.ClientSeqNumber,
+                    request.Command.Type,
+                    request.Command.Amount))
+                ? 1
+                : 0;
 
         return Task.FromResult(reply);
     }
@@ -107,17 +108,14 @@ public class BankTwoPCService : ProjectBankTwoPCService.ProjectBankTwoPCServiceB
         var reply = new TwoPCCommitReply { Ack = request.Seq };
 
         if (CheckLeadership(request.Command.Slot, request.SenderId))
-        {
             TwoPC.AddCommitted(
                 request.Command.GlobalSeqNumber,
-                new(request.Command.Slot,
+                new ClientCommand(request.Command.Slot,
                     request.Command.ClientId,
                     request.Command.ClientSeqNumber,
                     request.Command.Type,
                     request.Command.Amount));
-        }
 
         return Task.FromResult(reply);
     }
-
 }
