@@ -115,7 +115,10 @@ public class TwoPhaseCommit
 
             //caso uma maioria de servidores esteja frozen
             if (responses.FindAll(r => r.Status).Count + 1 < majority)
+            {
                 primary[CurrentSlot] = -1;
+                return;
+            }
 
             //processa respostas
             foreach (var res in responses)
@@ -241,6 +244,7 @@ public class TwoPhaseCommit
             lock (account)
             {
                 account.Deposit(cmd.Amount);
+                Console.WriteLine("1-INSIDE 2PC lock");
             }
 
             return 1;
@@ -249,6 +253,7 @@ public class TwoPhaseCommit
         if (cmd.Type == "W")
             lock (account)
             {
+                Console.WriteLine("2-INSIDE 2PC lock");
                 return account.Withdraw(cmd.Amount) ? 1 : 0;
             }
 

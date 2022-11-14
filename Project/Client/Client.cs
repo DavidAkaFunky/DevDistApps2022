@@ -1,17 +1,14 @@
-﻿namespace DADProject;
-using System.Globalization;
+﻿using System.Globalization;
+using System.Text;
+
+namespace DADProject;
+
 public class Client
 {
-
-    private static int _id;
     private static int _initialSleepTime;
 
-    private static int Id
-    {
-        set => _id = value;
-        get => _id;
-    }
-    
+    private static int Id { set; get; }
+
     public static void Main(string[] args)
     {
         const string DEPOSIT_CMD = "D";
@@ -19,21 +16,22 @@ public class Client
         const string READ_BALANCE_CMD = "R";
         const string WAIT_CMD = "S";
 
-        Console.OutputEncoding = System.Text.Encoding.Unicode;
+        Console.OutputEncoding = Encoding.Unicode;
         if (args.Length != 4)
         {
-            Console.Error.WriteLine("Wrong number of arguments: [id] [generalConfigPath] [clientConfigPath] [startTime]");
+            Console.Error.WriteLine(
+                "Wrong number of arguments: [id] [generalConfigPath] [clientConfigPath] [startTime]");
             return;
         }
 
         try
         {
-            _id = int.Parse(args[0]);
+            Id = int.Parse(args[0]);
             var currentTime = DateTime.Now;
             var startTime = Convert.ToDateTime(args[3]);
             if (startTime < currentTime)
                 startTime = startTime.AddDays(1);
-            _initialSleepTime = (int)(startTime - currentTime).TotalMilliseconds + 1000;
+            _initialSleepTime = (int)(startTime - currentTime).TotalMilliseconds;
         }
         catch (Exception)
         {
@@ -52,7 +50,7 @@ public class Client
         });
 
         AppContext.SetSwitch("System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-        ClientFrontend frontend = new(bankServers, _id);
+        ClientFrontend frontend = new(bankServers, Id);
 
         PrintHeader();
 
@@ -82,18 +80,20 @@ public class Client
                             Console.Error.WriteLine("ERROR: Invalid deposit amount");
                             break;
                         }
+
                         frontend.Deposit(amount);
                     }
                     catch (FormatException)
                     {
                         try
                         {
-                            amount = (double) int.Parse(tokens[1]);
+                            amount = int.Parse(tokens[1]);
                             if (amount <= 0)
                             {
                                 Console.Error.WriteLine("ERROR: Invalid deposit amount");
                                 break;
                             }
+
                             frontend.Deposit(amount);
                         }
                         catch (FormatException)
@@ -109,6 +109,7 @@ public class Client
                         Console.Error.WriteLine("ERROR: Invalid command");
                         break;
                     }
+
                     try
                     {
                         amount = double.Parse(tokens[1], CultureInfo.InvariantCulture);
@@ -124,7 +125,7 @@ public class Client
                     {
                         try
                         {
-                            amount = (double) int.Parse(tokens[1]);
+                            amount = int.Parse(tokens[1]);
                             if (amount <= 0)
                             {
                                 Console.Error.WriteLine("ERROR: Invalid withdrawal amount");
@@ -155,6 +156,7 @@ public class Client
                         Console.Error.WriteLine("ERROR: Invalid command");
                         break;
                     }
+
                     try
                     {
                         var milliseconds = int.Parse(tokens[1]);
@@ -179,7 +181,7 @@ public class Client
         });
     }
 
-    public static void PrintHeader() 
+    public static void PrintHeader()
     {
         Console.WriteLine("==========================================================");
         Console.WriteLine(" $$$$$$\\  $$\\       $$$$$$\\ $$$$$$$$\\ $$\\   $$\\ $$$$$$$$\\ ");

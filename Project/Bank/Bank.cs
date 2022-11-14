@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
 using Grpc.Core;
 using Timer = System.Timers.Timer;
 
@@ -60,7 +59,7 @@ internal class Bank
             "S" => Command.SlotCount,
             "D" => Command.SlotDuration,
             "F" => Command.SlotState,
-            _ => Command.Invalid,
+            _ => Command.Invalid
         };
     }
 
@@ -99,7 +98,7 @@ internal class Bank
                         break;
                     case Command.SlotState:
                         // Giga Cursed
-                        foreach (var c in new string[] { ",", "(", ")" })
+                        foreach (var c in new[] { ",", "(", ")" })
                             line = line.Replace(c, string.Empty);
                         var fields = line.Split();
                         Dictionary<int, ServerState> states = new();
@@ -107,14 +106,14 @@ internal class Bank
                         {
                             var _id = int.Parse(fields[i]);
                             if (!_bankIDs.Contains(_id)) continue;
-                            bool isFrozen = fields[i + 1] != "N";
+                            var isFrozen = fields[i + 1] != "N";
                             bool isSuspected;
                             if (_id == id)
                                 isSuspected = isFrozen;
                             else
                                 isSuspected = fields[i + 2] == "S";
                             var state = new ServerState
-                            { IsFrozen = isFrozen, IsSuspected = isSuspected };
+                                { IsFrozen = isFrozen, IsSuspected = isSuspected };
                             states.Add(_id, state);
                         }
 
@@ -176,8 +175,8 @@ internal class Bank
 
         Server server = new()
         {
-            Services = 
-            { 
+            Services =
+            {
                 ProjectBankServerService.BindService(bankServerService),
                 ProjectBankTwoPCService.BindService(bank2PCService)
             },
@@ -199,8 +198,8 @@ internal class Bank
 
         void HandleTimer()
         {
+            primaries[_currentSlot + 1] = -1;
             _currentSlot++;
-            primaries[_currentSlot] = -1;
 
             bankServerService.CurrentSlot = _currentSlot;
             bank2PCService.CurrentSlot = _currentSlot;
@@ -217,17 +216,24 @@ internal class Bank
 
             Console.WriteLine("--NEW SLOT: {0}--", _currentSlot);
 
-            if (isPerceivedLeader[_currentSlot])
+            if (isPerceivedLeader[_currentSlot] && !isFrozen[_currentSlot])
+            {
                 bankToBoneyFrontends.ForEach(frontend => frontend.RequestCompareAndSwap(_currentSlot));
+                Console.WriteLine("EXECUTED!");
+            }
 
+            Console.WriteLine(isPerceivedLeader[_currentSlot]);
+            Console.WriteLine("AFTER COMPARE SWAP REQUEST");
+            var _slot = _currentSlot;
             if (!isFrozen[_currentSlot])
             {
-                while (primaries[_currentSlot] == -1) ;
+                while (primaries[_currentSlot] == -1)
+                    if (_slot != _currentSlot)
+                        return;
 
-                if (primaries[_currentSlot] == id && primaries[_currentSlot] != primaries[_currentSlot - 1])
-                {
+                if (primaries[_currentSlot] == id && primaries[_currentSlot - 1] != -1 &&
+                    primaries[_currentSlot] != primaries[_currentSlot - 1])
                     TwoPC.CleanUp2PC(_currentSlot);
-                }
             }
         }
 
@@ -261,5 +267,4 @@ internal class Bank
         Console.WriteLine("\\_______/ \\__|  \\__|\\__|  \\__|\\__|  \\__|");
         Console.WriteLine("========================================");
     }
-
 }

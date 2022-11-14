@@ -54,7 +54,6 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         var reply = new ReadBalanceReply { Balance = -1, Ack = request.Seq };
 
         //=============Check If Leader===================
-
         // if i am frozen, reply with Balance = -1 (unavailable)
         if (isFrozen[CurrentSlot]) return Task.FromResult(reply);
 
@@ -69,7 +68,7 @@ internal class BankServerService : ProjectBankServerService.ProjectBankServerSer
         lock (account)
         {
             reply.Balance = account.Balance;
-            Console.WriteLine("HERE INSIDE READ BALANCE");
+            Console.WriteLine($"Account Balance after: {reply.Balance}");
         }
 
         return Task.FromResult(reply);
