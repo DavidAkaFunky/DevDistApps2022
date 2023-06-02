@@ -1,3 +1,5 @@
 # DevDistApps2022
 
-Final project grade: **16,5** / 20
+## Project
+- Checkpoint grade: 15,8 / 20
+- Final project grade: **16,5** / 20
